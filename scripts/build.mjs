@@ -2,10 +2,13 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const target = process.argv[2] ?? ".";
-const required = target.includes("desktop")
+const targetArg = process.argv[2] ?? ".";
+const target = path.resolve(process.cwd(), targetArg);
+const workspaceName = path.basename(target);
+
+const required = workspaceName === "desktop"
   ? ["electron/main.cjs", "electron/preload.cjs", "src/index.html"]
-  : target.includes("gateway")
+  : workspaceName === "gateway"
     ? ["src/main.mjs", "src/http.mjs", "src/wss.mjs", "src/config.mjs"]
     : [];
 
@@ -16,4 +19,5 @@ for (const file of required) {
     process.exit(1);
   }
 }
+
 console.log(`build: ${target} skeleton verified`);
