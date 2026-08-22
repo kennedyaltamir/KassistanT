@@ -44,7 +44,26 @@ jobs:
             echo "created=false" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Validate lockfile
+      - name: Verify generated lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f pnpm-lock.yaml
+          git diff --check -- pnpm-lock.yaml
+
+      - name: Persist generated lockfile
+        if: github.event_name == 'push' && steps.lockfile.outputs.created == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git diff --cached --check
+          git commit -m "chore(ci): generate deterministic pnpm lockfile"
+          git push origin HEAD:bootstrap/dependency-determinism
+
+      - name: Validate frozen installation
         shell: bash
         run: |
           set -euo pipefail
@@ -57,15 +76,3 @@ jobs:
           pnpm typecheck
           pnpm test
           pnpm build
-
-      - name: Commit generated lockfile
-        if: github.event_name == 'push' && steps.lockfile.outputs.created == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git diff --cached --check
-          git commit -m "chore(ci): generate deterministic pnpm lockfile"
-          git push origin HEAD:bootstrap/dependency-determinism
