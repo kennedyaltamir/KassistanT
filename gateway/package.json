@@ -1,0 +1,17 @@
+{
+  "name": "@kassist/gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/main.mjs",
+    "lint": "node ../../scripts/lint.mjs gateway",
+    "typecheck": "node ../../scripts/typecheck.mjs gateway",
+    "test": "node --test",
+    "test:unit": "node --test",
+    "test:integration": "node --test",
+    "test:e2e": "node --test",
+    "build": "node ../../scripts/build.mjs gateway",
+    "clean": "node ../../scripts/clean.mjs gateway"
+  }
+}

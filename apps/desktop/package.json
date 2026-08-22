@@ -1,0 +1,25 @@
+{
+  "name": "@kassist/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "electron electron/main.cjs",
+    "lint": "node ../../scripts/lint.mjs apps/desktop",
+    "typecheck": "node ../../scripts/typecheck.mjs apps/desktop",
+    "test": "node --test",
+    "test:unit": "node --test",
+    "test:integration": "node --test",
+    "test:e2e": "node --test",
+    "build": "node ../../scripts/build.mjs apps/desktop",
+    "clean": "node ../../scripts/clean.mjs apps/desktop"
+  },
+  "devDependencies": {
+    "electron": "37.2.6",
+    "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  }
+}

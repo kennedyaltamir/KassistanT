@@ -1,0 +1,16 @@
+{
+  "name": "@kassist/domain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "tsc --noEmit --pretty false",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "node --test",
+    "test:unit": "node --test",
+    "test:integration": "node --test",
+    "test:e2e": "node --test",
+    "build": "tsc --noEmit --pretty false",
+    "clean": "rm -rf dist"
+  }
+}
