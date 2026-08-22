@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { DatabaseError } from "./errors.js";
-import { applyMigrations } from "./migration-runner.js";
+import { applyMigrations, readAppliedMigrations } from "./migration-runner.js";
 import { discoverMigrations } from "./migrations.js";
 
 export interface SQLiteDatabaseOptions {
@@ -68,6 +68,10 @@ export class SQLiteDatabase {
     } catch (error) {
       throw new DatabaseError("DATABASE_QUERY_FAILED", "SQLite query failed", error);
     }
+  }
+
+  appliedMigrations() {
+    return readAppliedMigrations(this.connection);
   }
 
   healthCheck(): DatabaseHealth {
