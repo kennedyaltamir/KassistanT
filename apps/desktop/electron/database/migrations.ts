@@ -23,11 +23,16 @@ export async function discoverMigrations(directory: string): Promise<MigrationDe
     const match = entry.name.match(MIGRATION_PATTERN);
     if (!match) continue;
 
+    const migrationId = match[1];
+    if (!migrationId) {
+      throw new Error(`Invalid migration filename: ${entry.name}`);
+    }
+
     const filePath = path.join(directory, entry.name);
     const content = await readFile(filePath);
 
     migrations.push({
-      id: match[1],
+      id: migrationId,
       fileName: entry.name,
       filePath,
       sql: content.toString("utf8"),
