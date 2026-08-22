@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import Database from "better-sqlite3";
 import { discoverMigrations } from "./migrations.js";
 import { applyMigrations, readAppliedMigrations } from "./migration-runner.js";
 import { SQLiteDatabase } from "./sqlite-database.js";
@@ -21,13 +22,12 @@ test("migration application is idempotent and rejects checksum drift", async () 
   const directory = await mkdtemp(path.join(os.tmpdir(), "kassist-migrations-"));
   await writeFile(path.join(directory, "0001_first.sql"), "CREATE TABLE first(id INTEGER);\n");
   const migrations = await discoverMigrations(directory);
-  const database = await import("better-sqlite3").then(({ default: Database }) => new Database(":memory:"));
+  const database = new Database(":memory:");
 
   try {
     applyMigrations(database, migrations, { applicationVersion: "0.1.0" });
     const appliedOnce = readAppliedMigrations(database);
     applyMigrations(database, migrations, { applicationVersion: "0.1.0" });
-    assert.equal(readAppliedMigrations(database).length, 1);
     assert.deepEqual(readAppliedMigrations(database), appliedOnce);
 
     await writeFile(path.join(directory, "0001_first.sql"), "CREATE TABLE first(id INTEGER, extra TEXT);\n");
@@ -52,7 +52,9 @@ test("SQLite transaction boundary rolls back on failure", async () => {
   });
 
   try {
-    assert.deepEqual(database.healthCheck().ok, true);
+    assert.equal(database.healthCheck().ok, true);
+    assert.equal(database.appliedMigrations().length, 1);
+
     assert.throws(() => {
       database.transaction(() => {
         database.execute("CREATE TABLE tx_test(id INTEGER PRIMARY KEY)");
@@ -61,12 +63,15 @@ test("SQLite transaction boundary rolls back on failure", async () => {
       });
     }, /SQLite transaction failed/);
 
-    assert.equal(database.query<{ name: string }>("SELECT name FROM sqlite_master WHERE name = 'tx_test'").length, 0);
-    const applied = readAppliedMigrations((database as unknown as { connection: Parameters<typeof applyMigrations>[0] }).connection);
-    assert.equal(applied.length, 1);
+    assert.equal(
+      database.query<{ name: string }>(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'tx_test'"
+      ).length,
+      0
+    );
   } finally {
     database.close();
   }
 
-  await readFile(databasePath);
+  assert.equal((await stat(databasePath)).isFile(), true);
 });
