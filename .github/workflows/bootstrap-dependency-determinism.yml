@@ -68,7 +68,7 @@ jobs:
           git push origin HEAD:bootstrap/dependency-determinism
 
   validate-bootstrap:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/bootstrap/dependency-determinism') || github.event_name == 'workflow_dispatch'
+    if: ${{ always() && (github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/bootstrap/dependency-determinism') || github.event_name == 'workflow_dispatch') }}
     needs: generate-lockfile
     runs-on: ubuntu-latest
     permissions:
