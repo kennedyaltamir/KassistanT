@@ -3,14 +3,14 @@ name: Bootstrap Lockfile
 on:
   push:
     branches:
-      - bootstrap/dependency-determinism
+      - m5-1-sqlite-foundation
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: bootstrap-lockfile
+  group: bootstrap-lockfile-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -23,7 +23,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
-          ref: bootstrap/dependency-determinism
+          ref: ${{ github.ref_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
@@ -58,4 +58,4 @@ jobs:
           git add pnpm-lock.yaml
           git diff --cached --check
           git commit -m "chore(ci): reconcile deterministic pnpm lockfile"
-          git push origin HEAD:bootstrap/dependency-determinism
+          git push origin HEAD:${{ github.ref_name }}
