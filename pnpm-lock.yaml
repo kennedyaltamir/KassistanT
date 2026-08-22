@@ -6,7 +6,11 @@ settings:
 
 importers:
 
-  .: {}
+  .:
+    devDependencies:
+      typescript:
+        specifier: 5.8.3
+        version: 5.8.3
 
   apps/desktop:
     dependencies:
@@ -20,9 +24,6 @@ importers:
       electron:
         specifier: 37.2.6
         version: 37.2.6
-      typescript:
-        specifier: 5.8.3
-        version: 5.8.3
 
   gateway: {}
 
