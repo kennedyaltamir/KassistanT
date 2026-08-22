@@ -4,17 +4,23 @@ on:
   pull_request:
     branches:
       - main
+  workflow_run:
+    workflows:
+      - Bootstrap Lockfile
+    types:
+      - completed
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: bootstrap-validation-${{ github.event.pull_request.number || github.ref }}
+  group: bootstrap-validation-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.ref }}
   cancel-in-progress: true
 
 jobs:
   validate-bootstrap:
+    if: ${{ github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'bootstrap/dependency-determinism') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,7 +29,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.ref_name }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.ref_name }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
