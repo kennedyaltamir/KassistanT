@@ -3,8 +3,7 @@ name: Bootstrap Lockfile
 on:
   push:
     branches:
-      - bootstrap/dependency-determinism
-      - 'm5-*'
+      - m5-1-sqlite-foundation
   workflow_dispatch:
 
 permissions:
