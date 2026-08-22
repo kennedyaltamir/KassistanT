@@ -1,3 +1,3 @@
 # KassisT
 
-KassisT bootstrap repository.
+Bootstrap repository.
