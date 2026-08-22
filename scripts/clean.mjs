@@ -2,7 +2,9 @@
 import fs from "node:fs";
 import path from "node:path";
 
-const target = process.argv[2] ?? ".";
+const targetArg = process.argv[2] ?? ".";
+const target = path.resolve(process.cwd(), targetArg);
+
 for (const entry of fs.readdirSync(target)) {
   const full = path.join(target, entry);
   if (entry === "node_modules" || entry === ".git") continue;
@@ -10,4 +12,5 @@ for (const entry of fs.readdirSync(target)) {
     fs.rmSync(path.join(full, "dist"), { recursive: true, force: true });
   }
 }
+
 console.log(`clean: ${target}`);
