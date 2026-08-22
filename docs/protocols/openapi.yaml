@@ -3,63 +3,104 @@ info:
   title: KassisT Gateway API
   version: 1.0.0
   description: Conservative projection of routes explicitly defined by the approved baseline. Undefined schemas are not invented.
+servers:
+  - url: /
+    description: Relative server URL; deployment host is intentionally unspecified by the baseline.
 paths:
   /health:
     get:
       operationId: gatewayHealth
+      summary: Health status
+      x-kassist-security-status: PUBLIC
       responses:
         '200':
           description: Health response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status mapping remains PARTIAL/MISSING.
   /ready:
     get:
       operationId: gatewayReady
+      summary: Readiness status
+      x-kassist-security-status: PUBLIC
       responses:
         '200':
           description: Readiness response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status mapping remains PARTIAL/MISSING.
   /webhooks/whatsapp:
     get:
       operationId: whatsappWebhookVerify
+      summary: Verify WhatsApp webhook
+      x-kassist-security-status: PROVIDER-VERIFIED
       responses:
         '200':
           description: Provider verification response; EXTERNAL/PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact provider verification status mapping remains EXTERNAL/PARTIAL.
     post:
       operationId: whatsappWebhookReceive
+      summary: Receive WhatsApp webhook
+      x-kassist-security-status: PROVIDER-VERIFIED
       responses:
         '200':
           description: Provider webhook acknowledgement; EXTERNAL/PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact provider error status mapping remains EXTERNAL/PARTIAL.
   /v1/devices/enrollment/start:
     post:
       operationId: startDeviceEnrollment
+      summary: Start device enrollment
+      x-kassist-security-status: PARTIAL
       responses:
         '200':
           description: Enrollment start response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
   /v1/devices/enrollment/complete:
     post:
       operationId: completeDeviceEnrollment
+      summary: Complete device enrollment
+      x-kassist-security-status: PARTIAL
       responses:
         '200':
           description: Enrollment completion response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
   /v1/devices/enrollment/cancel:
     post:
       operationId: cancelDeviceEnrollment
+      summary: Cancel device enrollment
+      x-kassist-security-status: PARTIAL
       responses:
         '200':
           description: Cancellation response; schema PARTIAL/MISSING
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
   /v1/devices/revoke:
     post:
       operationId: revokeDevice
+      summary: Revoke device
+      x-kassist-security-status: PARTIAL
       responses:
         '200':
           description: Revocation response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
   /v1/devices/rotate:
     post:
       operationId: rotateDeviceKey
+      summary: Rotate device key
+      x-kassist-security-status: PARTIAL
       responses:
         '200':
           description: Rotation response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
   /v1/devices/{device_id}/status:
     get:
       operationId: getDeviceStatus
+      summary: Get device status
+      x-kassist-security-status: PARTIAL
       parameters:
         - name: device_id
           in: path
@@ -69,3 +110,5 @@ paths:
       responses:
         '200':
           description: Device status response; schema PARTIAL
+        '4XX':
+          description: Generic client error derived from the baseline error envelope; exact status and authorization mapping remain PARTIAL/MISSING.
