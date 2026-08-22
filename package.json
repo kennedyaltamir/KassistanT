@@ -12,5 +12,8 @@
     "build": "pnpm -r build",
     "dev": "pnpm --filter @kassist/desktop dev",
     "clean": "pnpm -r clean"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
   }
 }
