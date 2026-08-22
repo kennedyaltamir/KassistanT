@@ -1,11 +1,11 @@
-# Device Enrollment Protocol
+# Device Enrollment Contract
 
-Endpoints:
+Status: DEFINED / PARTIAL.
 
-- `POST /v1/devices/enrollment/start`
-- `POST /v1/devices/enrollment/complete`
-- `POST /v1/devices/enrollment/cancel`
+Routes: POST `/v1/devices/enrollment/start`, `/complete`, `/cancel`.
 
-Enrollment produces an enrollment id, device id, pairing code and expiry. Completion associates the Store, Device and Ed25519 public key. Private key remains in Windows Secure Storage.
+States: PENDING, AUTHORIZED, COMPLETED, EXPIRED, CANCELLED, REVOKED.
 
-Authentication after enrollment is challenge-response over WSS. Shared-secret HMAC is not the normative model.
+Start produces `enrollment_id`, `device_id`, `pairing_code` and `expires_at`. Pairing codes are one-time/short-lived, contain no private key and must not appear in logs. Completion associates Store, Device and Ed25519 public key; private key remains in Windows Secure Storage.
+
+Exact request/response schemas, status codes, authorization and endpoint idempotency remain PARTIAL/MISSING. Runtime is NOT_IMPLEMENTED.
