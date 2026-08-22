@@ -36,27 +36,22 @@ jobs:
         with:
           node-version: 22
 
-      - name: Generate lockfile when absent
+      - name: Reconcile lockfile
         id: lockfile
         shell: bash
         run: |
           set -euo pipefail
-          if [[ ! -f pnpm-lock.yaml ]]; then
-            pnpm install --lockfile-only
-            echo "created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "created=false" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: Verify generated lockfile
-        shell: bash
-        run: |
-          set -euo pipefail
+          pnpm install --lockfile-only
           test -f pnpm-lock.yaml
           git diff --check
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Persist generated lockfile
-        if: steps.lockfile.outputs.created == 'true'
+      - name: Persist lockfile
+        if: steps.lockfile.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +59,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add pnpm-lock.yaml
           git diff --cached --check
-          git commit -m "chore(ci): generate deterministic pnpm lockfile"
+          git commit -m "chore(ci): reconcile deterministic pnpm lockfile"
           git push origin HEAD:bootstrap/dependency-determinism
 
   validate-bootstrap:
