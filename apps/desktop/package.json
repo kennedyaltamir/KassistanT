@@ -7,17 +7,20 @@
     "dev": "electron electron/main.cjs",
     "lint": "node ../../scripts/lint.mjs .",
     "typecheck": "node ../../scripts/typecheck.mjs .",
-    "test": "node --test",
-    "test:unit": "node --test",
-    "test:integration": "node --test",
-    "test:e2e": "node --test",
+    "test": "node ../../scripts/test-desktop.mjs",
+    "test:unit": "node ../../scripts/test-desktop.mjs",
+    "test:integration": "node ../../scripts/test-desktop.mjs",
+    "test:e2e": "node ../../scripts/test-desktop.mjs",
     "build": "node ../../scripts/build.mjs .",
     "clean": "node ../../scripts/clean.mjs ."
   },
   "devDependencies": {
-    "electron": "43.4.0"
+    "@types/better-sqlite3": "9.6.0",
+    "electron": "43.4.0",
+    "tsx": "4.23.12"
   },
   "dependencies": {
+    "better-sqlite3": "12.11.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   }
