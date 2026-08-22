@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "node src/main.mjs",
-    "lint": "node ../../scripts/lint.mjs gateway",
-    "typecheck": "node ../../scripts/typecheck.mjs gateway",
+    "lint": "node ../scripts/lint.mjs gateway",
+    "typecheck": "node ../scripts/typecheck.mjs gateway",
     "test": "node --test",
     "test:unit": "node --test",
     "test:integration": "node --test",
     "test:e2e": "node --test",
-    "build": "node ../../scripts/build.mjs gateway",
-    "clean": "node ../../scripts/clean.mjs gateway"
+    "build": "node ../scripts/build.mjs gateway",
+    "clean": "node ../scripts/clean.mjs gateway"
   }
 }
