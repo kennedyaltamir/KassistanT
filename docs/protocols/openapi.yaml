@@ -1,0 +1,71 @@
+openapi: 3.1.0
+info:
+  title: KassisT Gateway API
+  version: 1.0.0
+  description: Conservative projection of routes explicitly defined by the approved baseline. Undefined schemas are not invented.
+paths:
+  /health:
+    get:
+      operationId: gatewayHealth
+      responses:
+        '200':
+          description: Health response; schema PARTIAL
+  /ready:
+    get:
+      operationId: gatewayReady
+      responses:
+        '200':
+          description: Readiness response; schema PARTIAL
+  /webhooks/whatsapp:
+    get:
+      operationId: whatsappWebhookVerify
+      responses:
+        '200':
+          description: Provider verification response; EXTERNAL/PARTIAL
+    post:
+      operationId: whatsappWebhookReceive
+      responses:
+        '200':
+          description: Provider webhook acknowledgement; EXTERNAL/PARTIAL
+  /v1/devices/enrollment/start:
+    post:
+      operationId: startDeviceEnrollment
+      responses:
+        '200':
+          description: Enrollment start response; schema PARTIAL
+  /v1/devices/enrollment/complete:
+    post:
+      operationId: completeDeviceEnrollment
+      responses:
+        '200':
+          description: Enrollment completion response; schema PARTIAL
+  /v1/devices/enrollment/cancel:
+    post:
+      operationId: cancelDeviceEnrollment
+      responses:
+        '200':
+          description: Cancellation response; schema PARTIAL/MISSING
+  /v1/devices/revoke:
+    post:
+      operationId: revokeDevice
+      responses:
+        '200':
+          description: Revocation response; schema PARTIAL
+  /v1/devices/rotate:
+    post:
+      operationId: rotateDeviceKey
+      responses:
+        '200':
+          description: Rotation response; schema PARTIAL
+  /v1/devices/{device_id}/status:
+    get:
+      operationId: getDeviceStatus
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Device status response; schema PARTIAL
