@@ -1,4 +1,7 @@
-export interface GatewayConfig {
-  host: string;
-  port: number;
-}
+/**
+ * @typedef {object} GatewayConfig
+ * @property {string} host
+ * @property {number} port
+ */
+
+export {};

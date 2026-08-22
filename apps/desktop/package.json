@@ -5,18 +5,17 @@
   "type": "commonjs",
   "scripts": {
     "dev": "electron electron/main.cjs",
-    "lint": "node ../../scripts/lint.mjs apps/desktop",
-    "typecheck": "node ../../scripts/typecheck.mjs apps/desktop",
+    "lint": "node ../../scripts/lint.mjs .",
+    "typecheck": "node ../../scripts/typecheck.mjs .",
     "test": "node --test",
     "test:unit": "node --test",
     "test:integration": "node --test",
     "test:e2e": "node --test",
-    "build": "node ../../scripts/build.mjs apps/desktop",
-    "clean": "node ../../scripts/clean.mjs apps/desktop"
+    "build": "node ../../scripts/build.mjs .",
+    "clean": "node ../../scripts/clean.mjs ."
   },
   "devDependencies": {
-    "electron": "37.2.6",
-    "typescript": "5.8.3"
+    "electron": "43.4.0"
   },
   "dependencies": {
     "react": "19.1.0",

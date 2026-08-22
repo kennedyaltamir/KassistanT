@@ -1,5 +1,9 @@
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": { "noEmit": true },
-  "include": ["src/**/*.ts", "src/**/*.mts"]
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true
+  },
+  "include": ["src/**/*.js", "src/**/*.mjs"]
 }
