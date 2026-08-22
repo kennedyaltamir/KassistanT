@@ -16,5 +16,10 @@
   "devDependencies": {
     "@types/node": "22.20.1",
     "typescript": "5.8.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
   }
 }
