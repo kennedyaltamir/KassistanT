@@ -1,3 +1,3 @@
 export function attachWssTransport() {
-  return { status: "not_implemented" as const };
+  return { status: "not_implemented" };
 }
