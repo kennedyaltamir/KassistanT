@@ -71,17 +71,25 @@ export function setConversationPolicy(jid, patch = {}) {
   return { jid, ...next };
 }
 
+/** @param {string} jid */
 export function clearConversationPolicy(jid) {
-  return setConversationPolicy(jid, { enabled: null, prompt: '' });
+  if (typeof jid !== 'string' || !jid.trim()) throw new Error('Conversation JID is required');
+  if (!jid.endsWith('@lid') && !jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@g.us')) {
+    throw new Error('Unsupported WhatsApp JID');
+  }
+  delete loadPolicies()[jid];
+  savePolicies();
+  return { jid };
 }
 
+/** @param {string} jid */
 export function getConversationPolicyStatus(jid) {
   return { jid, ...getConversationPolicy(jid) };
 }
 
 export function listConversationPolicies() {
   /** @type {Array<[string, ConversationPolicy]>} */
-  const entries = Object.entries(loadPolicies());
+  const entries = /** @type {Array<[string, ConversationPolicy]>} */ (Object.entries(loadPolicies()));
   return entries.map(([jid, value]) => ({ jid, ...value }));
 }
 
@@ -128,7 +136,7 @@ export function startAutoReply() {
     ) {
       return;
     }
-    void handleInbound({ ...message, jid: message.jid, text: message.text });
+    void handleInbound(message);
   });
 }
 
