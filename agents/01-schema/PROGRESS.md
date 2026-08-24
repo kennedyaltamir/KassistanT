@@ -2,68 +2,69 @@
 
 ## Current phase
 
-**Cross-Agent Response Consolidation / Final Schema Gate**
+**Parallel Schema Continuation / Cross-Agent Consolidation**
 
 ## Phase status
 
 - Phase 1: `DONE WITH BLOCKERS`.
 - Phase 2: `COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`.
 - Decision package: `COMPLETE / REVIEW REQUIRED`.
-- Response consolidation: `NO NEW OWNER RESPONSES / WAITING`.
+- Cross-agent consolidation: `PARTIAL / EVIDENCE INCORPORATED`.
 
 ## Current readiness
 
-- READY_FOR_MIGRATION: 0.
-- READY_AFTER_LOCAL_DECISION: 3.
-- READY_AFTER_CROSS_AGENT_DECISION: 14.
-- READY_AFTER_GLOBAL_DECISION: 1.
-- READY_AFTER_EXTERNAL_DECISION: 0.
-- BLOCKED: 10.
+- `DETERMINISTIC`: 0.
+- `DETERMINISTIC_AFTER_APPROVAL`: 3.
+- `DETERMINISTIC_AFTER_CROSS_AGENT_DECISION`: 14.
+- `DETERMINISTIC_AFTER_GLOBAL_DECISION`: 1 (`domain_outbox`).
+- `BLOCKED`: 10.
+- `UNKNOWN`: 0.
+- `READY_FOR_DDL`: 0.
 
-No table was promoted in this execution because no explicit operator approval or semantic-owner response was supplied.
+## Verified owner evidence incorporated
 
-## Owner response state
+### IA-02
+DREQ-001, DREQ-002, DREQ-005 and DREQ-006 are verified in the IA-02 decision registry.
 
-- IA-02: 0 responses received / pending.
-- IA-03: 0 responses received / pending.
-- IA-04: 0 responses received / pending.
-- IA-05: 0 responses received / pending.
-- IA-06: 0 responses received / pending.
-- IA-07: 0 responses received / pending.
-- IA-08: no blocking request issued.
+Physical impact:
+- aggregate ownership for Order/OrderItem/OrderItemModifier is clearer;
+- initial Order transition is confirmed;
+- domain errors do not create persistence requirements;
+- ActorContext persistence is explicitly not frozen/authorized.
 
-No response is inferred from prior recommendations or request documents.
+These decisions do not close the missing physical parent-key, nullability, FK-action or state-encoding questions.
+
+### IA-03
+Durable Inbox ACK is defined as local persistence in `InboundInbox`. DomainOutbox remains blocked by CONTRACT-001. Exact physical Inbox/Job/Audit field inventories remain incomplete.
+
+### IA-04
+`CONFIRMED` remains the operational sale milestone. Parent-key schema details for OrderItem/OrderItemModifier and persistence details for OrderStatusHistory remain unresolved.
+
+### IA-05
+AIExecution still requires cross-agent logical closure with IA-01/IA-03; no complete canonical physical inventory is approved.
+
+### IA-06
+Device authentication security boundaries are approved, but device persistence/status and secure credential-reference fields remain open.
+
+### IA-07
+Gateway remains the external integration boundary and CONTRACT-001 remains ambiguous; no new Desktop SQLite ownership decision was established.
 
 ## Local decisions
 
-SD-001..SD-005 remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
-
-## Requests prepared
-
-- IA-02: domain nullability/defaults, lifecycle/state semantics, store scoping.
-- IA-03: Inbox, Outbox, Job, Audit and correlation/idempotency physical semantics.
-- IA-04: OrderItem, OrderItemModifier, OrderStatusHistory parent keys and order persistence semantics.
-- IA-05: Conversation/Message and AIProfile/AIExecution/KnowledgeItem persistence semantics.
-- IA-06: Device lifecycle and secure identity persistence boundaries.
-- IA-07: Gateway/Desktop persistence boundary relevant to CONTRACT-001.
-- Global authority: CONTRACT-001 and any genuinely architecture-wide decision.
-
-## Validation policy
-
-Every owner response must be validated against its question, evidence, affected schema, conflicts and approval requirement before changing readiness.
+`SD-001..SD-005` remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
 
 ## Contract impact
 
-- CONTRACT-001: localized global blocker for DomainOutbox physical design.
-- CONTRACT-002: currently non-blocking for physical schema.
-- GOV-001: conditional/deferred; only escalated when a real source conflict changes schema interpretation.
+- `CONTRACT-001`: localized global blocker for DomainOutbox physical design.
+- `CONTRACT-002`: currently non-blocking for physical schema.
+- `GOV-001`: conditional/deferred; only escalated if a real source conflict changes schema interpretation.
 
 ## Implementation status
 
 `IMPLEMENTATION_STARTED = FALSE`.
 
-No migration was created. `0001_bootstrap.sql`, M5.1 runtime, contracts, global documentation and other agent territories remain unchanged.
+No migration was created. `0001_bootstrap.sql`, M5.1 runtime, protected contracts, global documentation and other agent territories remain unchanged.
 
 ## Next gate
 
-Receive actual owner/operator responses; validate and map them to decisions; detect conflicts; recalculate readiness; do not create `0002` until the deterministic-generation gate passes.
+Collect the remaining physical/semantic owner responses and explicit operator approvals, validate conflicts, update readiness and only then evaluate the deterministic DDL gate.
