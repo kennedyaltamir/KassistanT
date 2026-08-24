@@ -20,3 +20,7 @@
 - Confirmed IA-06 as authority for device identity/authentication/revocation and IA-03 as authority for durable Inbox/ACK/replay infrastructure.
 - Confirmed IA-07 owns generic WSS connection/transport mechanics only after authenticated session identity is supplied.
 - No new global architectural decision was created.
+- Produced `WSS-INTEGRATION-GATE.md`, `WSS-IA06-CONTRACT.md`, `WSS-IA03-CONTRACT.md` and `WSS-RUNTIME-V1-REQUIREMENTS.md`.
+- Replaced vague “await IA-06/IA-03” dependencies with explicit acceptance gates for authenticated session, revocation, reconnect/reauthentication, durable intake, ACK authorization, recovery scope, sequence and minimum backpressure/error behavior.
+- Reduced the first WSS lifecycle slice to explicit V1 requirements and deferred future capabilities where the contract permits.
+- No runtime WSS code was added and no global decision was created.
