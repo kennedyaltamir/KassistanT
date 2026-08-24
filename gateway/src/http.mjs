@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
+import { createReadinessChecker } from './readiness.mjs';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
@@ -18,6 +20,13 @@ function json(response, statusCode, payload) {
 }
 
 /** @param {import('node:http').IncomingMessage} request @returns {Promise<Record<string, unknown>>} */
+function correlationId(request) {
+  const supplied = request.headers['x-correlation-id'];
+  return typeof supplied === 'string' && supplied.length > 0
+    ? supplied
+    : randomUUID();
+}
+
 function parseBody(request) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -50,13 +59,44 @@ function writeSse(response, event) {
   response.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
 }
 
-export function createHttpServer() {
+export function createHttpServer({ readinessChecks = {} } = {}) {
+  const checkReadiness = createReadinessChecker(readinessChecks);
+
   return createServer(async (request, response) => {
+    const id = correlationId(request);
+    response.setHeader('x-correlation-id', id);
+
+    try {
     const url = new URL(request.url ?? '/', 'http://127.0.0.1');
 
     if (request.method === 'GET' && url.pathname === '/health') {
-      return json(response, 200, { ok: true, service: 'kassist-whatsapp-gateway' });
+      return json(response, 200, {
+        status: 'ok',
+        correlation_id: id,
+      });
     }
+    if (request.method === 'GET' && url.pathname === '/ready') {
+      const result = await checkReadiness();
+
+      if (result.ready) {
+        return json(response, 200, {
+          status: 'ready',
+          checks: result.checks,
+          correlation_id: id,
+        });
+      }
+
+      return json(response, 503, {
+        error: {
+          code: 'not_ready',
+          message: 'Gateway dependencies are not ready.',
+          retryable: true,
+          correlation_id: id,
+        },
+        checks: result.checks,
+      });
+    }
+
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') return json(response, 200, getStatus());
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/status') return json(response, 200, getAutoReplyStatus());
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/provider') return json(response, 200, await getLlmProviderStatus());
@@ -165,7 +205,24 @@ export function createHttpServer() {
       }
     }
 
-    return json(response, 404, { error: 'not_found' });
+      return json(response, 404, {
+        error: {
+          code: 'not_found',
+          message: 'Route not found.',
+          retryable: false,
+          correlation_id: id,
+        },
+      });
+    } catch {
+      return json(response, 500, {
+        error: {
+          code: 'internal_error',
+          message: 'Internal server error.',
+          retryable: true,
+          correlation_id: id,
+        },
+      });
+    }
   });
 }
 

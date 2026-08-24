@@ -2,13 +2,54 @@
 
 ## Auditoria inicial
 
-- O território Gateway tem código mínimo; a maior parte do comportamento de HTTP/WSS está documentada em contratos, não implementada. FACT. fileciteturn51file0L2-L2 fileciteturn53file0L2-L2
-- A fronteira de transporte deve permanecer separada das regras determinísticas do Core. FACT. fileciteturn56file0L2-L2
-- Durabilidade e ACK dependem da fronteira Inbox; o Gateway não deve tratar recebimento de rede como processamento concluído. FACT. fileciteturn55file0L2-L2
-- Idempotência endpoint-specific não pode ser inventada enquanto as regras permanecerem ausentes. FACT. fileciteturn57file0L2-L2
+- O território Gateway tem código mínimo; a maior parte do comportamento de HTTP/WSS está documentada em contratos, não implementada. FACT.
+- A fronteira de transporte deve permanecer separada das regras determinísticas do Core. FACT.
+- Durabilidade e ACK dependem da fronteira Inbox; o Gateway não deve tratar recebimento de rede como processamento concluído. FACT.
+- Idempotência endpoint-specific não pode ser inventada enquanto as regras permanecerem ausentes. FACT.
 - A camada de autenticação de dispositivo é deliberadamente separada de IA-07. FACT conforme ownership do registry.
+
+## Auditoria HTTP/WSS — 2026-08-24
+
+- `GET /health` possui implementação funcional e determinística; detalhes adicionais do contrato de resposta ainda são parcialmente especificados. FACT / PARTIAL.
+- `GET /ready` possui implementação funcional com checks injetáveis, mas as predicates canônicas de readiness ainda são PARTIAL. FACT / PARTIAL.
+- `GET /webhooks/whatsapp` e `POST /webhooks/whatsapp` permanecem PARTIAL/EXTERNAL: verificação Meta, payload, headers, assinatura, retry e idempotência endpoint-specific não estão completos. FACT.
+- Os seis endpoints de dispositivo dependem da IA-06 e continuam PARTIAL/MISSING quanto a request/response, status, autorização e idempotência. FACT.
+- `WSS v1` define versão, tipos de mensagem, envelope, ACK e parte da sequência/heartbeat; retenção, state-sync payload, jitter exato e limites de backpressure permanecem parciais ou ausentes. FACT.
+- A implementação WSS de transporte continua NOT_IMPLEMENTED. FACT.
+- A validação estrutural do envelope WSS v1 pode ser implementada sem abrir socket, executar autenticação, persistir Inbox/Outbox ou decidir semântica de negócio. INFERENCE suportada pelos contratos existentes.
+- O incremento WSS implementado valida somente campos explicitamente definidos: versão 1.0, `message_id`, tipo normativo, `device_id`, `timestamp_utc`, `payload`, campos correlacionados opcionais e `ACK.event_id`. FACT.
+- O contrato atual não estabelece formato específico de IDs, ISO estrito para timestamp, limites positivos de `sequence`, política para campos desconhecidos ou negociação de versão. Esses pontos permanecem PARTIAL/UNKNOWN e não devem ser inventados pelo runtime. FACT.
+
+## Session boundary — 2026-08-24
+
+- IA-06 owns trustworthy device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. FACT.
+- IA-07 owns generic WSS transport and connection mechanics after authenticated identity is supplied; it must not duplicate device cryptographic authority. FACT/BOUNDARY.
+- Session identity exists at the IA-06 device-auth boundary, but its exact fields, lifecycle, expiration and reconnect/reauthentication semantics are not fully specified. FACT.
+- IA-03 owns durable InboundInbox intake, deduplication, ACK boundary and replay/recovery infrastructure. FACT.
+- IA-07 owns transport framing and must consume IA-03 persistence/replay interfaces rather than implementing competing storage. FACT/BOUNDARY.
+- Revocation authority is IA-06; the transport reaction (session/connection termination) belongs to IA-07 once an executable revocation signal is defined. FACT/BOUNDARY.
+- `sequence` is documented as monotonic per `(store_id, device_id)`, but persistent ownership and gap/replay semantics remain PARTIAL. FACT.
+- IA-08 consumes connection/session state and events for UI; it does not own authentication, durable persistence or transport authority. FACT.
+- The session boundary is recorded in `WSS-INTEGRATION-BOUNDARY.md` and unresolved decisions in `WSS-SESSION-DECISION-MATRIX.md`.
+
+## Integration gate package — 2026-08-24
+
+- Vague dependencies were reduced to executable gate requirements. FACT/PROPOSAL boundary: the new gate documents define acceptance criteria, but do not redefine global contracts.
+- IA-06 gate requires an executable authenticated-session interface, revocation signal and reconnect/reauthentication semantics before IA-07 session lifecycle.
+- IA-03 gate requires durable intake, duplicate/failure outcomes, ACK authorization and a defined/deferred recovery boundary before IA-07 receive/ACK/recovery runtime.
+- V1 should not require all future WSS functionality. Unsupported replay/resync/backpressure sophistication may be deferred only when the selected V1 contract explicitly permits it.
+- `WSS connection lifecycle` remains BLOCKED until the required gates pass.
+
+## Dependency acceptance gate — 2026-08-24
+
+- Acceptance can be performed incrementally from a supplied branch/commit and only the gate artifacts; a full architecture audit is not required unless authoritative evidence conflicts.
+- `ACCEPTED` requires every mandatory gate for the selected slice to have repository-verifiable evidence and deterministic tests.
+- `ACCEPTED_WITH_GAPS` is valid only when omitted gaps are explicitly deferred and cannot affect the selected slice.
+- `REJECTED` is for contradictions, ownership violations or missing mandatory safety invariants; `NOT_VERIFIED` is for insufficient evidence.
+- The current first-slice proposal is `connection lifecycle without replay`; it remains BLOCKED until IA-06 session/revocation/reauth evidence and IA-03 durable-intake/ACK evidence pass acceptance.
 
 ## Limites epistemológicos
 
 - Detalhes não comprovados no runtime devem permanecer `NOT_VERIFIED`/`UNKNOWN`.
 - A documentação de protocolo não prova que exista uma implementação funcional correspondente.
+- Códigos de erro adicionais não devem ser tratados como normativos enquanto o catálogo completo permanecer MISSING/PARTIAL.
