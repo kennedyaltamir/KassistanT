@@ -8,7 +8,7 @@
 
 ## Product workflow
 
-The Products screen now loads canonical records from the SQLite `product` table through the Electron IPC boundary. Product creation accepts a display name and a BRL price, converts the price to integer cents in the renderer, and validates the canonical integer-cents value again in the application service before persistence.
+The Products screen loads canonical records from the SQLite `product` table through the Electron IPC boundary. Product creation accepts a display name and a BRL price, converts the price to integer cents in the renderer, and validates the canonical integer-cents value again in the application service before persistence.
 
 The current schema does not provide an approved update/deactivate contract, so this slice does not invent one. The UI explicitly states that limitation.
 
@@ -30,7 +30,7 @@ Only the documented `DRAFT -> CONFIRMED` operation is exposed. Later lifecycle s
 
 ## Store scope
 
-The current canonical business schema requires `store_id`, but an executable Store selection/identity contract is not present in the baseline. This slice therefore uses `KASSIST_STORE_ID` when supplied and otherwise uses the explicit single-store MVP fallback `mvp-local-store`. This fallback is local-scope infrastructure and must be replaced by the canonical Store identity contract when that contract is introduced.
+The current canonical business schema requires `store_id`, but an executable Store selection/identity contract is not present in the baseline. This slice therefore uses `KASSIST_STORE_ID` when supplied and otherwise uses the explicit single-store MVP fallback `mvp-local-store`. All Product and Order reads used by this slice are store-scoped. The fallback is local-scope infrastructure and must be replaced by the canonical Store identity contract when that contract is introduced; it is not a multi-store claim.
 
 ## Security boundary
 
@@ -39,6 +39,7 @@ The current canonical business schema requires `store_id`, but an executable Sto
 - No arbitrary IPC channel or filesystem/database operation is exposed to the renderer.
 - Product prices used by Orders are read from canonical persistence; the renderer cannot set the order total.
 - No credentials or secrets are handled by the Orders + Products slice.
+- Application errors crossing the IPC boundary use controlled commerce error messages rather than database paths or raw internal exceptions.
 
 ## Error semantics
 
@@ -73,8 +74,14 @@ Added/updated coverage:
 - renderer/preload IPC contract coverage;
 - removal of the previous Orders/Products renderer fixture boundary.
 
-The official Desktop test runner now includes `apps/desktop/electron/commerce-service.test.ts`.
+The official Desktop test runner includes `apps/desktop/electron/commerce-service.test.ts`.
+
+Correction-cycle evidence:
+
+- CI run `32764834577` confirmed `apps/desktop typecheck` completed successfully after the IA-04 import corrections.
+- The repository-wide Typecheck gate still fails in `gateway` on pre-existing gateway JavaScript type errors; IA-04 did not modify gateway files and therefore does not expand this correction into another agent's territory.
+- Because the official CI job stops at the repository-wide Typecheck step, the official CI `Tests` and `Build` steps were not executed in this correction run.
 
 ## Runtime note
 
-Electron currently boots from CommonJS while the canonical desktop/database/domain runtime is TypeScript. This implementation uses the repository's existing `tsx` package as the loader (`tsx/cjs`) to keep the runtime boundary on the existing TypeScript source rather than duplicating domain logic. Packaging/install policy for shipping `tsx` as a production dependency is not defined by the current desktop package; that remains a deployment-level follow-up before a packaged commercial installer release.
+Electron currently boots from CommonJS while the canonical desktop/database/domain runtime is TypeScript. This implementation uses the repository's existing `tsx` package as the loader (`tsx/cjs`) to keep the runtime boundary on the existing TypeScript source rather than duplicating domain logic. The desktop package currently declares `tsx` under `devDependencies`; the current repository build script performs skeleton verification only and does not establish a packaged Windows artifact. Therefore packaged-release compatibility of `tsx/cjs` remains `PENDING` at the installer/release level and is not claimed as resolved by this PR.
