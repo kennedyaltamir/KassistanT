@@ -28,6 +28,14 @@ test('local LLM status is disabled by default', async () => {
   assert.equal(typeof status.systemPrompt, 'string');
 });
 
+test('global auto-reply disable blocks automatic replies', async () => {
+  process.env.KASSIST_AI_AUTOREPLY = 'false';
+  process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+
+  const { shouldAutoReply } = await import('../src/auto-reply.mjs?test=global-disabled');
+  assert.equal(shouldAutoReply('246973638648023@lid'), false);
+});
+
 test('generateReply calls Ollama chat API and returns assistant content', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
