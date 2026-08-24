@@ -1,6 +1,6 @@
 import { createServer } from 'node:http';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
-import { getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
+import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 
 /** @param {import('node:http').ServerResponse} response @param {number} statusCode @param {unknown} payload */
@@ -93,6 +93,15 @@ export function createHttpServer() {
       try {
         const body = await parseBody(request);
         return json(response, 200, setConversationPolicy(String(body.jid ?? ''), body));
+      } catch (error) {
+        return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+
+    if (request.method === 'DELETE' && url.pathname === '/api/whatsapp/ai/conversations') {
+      try {
+        const jid = url.searchParams.get('jid') ?? '';
+        return json(response, 200, clearConversationPolicy(jid));
       } catch (error) {
         return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
       }
