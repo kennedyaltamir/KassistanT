@@ -15,60 +15,56 @@ O Gateway possui `/health` e `/ready` implementados; webhooks e endpoints de dis
 
 Foi acrescentado um validador estrutural puro em `gateway/src/wss-envelope.mjs` para o envelope WSS v1. Ele não substitui o runtime WSS.
 
-## Fechamento do envelope WSS
-
-O envelope está suficientemente estável para validação estrutural, não para transporte funcional.
-
-Explicitamente suportado:
-- `protocol_version = 1.0`.
-- enumeração atual de `message_type`.
-- presença/tipo básico de `message_id`, `device_id`, `timestamp_utc` e `payload`.
-- campos opcionais `event_id`, `correlation_id`, `causation_id` quando presentes.
-- `sequence` como número quando presente.
-- `ACK.payload.event_id`.
-
-Ainda não fechado:
-- formato lexical exato de IDs;
-- gramática estrita de timestamp;
-- limites de `sequence`;
-- política para campos desconhecidos;
-- negociação/compatibilidade de versões;
-- schemas específicos de payloads;
-- replay/resume/resync e retenção;
-- backpressure quantitativo.
-
-## Boundary audit — 2026-08-24
+## Integration gate package
 
 ### IA-06 → IA-07
 
-IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. Session identity exists in the device-auth boundary, but its exact fields, lifecycle, expiration and reconnect/reauthentication semantics are not fully specified.
+Antes do WSS lifecycle, IA-06 precisa fornecer uma interface executável/testável para:
+
+- authenticated session result;
+- authoritative `device_id`;
+- `session_id`, se o contrato de sessão o utilizar;
+- expiry semantics, se aplicável;
+- authoritative revocation signal;
+- reconnect/reauthentication rule.
+
+IA-06 continua responsável pela autoridade criptográfica, revogação e identidade.
 
 ### IA-03 → IA-07
 
-IA-03 owns InboundInbox, deduplication, durable ACK boundary, replay/recovery and event infrastructure. ACK is legal only after durable Inbox persistence. IA-07 must consume these interfaces and must not create competing durability or replay storage.
+Antes do WSS receive/ACK/recovery runtime, IA-03 precisa fornecer:
+
+- durable intake interface;
+- persisted / duplicate / failure outcomes;
+- ACK authorization after durable persistence;
+- explicit duplicate/retry semantics;
+- selected replay/resume boundary or explicit deferral;
+- sequence ownership and duplicate/gap semantics for the selected scope.
+
+IA-03 continua responsável pela persistência, deduplicação, ACK e replay/recovery.
 
 ### IA-07 → IA-08
 
-IA-07 provides transport-level connection/session state and WSS event delivery; IA-08 presents that state in the renderer/UI. IA-08 does not own authentication, durable persistence or WSS protocol authority.
+IA-07 fornece estado de conexão/sessão e envelopes de eventos; IA-08 apenas apresenta/consome esses resultados no Desktop.
 
-### Revocation
+## Minimum V1
 
-IA-06 is the authority for revocation. IA-07 only applies connection/session termination after receiving an executable revocation signal defined by the device-auth boundary.
-
-### Sequence
-
-Sequence is documented as monotonic per `(store_id, device_id)`, but persistent ownership and gap/replay semantics are still PARTIAL.
+The first lifecycle slice must not automatically include every future WSS capability. Full resync, advanced replay retention and numerical backpressure tuning may be deferred only when the selected V1 contract explicitly permits it.
 
 ## Artifacts
 
-- `WSS-INTEGRATION-BOUNDARY.md` — ownership and cross-agent interface matrix.
-- `WSS-SESSION-DECISION-MATRIX.md` — unresolved decisions and required approvals.
+- `WSS-INTEGRATION-GATE.md`
+- `WSS-IA06-CONTRACT.md`
+- `WSS-IA03-CONTRACT.md`
+- `WSS-RUNTIME-V1-REQUIREMENTS.md`
+- `WSS-INTEGRATION-BOUNDARY.md`
+- `WSS-SESSION-DECISION-MATRIX.md`
 
-## Next slice
+## Current readiness
 
-`PROPOSED_NEXT_SLICE = WSS connection lifecycle abstraction`
+`WSS_RUNTIME_READINESS = BLOCKED`.
 
-Classification: `BLOCKED` until IA-06 provides an executable session identity/authentication/reconnect boundary and IA-03 provides durable intake/ACK/replay interfaces.
+The `WSS connection lifecycle abstraction` is not authorized for implementation until all critical gates pass.
 
 ## Bloqueios conhecidos
 
