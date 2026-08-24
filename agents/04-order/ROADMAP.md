@@ -8,7 +8,7 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [x] Define IA-04 identity.
 - [x] Define scope and exclusions.
 - [x] Define ownership.
-- [x] Initialize memory, learnings, decisions, errors, progress and handoff records.
+- [x] Initialize memory, learnings, decisions, errors, progress, roadmap and handoff records.
 
 ## Phase 1 — Contract readiness
 
@@ -31,6 +31,8 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [x] Add Order Engine consumption tests without duplicating Money.
 - [ ] Execute and verify the Money consumer test in a valid project runtime.
 - [ ] Register `money-contract.test.ts` in the official Desktop test harness through its authorized owner.
+- [x] Finalize handoff to shared test harness owner.
+- [x] Freeze IA-04 production work for this slice pending external verification.
 
 ## Phase 3 — Order Engine design readiness
 
@@ -59,6 +61,18 @@ Current result: BLOCKED by incomplete contracts; no runtime Order Engine design 
 - [ ] Verify no hidden contract assumptions.
 - [ ] Update errors/learnings/progress.
 - [ ] Prepare handoff and PR for human review.
+
+## Freeze state
+
+`MONEY_SLICE = READY_FOR_TEST_HARNESS_INTEGRATION`
+
+`FULL_ORDER_ENGINE = BLOCKED`
+
+`NEXT_PRODUCTION_SLICE = NONE_CONFIRMED`
+
+`NEXT_SAFE_TECHNICAL_ACTION = OWNER_REVIEW_OF_SHARED_TEST_HARNESS`
+
+IA-04 must not modify `scripts/test-desktop.mjs`, `.github/workflows/**`, or any other shared resource to bypass this gate.
 
 ## Readiness documents
 
