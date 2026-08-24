@@ -6,50 +6,49 @@
 
 - **Status:** APPROVED / BASELINE
 - **Source:** Approved Technical Baseline, ADR-002 and repository architecture docs.
-- **Fact:** SQLite is the MVP local persistence technology.
-- **IA-01 consequence:** canonical schema work targets SQLite on the Desktop Core.
 
 ### D-002 — UTC persistence
 
 - **Status:** APPROVED / BASELINE
 - **Source:** Baseline §23 and backend database contract.
-- **Fact:** persisted timestamps are UTC; display timezone is a Store concern.
-- **IA-01 consequence:** schema timestamp representation must preserve this invariant.
 
 ### D-003 — Monetary persistence as integer cents / BRL
 
 - **Status:** APPROVED / BASELINE
 - **Source:** Baseline §15/75 and M5.1 money primitive.
-- **Fact:** monetary values use integer cents and currency BRL; floats are prohibited for money.
-- **IA-01 consequence:** money columns must use integer representation and compatible currency semantics.
 
 ### D-004 — UUIDv7 identifier direction
 
 - **Status:** APPROVED / BASELINE
 - **Source:** Baseline §23 and M5.1 UUIDv7 primitive.
-- **Fact:** canonical entity/event identifiers use UUIDv7 where supported by the stack.
-- **IA-01 consequence:** schema identifiers must remain compatible with the approved identifier strategy.
 
 ### D-005 — Store scoping
 
 - **Status:** APPROVED / BASELINE
 - **Source:** Baseline §23 and domain entity documentation.
-- **Fact:** operational entities are scoped by `store_id` where defined by contract.
-- **IA-01 consequence:** canonical schema must preserve store isolation and required composite uniqueness.
 
 ### D-006 — Deterministic migrations with checksum integrity
 
 - **Status:** IMPLEMENTED FOUNDATION / APPROVED BASELINE COMPATIBILITY
 - **Source:** merged M5.1 implementation.
-- **Fact:** migrations are discovered deterministically, checksummed with SHA-256, applied idempotently and rejected on checksum drift.
-- **IA-01 consequence:** future schema migrations must preserve compatibility with the existing migration runner.
 
-### D-007 — Canonical schema entities are defined, but some detailed field schemas are partial
+### D-007 — Canonical schema entities are defined, but several field schemas are partial
 
 - **Status:** APPROVED SCOPE / FIELD DETAIL PARTIAL
-- **Source:** `docs/domain/entities.md`.
-- **Fact:** the entity inventory is normative at current contract level; several detailed field schemas remain partial.
-- **IA-01 consequence:** unresolved fields must not be invented.
+- **Source:** `docs/domain/entities.md` and baseline §23.
+
+### D-008 — Phase 1 matrix is the current schema specification baseline
+
+- **Status:** DOCUMENTED / NOT YET APPROVED DDL
+- **Source:** `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md`.
+- **Decision:** use the matrix as the authoritative local audit artifact for Phase 1; it records UNKNOWN/PARTIAL gaps rather than inventing schema details.
+- **Consequence:** migration `0002` must not be generated from assumptions outside the matrix.
+
+### D-009 — Normative unique constraints are limited to those explicitly declared
+
+- **Status:** APPROVED EVIDENCE CLASSIFICATION
+- **Source:** baseline §23.1.
+- **Decision:** treat the seven declared unique constraints as `REQUIRED_BY_CONTRACT`; do not elevate performance-only indexes to normative status during Phase 1.
 
 ## Explicitly not approved by IA-01
 
@@ -68,6 +67,21 @@
 - **Status:** PROPOSAL / NOT_APPROVED
 - **Reason:** `CONTRACT-002` remains ambiguous.
 
+### P-004 — SQL table naming convention
+
+- **Status:** PROPOSAL / OPEN
+- **Reason:** canonical entity names are defined, but physical SQL table naming is not explicitly frozen by current protected schema documentation.
+
+### P-005 — Missing parent-key field names for OrderItem/OrderItemModifier/OrderStatusHistory
+
+- **Status:** PROPOSAL / BLOCKED BY FIELD SPECIFICATION GAP
+- **Reason:** adding assumed keys would invent schema.
+
+### P-006 — Exact storage model for Settings, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem
+
+- **Status:** PROPOSAL / BLOCKED BY FIELD SPECIFICATION GAP
+- **Reason:** authoritative field-level schemas are incomplete.
+
 ## Decision rule
 
-Any new schema decision with cross-agent architectural impact must be recorded as a proposal first and escalated through the project governance process. IA-01 cannot self-approve a global architectural decision.
+Any new schema decision with cross-agent architectural impact must be recorded as a proposal first and escalated through project governance. IA-01 cannot self-approve a global architectural decision.
