@@ -7,8 +7,8 @@ Status: **SCHEMA_CLOSURE_BLOCKED**
 - Repository: `kennedyaltamir/KassistanT`
 - Branch: `ia01/schema-closure-20260824`
 - Implementation point: `0e1897cae007530cbe8aed20b97e04a25340cc87`
-- Current branch HEAD before this handoff write: verified separately as `1bb84f3fc4eed3869de73853419c476733960de1`; the SHA of this handoff commit itself is intentionally not self-reported.
 - `MVP2` was verified at the implementation point and remains untouched.
+- Handoff SHA must be verified from the remote branch after this write; it is not self-embedded.
 
 ## Normative state
 
