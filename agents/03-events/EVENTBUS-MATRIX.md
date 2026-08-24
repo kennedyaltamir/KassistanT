@@ -6,56 +6,99 @@ Status: READINESS / NO RUNTIME IMPLEMENTATION
 
 `docs/backend/event-bus.md` defines EventBus as in-process communication, not durable storage, with post-commit local consumers. Runtime is not implemented.
 
-## Matrix
+`packages/contracts/src/events.ts` currently materializes `event_id`, `event_type`, `store_id`, `aggregate_id`, `occurred_at_utc` and `payload`. `docs/domain/events.md` describes a richer envelope including version, aggregate type, producer, correlation and causation metadata. IA-03 does not alter that global contract.
+
+## Core matrix
 
 | Attribute | Readiness finding |
 |---|---|
-| Responsibility | In-process dispatch of domain/application events to local consumers. |
-| Input | Domain event object from an approved event contract. Exact executable interface is not yet defined. |
-| Output | Delivery to subscribed local consumers; no durable external delivery is assigned to EventBus. |
-| Persistence | None owned by EventBus. Durable state belongs to persistence/Inbox/Outbox/Job boundaries. |
-| Transaction boundary | Consumer delivery occurs after commit according to current documentation. Exact transaction hook is implementation detail still to be specified. |
-| Idempotency | Not normatively assigned to EventBus; consumers and durable boundaries must remain safe against duplicate logical effects. |
-| Retry | Not normatively assigned to EventBus. Retry belongs to the appropriate durable job/event mechanism when required. |
-| Backoff | UNKNOWN for EventBus itself. No exact algorithm is specified. |
-| Ordering | UNKNOWN. No total-order or per-aggregate guarantee is documented. Do not invent one. |
-| Deduplication | UNKNOWN / not an EventBus storage responsibility. |
-| Failure mode | Consumer failure behavior is not normatively specified. Must not silently imply all-or-nothing delivery. |
-| Recovery | EventBus itself has no durable recovery guarantee. Recovery must use durable infrastructure. |
-| Audit | No dedicated EventBus audit contract identified. Audit remains an evidence concern for business/security events, not every in-process dispatch by default. |
-| Observability | Publish/dispatch failures, correlation and causation should be observable where those identifiers exist; exact telemetry schema is not yet normative. |
-| Consumers | Notifications, sounds, badges, dashboard updates; future local consumers. |
-| Producers | Domain/application code using approved event types. |
-| Dependencies | IA-02 event semantics; shared event contract; IA-03 technical dispatch boundary. |
-| Evidence | `docs/backend/event-bus.md`, `docs/domain/events.md`, `packages/contracts/src/events.ts`. |
-| Evidence strength | STRONG for scope; PARTIAL for executable semantics. |
+| Responsibility | In-process dispatch of approved domain/application events to local consumers. |
+| Input | Approved domain event object. Current materialized minimum is `event_id`, `event_type`, `store_id`, `aggregate_id`, `occurred_at_utc`, `payload`. |
+| Output | Invocation of local subscribers; no durable external delivery is assigned to EventBus. |
+| Persistence | None owned by EventBus. |
+| Transaction boundary | Local consumer dispatch occurs after commit according to current documentation. |
+| Idempotency | Not an EventBus-owned durable guarantee. |
+| Retry | Not EventBus-owned; JobQueue provides the documented durable retry boundary when applicable. |
+| Backoff | UNKNOWN for EventBus. |
+| Ordering | UNKNOWN. No global or per-aggregate guarantee is documented. |
+| Deduplication | Not an EventBus storage responsibility; no durable deduplication guarantee. |
+| Failure mode | Subscriber failure semantics require final implementation-contract closure. |
+| Recovery | No durable EventBus recovery guarantee. |
+| Audit | No implicit AuditLog record for every local dispatch. |
+| Observability | Dispatch failures and available correlation/causation metadata should be observable; exact telemetry schema remains non-normative. |
+| Evidence strength | STRONG for scope/post-commit; PARTIAL for executable handler/error semantics. |
 | Implementation state | NOT_STARTED |
-| Blocker | IA-02 event contract should be stable enough for implementation; `CONTRACT-002` affects normative order-event catalogue. |
-| Readiness | CANDIDATE — can be prepared without persistence, but implementation must wait for contract stability. |
+| Readiness | READY_WITH_OPEN_NONBLOCKING_ITEMS |
 
-## Conceptual interface
+## Current event catalogue analysis
 
-The minimum conceptual API is:
+| Event type | Source | Aggregate | Trigger | Payload | Event identity/timing | Correlation/causation | Status |
+|---|---|---|---|---|---|---|---|
+| `order.created` | Domain event contract | `Order` | Order creation lifecycle | Current TypeScript contract leaves payload shape generic | `event_id` + `occurred_at_utc` | Documented envelope supports metadata; current TS contract does not expose it | DEFINED |
+| `order.confirmed` | Domain event contract | `Order` | Order confirmation milestone | Generic in current TS contract | `event_id` + `occurred_at_utc` | Same envelope limitation | DEFINED |
+| `order.status_changed` | Domain event contract | `Order` | Order lifecycle status change | Generic in current TS contract | `event_id` + `occurred_at_utc` | Same envelope limitation | AMBIGUOUS / `CONTRACT-002` |
+| `order.cancelled` | Domain event contract | `Order` | Order cancellation | Generic in current TS contract | `event_id` + `occurred_at_utc` | Same envelope limitation | DEFINED |
 
-- `publish(event)` — make an approved event available to local subscribers;
-- `subscribe(eventType, handler)` — register a local consumer;
-- `unsubscribe(subscription)` — remove a registration.
+The matrix above intentionally does not invent payload schemas, producer names, event versions, audit rules or persistence requirements for individual events where the protected contracts do not define them.
 
-These names are conceptual only. They are not a protected API decision.
+## Event envelope readiness
 
-## Delivery semantics
+| Field | Required? | Type | Evidence | Status |
+|---|---|---|---|---|
+| `event_id` | Yes | `string` | `packages/contracts/src/events.ts` | DEFINED |
+| `event_type` | Yes | `DomainEventType` | `packages/contracts/src/events.ts` | DEFINED |
+| `store_id` | Yes | `string` | `packages/contracts/src/events.ts` | DEFINED |
+| `aggregate_id` | Yes | `string` | `packages/contracts/src/events.ts` | DEFINED |
+| `occurred_at_utc` | Yes | ISO UTC string contract | `packages/contracts/src/events.ts` | DEFINED |
+| `payload` | Yes | `unknown` | `packages/contracts/src/events.ts` | DEFINED / SHAPE OPEN |
+| `event_version` | Documented, not materialized in current TS type | `UNKNOWN` | `docs/domain/events.md` | PARTIAL |
+| `aggregate_type` | Documented, not materialized in current TS type | `UNKNOWN` | `docs/domain/events.md` | PARTIAL |
+| `producer` | Documented, not materialized in current TS type | `UNKNOWN` | `docs/domain/events.md` | PARTIAL |
+| `correlation_id` | Documented when applicable; absent from current TS type | `string` when supplied | `docs/domain/events.md`, WSS contract | PARTIAL |
+| `causation_id` | Documented when applicable; absent from current TS type | `string` when supplied | `docs/domain/events.md`, WSS contract | PARTIAL |
 
-The only documented guarantee is that EventBus is **in-process** and is used for **post-commit local consumers**. The repository does not establish a stronger delivery guarantee, ordering model, durable replay capability, or consumer retry contract.
+## Publish / subscribe semantics
+
+### Publish
+
+- In-process communication.
+- Post-commit local-consumer boundary.
+- Not durable storage.
+- No automatic EventBus retry guarantee.
+- No DomainOutbox coupling is implied.
+
+### Subscribe
+
+Conceptual lifecycle only:
+
+`subscribe(eventType, handler) -> registration`
+
+`unsubscribe(registration)`
+
+The exact handler return type, synchronous/asynchronous execution, cancellation, timeout, subscriber isolation and cleanup rules remain `UNKNOWN` until the implementation contract is finalized.
+
+## Delivery / ordering
+
+Delivery is `UNSPECIFIED` beyond the documented in-process/post-commit scope. The repository does not establish `at-most-once`, `at-least-once`, `exactly-once` or global-order semantics for EventBus.
+
+WSS sequence ordering is a transport concern and must not be promoted into an EventBus guarantee.
+
+## Retry boundary
+
+EventBus does not own durable retry. `docs/backend/jobs.md` assigns retry/backoff/attempt state/locking/observability to JobQueue. A subscriber failure must not automatically create a JobQueue job unless an explicit caller/consumer contract does so.
 
 ## Test readiness
 
-Tests should prove only the guarantees that become explicitly defined:
+Future deterministic tests must cover only finalized semantics:
 
-- subscriber registration/removal;
-- event type routing;
-- publication after the caller's commit boundary;
-- deterministic handler invocation semantics;
-- error propagation according to the finalized interface;
-- correlation/causation preservation where present.
+- subscribe/unsubscribe;
+- event-type routing;
+- post-commit timing;
+- subscriber invocation semantics;
+- subscriber failure propagation/isolation;
+- correlation and causation preservation when present;
+- no implicit persistence;
+- no implicit retry;
+- no DomainOutbox coupling.
 
-Do not create tests that imply durability, exactly-once delivery, global ordering or automatic retry unless a protected contract later defines them.
+Tests must not imply exactly-once delivery, durable replay or global ordering absent an approved contract.
