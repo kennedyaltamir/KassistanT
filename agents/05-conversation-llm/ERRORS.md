@@ -7,16 +7,16 @@ Status: NOT_IMPLEMENTED. No executable `apps/desktop/electron/conversation/**` r
 Status: NOT_IMPLEMENTED. No executable `apps/desktop/electron/providers/llm/**` adapter was observed.
 
 ## E05-003 — AI-V1 incomplete
-Status: PARTIAL. The registry marks AI-V1 PARTIAL / NOT_IMPLEMENTED / tests missing.
+Status: PARTIAL. AI-V1 remains PARTIAL / NOT_IMPLEMENTED / tests missing.
 
 ## E05-004 — Shared LLMProvider typing incomplete
-Status: BLOCKED / GLOBAL_DECISION_REQUIRED. The existing executable interface uses `unknown` request/result types and lives outside IA-05 documentation ownership.
+Status: BLOCKED / GLOBAL_DECISION_REQUIRED. The executable interface uses `unknown` request/result types and lives outside IA-05 documentation ownership.
 
 ## E05-005 — AIExecution contract incomplete
 Status: BLOCKED / CROSS_AGENT. Logical execution semantics require IA-01 persistence and IA-03 audit/event alignment.
 
 ## E05-006 — Tool authorization incomplete
-Status: BLOCKED / GLOBAL_DECISION_REQUIRED. Optional tool calling is documented, but authorization, scope, confirmation and execution envelopes are not fully specified.
+Status: BLOCKED / GLOBAL_DECISION_REQUIRED. Tool authorization, scope and execution envelopes are not fully specified.
 
 ## E05-007 — Prompt/version contract incomplete
 Status: BLOCKED / CROSS_AGENT. Reproducible prompt identity/version/provenance is not yet aligned with execution persistence.
@@ -34,10 +34,13 @@ Status: BLOCKED / CROSS_AGENT. Conversation/Message/AIProfile/AIExecution/Knowle
 Status: BLOCKED / CROSS_AGENT. Domain semantics depend on IA-02 and durable event infrastructure on IA-03.
 
 ## E05-012 — Global contract ambiguities
-Status: BLOCKED / GLOBAL_DECISION_REQUIRED. `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain governance matters.
+Status:
+- `CONTRACT-001`: OPEN / GLOBAL / BLOCKING when durable event semantics are required.
+- `CONTRACT-002`: OPEN / GLOBAL / relevant to order-event consumers.
+- `GOV-001`: OPEN / GOVERNANCE / NON_BLOCKING for documentation-only proposal work, but RELEVANT before normative approval.
 
 ## E05-013 — Reliability semantics incomplete
-Status: BLOCKED / CROSS_AGENT. Retry/idempotency, timeout and cancellation outcomes require a stable AIExecution and event boundary.
+Status: BLOCKED / CROSS_AGENT. Retry/idempotency, timeout and cancellation outcomes require stable AIExecution and event boundaries.
 
 ## Security risks
 
