@@ -1,7 +1,25 @@
-import { createHttpServer } from "./http.mjs";
+import { createHttpServer, connect } from './http.mjs';
 
-const port = Number(process.env.PORT ?? 8787);
+const host = process.env.KASSIST_GATEWAY_HOST ?? '127.0.0.1';
+const port = Number(process.env.KASSIST_GATEWAY_PORT ?? 3210);
 const server = createHttpServer();
-server.listen(port, "127.0.0.1", () => {
-  console.log(`KassisT Gateway skeleton listening on ${port}`);
+
+server.listen(port, host, async () => {
+  console.log(`[KassisT WhatsApp Gateway] listening on http://${host}:${port}`);
+  try {
+    await connect();
+  } catch (error) {
+    console.error(
+      '[KassisT WhatsApp Gateway] initial connection failed:',
+      error instanceof Error ? error.message : error
+    );
+  }
 });
+
+function shutdown(signal) {
+  console.log(`[KassisT WhatsApp Gateway] ${signal}; shutting down.`);
+  server.close(() => process.exit(0));
+}
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
