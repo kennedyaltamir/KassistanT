@@ -1,7 +1,5 @@
 # IA-01 — LEARNINGS
 
-## Audit-derived learnings
-
 ### L-001 — M5.1 is a foundation, not the canonical schema
 `0001_bootstrap.sql` still creates only `_schema_metadata`; canonical business tables are not implemented.
 
@@ -12,7 +10,7 @@ Future migrations must preserve deterministic discovery, SHA-256 checksums, idem
 Several entities cannot receive deterministic DDL without additional authoritative field definitions.
 
 ### L-004 — Physical naming is a visible implementation decision
-`lower_snake_case` is mechanically consistent with the repository but is still a PROPOSAL pending operator confirmation.
+`lower_snake_case` is mechanically consistent with the repository but remains a PROPOSAL pending operator confirmation.
 
 ### L-005 — Child parent keys are not safe to infer
 `OrderItem`, `OrderItemModifier` and `OrderStatusHistory` require explicit parent-key semantics from IA-04/IA-02.
@@ -40,6 +38,9 @@ Semantic owners decide meaning; IA-01 decides physical SQLite realization after 
 
 ### L-013 — Deferred indexes are valid engineering posture
 No performance-only index is required for `0002` until query or integrity evidence exists.
+
+### L-014 — Decision requests must be closed questions
+Cross-agent coordination is more reliable when each owner receives an exact question, evidence, affected tables, blocking impact and required response instead of a generic request to review the schema.
 
 ## Classification
 
