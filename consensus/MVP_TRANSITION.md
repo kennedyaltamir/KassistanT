@@ -2,12 +2,17 @@
 
 > **Status:** DRAFT — C1 execution track
 > **Authority:** `main` remains the integrated-state authority.
+> **Current operational phase:** `MVP2`
+> **Current operational baseline:** `MVP2`
+> **Integration target:** `main`
 
 ## PURPOSE
 
-Formalize the transition from planning-heavy execution to a controlled operational track focused on the first real user.
+Formalize the transition from planning-heavy execution to a controlled operational track focused on the first real user while preserving the historical C1 execution model and making the current MVP2 operational baseline explicit.
 
-## BASE
+## HISTORICAL C1 BASE
+
+The original C1 execution model was defined as:
 
 ```text
 BASE_BRANCH = main
@@ -15,7 +20,50 @@ BASE_SHA = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30
 MVP_BRANCH = MVP
 ```
 
-The `MVP` branch is based exactly on the current authoritative `main` SHA. fileciteturn376file0
+The `MVP` branch represented the historical C1 execution track based exactly on the then-authoritative `main` SHA. This historical model remains preserved for lineage and must not be rewritten as though it were the current MVP2 baseline.
+
+## CURRENT OPERATIONAL MODEL
+
+The current phase is governed by the following model:
+
+```text
+CURRENT_OPERATIONAL_PHASE = MVP2
+CURRENT_OPERATIONAL_BASELINE = MVP2
+INTEGRATION_TARGET = main
+```
+
+`MVP2` is the current operational baseline by explicit governance decision. This status is not inferred from commit count, branch depth or implementation volume.
+
+`main` remains the integrated-state authority and controlled integration target. Operational work based on `MVP2` does not become integrated product state until the normal contract, implementation, verification, audit and merge gates are satisfied.
+
+The verified MVP2 head must be rechecked at the beginning of each operational cycle; a previously known SHA is not a permanent truth.
+
+## LINEAGE
+
+```text
+main
+  @ 86387b02...
+      │
+      ├── historical C1 execution model
+      │       └── MVP
+      │
+      └── subsequent operational evolution
+              └── MVP2
+                  @ current verified head
+                      │
+                      └── CURRENT OPERATIONAL BASELINE
+                              │
+                              └── controlled convergence
+                                      │
+                                      └── main
+```
+
+Operational baseline and integration authority are intentionally separate:
+
+```text
+CURRENT_OPERATIONAL_BASELINE != INTEGRATION_AUTHORITY
+MVP2 != main
+```
 
 ## CURRENT OBJECTIVE
 
@@ -36,7 +84,8 @@ Preserve without deletion or historical rewriting:
 - master completion/decision/critical-path records;
 - historical human decisions;
 - roadmap;
-- existing branches and branch progress.
+- existing branches and branch progress;
+- the historical `MVP` C1 execution model.
 
 Branch progress remains `BRANCH_PROGRESS` until normal implementation, verification, audit, CI and merge gates are satisfied.
 
@@ -94,7 +143,7 @@ These remain C2/C3/deferred as applicable; they are not deleted.
 
 ## ACTIVE DECISIONS
 
-The existence of this branch does not approve pending contracts or implementation.
+The existence of this branch or the designation of MVP2 as current operational baseline does not approve pending contracts or implementation.
 
 C1 decisions remain explicitly separated from authorization, including when applicable:
 
@@ -125,7 +174,7 @@ Candidate C1 slices are intentionally small:
 - operational Desktop UI;
 - shared verification path.
 
-No monolithic "full MVP" implementation is authorized by this record.
+Current MVP2 baseline status does not grant global implementation authorization. Each slice requires its own contract, scope and authorization gates.
 
 ## AUTHORIZATION MODEL
 
@@ -144,6 +193,26 @@ decision
 ```
 
 `MVP_PROGRESS` is not `IN_MAIN`.
+
+## FEATURE-BRANCH POLICY
+
+New implementation work for the current MVP2 phase should normally be performed in feature branches based on the verified current `MVP2` head.
+
+The `MVP2` baseline itself should remain stable for comparison and audit. No direct feature implementation should be used to bypass the review and integration gates.
+
+The target branch for controlled convergence is `main`.
+
+A merge to `main` requires the applicable:
+
+- contract/decision gates;
+- implementation evidence;
+- tests;
+- official suite when applicable;
+- CI when applicable;
+- security/architecture review when applicable;
+- audit/review;
+- human merge authorization;
+- post-merge verification.
 
 ## SECURITY MINIMUM
 
@@ -190,7 +259,7 @@ CI is necessary where applicable, but it does not substitute for local first-rea
 
 ## MERGE POLICY
 
-Work on `MVP` remains isolated from the integrated product until the normal gates are satisfied:
+Work based on `MVP2` remains isolated from the integrated product until the normal gates are satisfied:
 
 ```text
 scope verified
@@ -207,13 +276,13 @@ No automatic merge follows from this transition.
 
 ## EXIT CRITERIA
 
-The execution track reaches:
+The current operational track is adequately established when:
 
 ```text
-MVP_BRANCH_READY = TRUE
+CURRENT_OPERATIONAL_BASELINE = MVP2
+INTEGRATION_TARGET = main
+DOCUMENTATION_ALIGNMENT = RECONCILED
 ```
-
-when branch base, documentation and governance are established without product-code changes caused solely by branch creation.
 
 The final operational gate is:
 
@@ -236,4 +305,6 @@ WhatsApp
 
 ## GOVERNANCE NOTE
 
-This transition changes operational priority and scope classification. It does not replace the baseline, erase historical decisions, redefine `main`, or grant global implementation authorization.
+This transition changes operational priority and scope classification. It does not erase the historical C1 model, redefine `main` as something other than the integration authority, or grant global implementation authorization.
+
+The current MVP2 baseline is a governance designation for operational work in the present phase. The historical `MVP` model remains preserved as C1 lineage.
