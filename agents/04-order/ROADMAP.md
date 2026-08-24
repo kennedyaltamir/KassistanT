@@ -8,21 +8,35 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [x] Define IA-04 identity.
 - [x] Define scope and exclusions.
 - [x] Define ownership.
-- [x] Initialize memory, learnings, decisions, errors, progress and handoff records.
+- [x] Initialize memory, learnings, decisions, errors, progress, roadmap and handoff records.
 
 ## Phase 1 — Contract readiness
 
-- [ ] Consume final canonical schema contract from IA-01.
-- [ ] Consume final domain contracts/primitives from IA-02.
-- [ ] Consume finalized Event Infrastructure interface from IA-03.
-- [ ] Resolve or receive authoritative resolution of `CONTRACT-001`.
-- [ ] Resolve or receive authoritative resolution of `CONTRACT-002`.
-- [ ] Obtain complete order error-code semantics.
-- [ ] Obtain complete actor/authorization rules affecting order commands.
+- [x] Consume current canonical schema contract evidence from IA-01 sources.
+- [x] Consume current domain contracts/primitives from IA-02 sources.
+- [x] Consume current Event Infrastructure contracts from IA-03 sources.
+- [x] Audit `CONTRACT-001` and preserve as unresolved blocker.
+- [x] Audit `CONTRACT-002` and preserve as unresolved blocker.
+- [x] Audit complete order error-code semantics.
+- [x] Audit actor/authorization semantics affecting order commands.
+- [x] Audit lifecycle transition completeness.
+- [x] Audit pricing/promotion/delivery/payment semantics.
+- [x] Audit idempotency and concurrency requirements.
+- [x] Classify independent implementation slices.
 
-## Phase 2 — Order Engine design
+## Phase 2 — Safe independent slices
 
-- [ ] Define executable command boundary from approved contracts.
+- [x] Audit canonical Money source.
+- [x] Confirm `REUSE_EXISTING_CANONICAL_MONEY` boundary.
+- [x] Add Order Engine consumption tests without duplicating Money.
+- [ ] Execute and verify the Money consumer test in a valid project runtime.
+- [ ] Register `money-contract.test.ts` in the official Desktop test harness through its authorized owner.
+- [x] Finalize handoff to shared test harness owner.
+- [x] Freeze IA-04 production work for this slice pending external verification.
+
+## Phase 3 — Order Engine design readiness
+
+- [ ] Define executable command boundary from approved complete contracts.
 - [ ] Define aggregate/state-transition boundary without duplicating domain authority.
 - [ ] Define deterministic pricing and promotion evaluation boundary.
 - [ ] Define delivery/payment/confirmation/cancellation semantics from approved contracts.
@@ -30,7 +44,9 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [ ] Define transaction integration with persistence and durable effects.
 - [ ] Define event and audit integration points.
 
-## Phase 3 — Implementation
+Current result: BLOCKED by incomplete contracts; no runtime Order Engine design is frozen as implementation authority.
+
+## Phase 4 — Implementation
 
 - [ ] Implement only within `apps/desktop/electron/order/**`.
 - [ ] Add deterministic unit tests for command behavior and lifecycle transitions.
@@ -38,12 +54,34 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [ ] Add idempotency/concurrency tests.
 - [ ] Add integration tests against approved persistence/event interfaces.
 
-## Phase 4 — Validation and handoff
+## Phase 5 — Validation and handoff
 
 - [ ] Typecheck/lint/test the authorized scope.
 - [ ] Verify no ownership violations.
 - [ ] Verify no hidden contract assumptions.
 - [ ] Update errors/learnings/progress.
 - [ ] Prepare handoff and PR for human review.
+
+## Freeze state
+
+`MONEY_SLICE = READY_FOR_TEST_HARNESS_INTEGRATION`
+
+`FULL_ORDER_ENGINE = BLOCKED`
+
+`NEXT_PRODUCTION_SLICE = NONE_CONFIRMED`
+
+`NEXT_SAFE_TECHNICAL_ACTION = OWNER_REVIEW_OF_SHARED_TEST_HARNESS`
+
+IA-04 must not modify `scripts/test-desktop.mjs`, `.github/workflows/**`, or any other shared resource to bypass this gate.
+
+## Readiness documents
+
+- `ORDER-ENGINE-READINESS.md`
+- `ORDER-LIFECYCLE-MATRIX.md`
+- `ORDER-PRICING-MATRIX.md`
+- `ORDER-COMMAND-MATRIX.md`
+- `ORDER-ERROR-MATRIX.md`
+- `ORDER-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
 
 All unchecked implementation items are future work and are not evidence of current implementation.
