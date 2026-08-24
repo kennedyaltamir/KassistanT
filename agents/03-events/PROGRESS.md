@@ -2,50 +2,51 @@
 
 ## Current phase
 
-EventBus Local Decision Closure / First Runtime Authorization.
+EventBus V1 Authorization and Implementation.
 
 ## Status
 
-`READY_AFTER_HUMAN_APPROVAL / RUNTIME IMPLEMENTATION FROZEN`
+`IMPLEMENTED_AND_TESTED / FIRST SLICE COMPLETE`
 
-## Current EventBus state
+## Approved EventBus policies
 
-- Envelope boundary: CLOSED.
-- Publish boundary: CLOSED — in-process/post-commit.
-- Delivery: CLOSED — non-durable.
-- Ordering: CLOSED — `NO_ORDERING_GUARANTEE`.
-- Durable retry: CLOSED — outside EventBus; JobQueue owns that boundary.
-- DomainOutbox coupling: CLOSED OUTSIDE SCOPE — `CONTRACT-001` remains external.
+- subscriber failures are isolated;
+- `publish()` continues all subscriptions in the dispatch snapshot;
+- failures are aggregated after all selected handlers settle;
+- subscriptions use opaque identities;
+- `unsubscribe()` is idempotent;
+- duplicate registrations are distinct;
+- dispatch snapshots registrations at publish start;
+- V1 cancellation is unsubscribe-only;
+- V1 has no EventBus timeout;
+- `await publish()` completes after all selected handlers settle;
+- EventBus has `NO_ORDERING_GUARANTEE`;
+- EventBus is in-process, post-commit, non-durable and has no durable retry or DomainOutbox coupling.
 
-## Proposed local runtime policies
+## Implementation
 
-- Subscriber failures are isolated.
-- `publish()` continues selected subscribers after individual failures.
-- Failures are aggregated and surfaced after all selected handlers settle.
-- `subscribe()` returns an opaque subscription identity.
-- `unsubscribe()` is idempotent.
-- Duplicate registrations are distinct subscriptions.
-- Dispatch uses a publish-time subscriber snapshot.
-- Cancellation is unsubscribe-only in V1.
-- EventBus has no V1 timeout; timeout is deferred.
-- `await publish()` means all selected handlers have settled; it never means durable or business completion.
-- No public ordering guarantee is created by internal iteration order.
+Implemented:
 
-All items above are `PROPOSAL / LOCAL_RUNTIME_POLICY`, not approved decisions.
+- `apps/desktop/electron/infrastructure/events/event-bus.ts`
+- `apps/desktop/electron/infrastructure/events/event-bus.test.ts`
 
-## Decision status
+The implementation is intentionally isolated and does not integrate downstream consumers.
 
-`HUMAN REVIEW REQUIRED`
+## Validation
 
-No production runtime may be implemented until the operator approves the proposed observable behavior documented in `HUMAN-EVENTBUS-DECISIONS.md`.
+The deterministic EventBus validation executed against the reconstructed branch sources with Node's TypeScript stripping runtime support:
 
-## Other Event Infrastructure state
+- 10 tests passed;
+- 0 failures;
+- 0 cancellations;
+- 0 skipped.
 
-- InboundInbox: NOT_IMPLEMENTED; blocked on canonical persistence/schema.
-- DomainOutbox: NOT_IMPLEMENTED; blocked by `CONTRACT-001`.
-- JobQueue: NOT_IMPLEMENTED; blocked on canonical persistence/reliability policy.
-- AuditLog: NOT_IMPLEMENTED; blocked on canonical persistence/policy details.
+The repository's standard desktop test runner was not changed because its script configuration is outside IA-03 scope; the EventBus test file was executed directly with `node --experimental-strip-types --test` in the validation environment.
 
-## Constraint
+## Non-goals preserved
 
-No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified.
+Inbox, Outbox, JobQueue, AuditLog, WSS, Device Auth, replay, reconciliation, dead-letter handling, durable retry and SQLite persistence were not implemented.
+
+## Global contracts preserved
+
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain open and unchanged.
