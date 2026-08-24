@@ -2,6 +2,7 @@ import { createServer } from 'node:http';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
+import { getLlmProviderStatus } from './llm.mjs';
 
 /** @param {import('node:http').ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
@@ -62,6 +63,10 @@ export function createHttpServer() {
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/status') {
       return json(response, 200, getAutoReplyStatus());
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/provider') {
+      return json(response, 200, await getLlmProviderStatus());
     }
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/config') {
