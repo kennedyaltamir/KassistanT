@@ -4,7 +4,7 @@ import { normalizeRecipient, recordMessage, getMessages, subscribe } from './wha
 
 /** @typedef {{ id: string, jid: string | null, direction: 'INBOUND' | 'OUTBOUND', fromMe: boolean, text: string | null, timestamp: number, status: 'UNKNOWN' | 'RECEIVED' }} MessageSnapshot */
 
- test('normalizeRecipient accepts a WhatsApp JID unchanged', () => {
+test('normalizeRecipient accepts a WhatsApp JID unchanged', () => {
   assert.equal(normalizeRecipient('5511999999999@s.whatsapp.net'), '5511999999999@s.whatsapp.net');
 });
 
@@ -46,7 +46,9 @@ test('same message.id is persisted once and published once', () => {
     assert.equal(getMessages(500).length, before + 1);
     assert.equal(matchingHistory.length, 1);
     assert.equal(events.length, 1);
-    assert.equal(events[0].message.id, message.id);
+    const [event] = events;
+    assert.ok(event);
+    assert.equal(event.message.id, message.id);
   } finally {
     unsubscribe();
   }
