@@ -12,87 +12,68 @@ Este roadmap cobre exclusivamente o território de IA-01: Canonical SQLite Schem
 
 **Status:** DONE WITH BLOCKERS
 
-Completed:
-
-- canonical entity inventory verified at 28 entities;
-- field-level evidence matrix created;
-- FK/relationship matrix created;
-- PK/FK/UNIQUE/CHECK/NOT NULL/DEFAULT audit recorded;
-- normative index matrix recorded;
-- blocker matrix recorded;
-- implementation readiness recorded;
-- M5.1 compatibility preserved.
-
-Primary artifact:
-
-`agents/01-schema/CANONICAL_SCHEMA_AUDIT.md`
-
-Phase 1 result:
-
-The repository now has an auditable schema specification baseline, but the evidence is insufficient for deterministic `0002` DDL. Several fields and relationship keys remain partial/unknown.
+Primary artifact: `CANONICAL_SCHEMA_AUDIT.md`.
 
 ## Phase 2 — Canonical schema specification
 
-**Status:** BLOCKED / PRE-IMPLEMENTATION
+**Status:** COMPLETE AS SPECIFICATION / BLOCKED FOR DDL
 
-Required closure:
+Completed:
 
-- field-level definitions for underspecified entities;
-- explicit parent keys for child entities where currently unnamed;
-- physical SQL table naming convention;
-- nullability/default decisions where currently unknown;
-- exact FK behavior where schema-critical;
-- DomainOutbox physical semantics where CONTRACT-001 affects persistence;
-- any schema impact from CONTRACT-002, if the final event decision requires it;
-- source authority clarification where GOV-001 affects normative interpretation.
+- physical table mapping for all 28 entities;
+- semantic field consolidation;
+- scope classification;
+- relationship specification for 23 relationships;
+- constraint specification;
+- index specification;
+- lifecycle/status semantic storage rules;
+- mutability/immutability classification;
+- implementation order proposal;
+- blocker/readiness matrix;
+- documentary projection of future `0002`.
+
+Artifacts:
+
+- `CANONICAL-SCHEMA-SPEC.md`
+- `ENTITY-PHYSICAL-MAP.md`
+- `RELATIONSHIP-SPEC.md`
+- `CONSTRAINT-SPEC.md`
+- `INDEX-SPEC.md`
+- `MIGRATION-0002-READINESS.md`
+- `MIGRATION-0002-PROJECTION.md`
+
+Phase 2 conclusion:
+
+The repository now has a complete evidence/proposal map of the physical schema, but `0002` is still blocked because the specification is not yet fully authoritative for all physical details.
 
 ## Phase 3 — Canonical migration implementation
 
-**Status:** NOT_STARTED
+**Status:** BLOCKED / NOT_STARTED
 
 Preconditions:
 
-- Phase 2 complete and authoritative;
-- `0002` derivable deterministically from the matrix;
-- no unresolved schema-critical blocker encoded by assumption;
-- migration strategy remains compatible with M5.1.
+- physical table naming approved;
+- seven underspecified entity models closed;
+- child parent-key names closed;
+- UUID/timestamp physical types closed;
+- nullability/defaults closed;
+- FK actions closed;
+- SQL state representation closed;
+- DomainOutbox physical semantics resolved where required;
+- specification passes deterministic-generation review.
 
 ## Phase 4 — Schema validation
 
 **Status:** NOT_STARTED
 
-Expected evidence:
-
-- schema existence tests;
-- PK/FK/UNIQUE/CHECK enforcement tests;
-- money and currency representation tests;
-- store-scoping tests where normative;
-- migration ordering/checksum compatibility tests;
-- M5.1 regression evidence.
-
 ## Phase 5 — Cross-agent integration audit
 
 **Status:** NOT_STARTED
-
-Consumers:
-
-- IA-02 Domain Runtime;
-- IA-03 Event Infrastructure;
-- IA-04 Order Engine;
-- IA-05 Conversation + LLM;
-- IA-06 Device Authentication;
-- IA-07 Gateway + WSS where contracts cross the boundary;
-- IA-08 Desktop UI through application contracts.
 
 ## Phase 6 — Handoff and PR readiness
 
 **Status:** NOT_STARTED
 
-Required evidence:
+## Guardrail
 
-- schema implementation summary;
-- migration identifiers/checksums;
-- tests and results;
-- compatibility notes;
-- known limitations/blockers;
-- human-review readiness.
+No migration may be created merely because a plausible DDL exists. `0002` requires an authoritative, mechanically deterministic physical specification.
