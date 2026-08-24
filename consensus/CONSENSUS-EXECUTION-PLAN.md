@@ -12,6 +12,49 @@ Este documento consolida as posições dos dois auditores técnicos independente
 
 O objetivo é chegar a uma única estratégia operacional que maximize paralelismo seguro sem sacrificar evidência, ownership, contratos, segurança, testes, reversibilidade, governança e autoridade da `main`.
 
+## 1.1. Current Operational Baseline and Historical Lineage
+
+A governança atual distingue explicitamente o modelo histórico de C1 da baseline operacional da fase atual.
+
+```text
+HISTORICAL_C1_EXECUTION_MODEL
+  branch = MVP
+  base_branch = main
+  base_sha = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30
+
+CURRENT_OPERATIONAL_BASELINE
+  branch = MVP2
+  status = CURRENT_OPERATIONAL_BASELINE
+
+CURRENT_INTEGRATION_TARGET
+  branch = main
+  status = FUTURE_CONTROLLED_INTEGRATION_TARGET
+```
+
+`MVP` permanece identificável como trilha histórica de execução C1 quando essa for a semântica do artefato original. `MVP2` é a baseline operacional atual por decisão explícita de governança. `main` permanece como autoridade e target de integração.
+
+Esta distinção não é inferida pela quantidade de commits ou pela posição de `MVP2` no histórico Git. É uma decisão normativa de governança e deve ser preservada como tal.
+
+A designação de `MVP2` como baseline operacional não transforma `MVP2` em branch integrada, não autoriza merge e não altera a natureza normativa de `main` como autoridade de integração.
+
+Lineage:
+
+```text
+main @ 86387b02...
+    │
+    ├── historical C1 execution model
+    │       └── MVP
+    │
+    └── subsequent operational evolution
+            └── MVP2
+                │
+                └── current operational baseline
+                        │
+                        └── controlled convergence → main
+```
+
+Novas implementações da fase atual devem utilizar feature branches baseadas no `MVP2` verificado, salvo decisão explícita em contrário. Nenhum documento de consenso concede autorização automática de implementação.
+
 ## 2. Estado comum confirmado
 
 Os dois auditores convergem nos seguintes pontos:
