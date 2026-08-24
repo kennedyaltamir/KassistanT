@@ -63,3 +63,10 @@
 - Status: BLOCKER / DEPENDENCY
 - ACK depende de durable `InboundInbox` persistence; IA-03 runtime ainda não está implementado.
 - Impacto: IA-07 não pode implementar ACK persistence, replay store ou durable intake.
+
+## E-012 — Integration gates not yet satisfied
+
+- Status: BLOCKER / CROSS-AGENT
+- IA-06 lacks an executable authenticated-session/revocation/reconnect interface for IA-07 consumption.
+- IA-03 lacks executable durable-intake/ACK/replay interfaces for IA-07 consumption.
+- Impacto: WSS V1 connection lifecycle remains blocked until explicit acceptance criteria in `WSS-INTEGRATION-GATE.md` are satisfied.
