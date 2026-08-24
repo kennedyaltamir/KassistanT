@@ -3,33 +3,34 @@
 ## Identity
 Agent: IA-03. Responsibility: Event Infrastructure.
 
-## Readiness state
-Event Infrastructure readiness audit and EventBus contract closure are complete. No product runtime was implemented.
+## Runtime gate state
+The EventBus runtime gate was audited and remains `BLOCKED`. No product runtime was implemented.
 
-## Ownership
-Future ownership includes:
+## Closed EventBus semantics
 
-- `apps/desktop/electron/infrastructure/events/**`
-- `apps/desktop/electron/infrastructure/inbox/**`
-- `apps/desktop/electron/infrastructure/outbox/**`
-- `apps/desktop/electron/infrastructure/jobs/**`
-- `apps/desktop/electron/infrastructure/audit/**`
-- directly associated tests.
+- EventBus is in-process communication.
+- Local consumers are post-commit.
+- EventBus is non-durable.
+- EventBus does not own durable retry.
+- EventBus has `NO_ORDERING_GUARANTEE`.
+- DomainOutbox transaction semantics remain outside this boundary because `CONTRACT-001` is open.
 
-Shared contracts, canonical schema and global documentation remain governed dependencies.
+## Blocking EventBus semantics
 
-## EventBus closure
+The repository does not define:
 
-- Scope: in-process dispatch only.
-- Timing: documented post-commit local-consumer boundary.
-- Persistence: none owned by EventBus.
-- Durable retry: not owned by EventBus.
-- DomainOutbox coupling: none implied.
-- Delivery guarantee: no exactly-once, at-least-once or global-order claim.
-- Event envelope: consumes current approved `DomainEvent`; broader documented metadata is preserved only when supplied.
-- Open implementation-contract items: subscriber failure propagation/isolation, scheduling, timeout/cancellation and ordering semantics.
+- subscriber scheduling;
+- subscriber failure propagation;
+- subscriber isolation;
+- cancellation;
+- timeout;
+- unsubscribe lifecycle;
+- duplicate registration and multiple-subscriber execution semantics;
+- dispatch completion semantics.
 
-## Other findings
+These are recorded as runtime gates rather than local assumptions.
+
+## Other Event Infrastructure state
 
 - InboundInbox: durable-before-ACK semantics are clear; canonical persistence is missing.
 - DomainOutbox: blocked by `CONTRACT-001`.
@@ -59,6 +60,7 @@ Shared contracts, canonical schema and global documentation remain governed depe
 - `EVENT-INFRASTRUCTURE-READINESS.md`
 - `EVENTBUS-MATRIX.md`
 - `EVENTBUS-CONTRACT.md`
+- `EVENTBUS-RUNTIME-CONTRACT.md`
 - `EVENTBUS-ERROR-MATRIX.md`
 - `EVENTBUS-TEST-MATRIX.md`
 - `EVENTBUS-IMPLEMENTATION-GATE.md`
@@ -67,10 +69,8 @@ Shared contracts, canonical schema and global documentation remain governed depe
 - `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
 - `IMPLEMENTATION-GATES.md`
 
-## Information that must not be lost
-
-Never treat documentation as proof of runtime. Preserve the distinction between SQLite foundation and canonical event persistence. Preserve the open status of `CONTRACT-001`, `CONTRACT-002` and `GOV-001`. Do not invent retry, retention, ordering, lease, dead-letter or transaction semantics.
-
 ## Next gate
 
-Await IA-02 event-semantic stabilization and closure of the remaining EventBus implementation-contract items. Then implement the bounded EventBus slice with deterministic tests, without touching Inbox/Outbox/JobQueue/AuditLog.
+Close the remaining EventBus lifecycle/error semantics without modifying protected contracts. After those gates close, the next concrete candidate is the in-process EventBus runtime slice with deterministic tests.
+
+Never treat documentation as proof of runtime. Preserve the open status of `CONTRACT-001`, `CONTRACT-002` and `GOV-001`. Do not invent retry, retention, ordering, lease, cancellation, timeout, scheduling or dispatch-completion semantics.
