@@ -1,13 +1,13 @@
 # IA-01 — Migration 0002 Projection
 
-Status: **DOCUMENTARY PROJECTION ONLY**  
+Status: **DOCUMENTARY PROJECTION ONLY**
 `0002` file: **NOT CREATED**
 
-## Purpose
+## 1. Gate
 
-Project the deterministic shape of the future canonical migration without implementing it.
+This projection does not authorize implementation. The future migration may be emitted only after the schema decision package is approved and all included tables are deterministic.
 
-## Proposed dependency order
+## 2. Dependency order
 
 1. `store`
 2. `device`
@@ -38,75 +38,48 @@ Project the deterministic shape of the future canonical migration without implem
 27. `notification`
 28. `domain_outbox`
 
-This order is a proposal derived from explicit parent/child relationships. It must be revisited if the approved physical relationships change.
+This order remains subject to approved relationship changes. `domain_outbox` is deliberately last because CONTRACT-001 can affect its physical scope.
 
-## Projection phases
+## 3. Decision prerequisites by group
 
-### Phase A — Base/root tables
+### Locally closable after operator confirmation
 
-Create Store and any independently defined global/root structures whose field contracts are complete.
+`store`, `product_image`, `log` and other tables whose semantic fields are already complete can use the approved IA-01 physical convention once confirmed.
 
-### Phase B — Store-scoped catalog/customer structures
+### Cross-agent closure required
 
-Create Device, Settings, ProductCategory, Product, ProductModifier, ProductImage, Promotion, Customer, CustomerAddress and KnowledgeItem only after field contracts are complete.
+Device/catalog/customer/conversation/message/order/infrastructure/AI tables require semantic-owner decisions before DDL.
 
-### Phase C — Conversation/message structures
+### Global closure required
 
-Create Conversation and Message after physical state/reference representations are frozen.
+`domain_outbox` requires CONTRACT-001 resolution wherever the physical ownership model changes the schema.
 
-### Phase D — Order structures
+## 4. Required indexes/constraints
 
-Create PaymentMethod, Order, OrderItem, OrderItemModifier and OrderStatusHistory only after parent key names, snapshot identity and physical lifecycle representation are frozen.
+The projection includes only the seven contract-required uniqueness constraints:
 
-### Phase E — Reliability/integration structures
+- `Customer(store_id, phone_normalized)`
+- `Conversation(store_id, external_thread_id)`
+- `Message(store_id, external_message_id)`
+- `InboundInbox(provider, external_event_id)`
+- `DomainOutbox(idempotency_key)`
+- `Order(store_id, display_number)`
+- `Device(store_id, id)`
 
-Create InboundInbox, Job, AuditLog, Log and Notification once their complete physical field contracts exist.
+No performance-only index is assumed.
 
-### Phase F — AI structures
+## 5. FK projection
 
-Create AIProfile and AIExecution after their exact persistence decomposition is frozen.
+Create only frozen FKs with frozen source/target field names. Parent-key gaps on `OrderItem`, `OrderItemModifier`, and `OrderStatusHistory` remain explicit blockers. No `ON DELETE` or `ON UPDATE` action is projected until approved.
 
-### Phase G — Outbox
+## 6. Status/state projection
 
-Create DomainOutbox only after CONTRACT-001 is resolved wherever its physical ownership changes schema.
+Persist semantic state values only after the semantic owner confirms the physical encoding. No invented SQL enum lookup tables or CHECK constraints are part of this projection.
 
-## Index projection
+## 7. Transaction/runtime projection
 
-The future migration must contain the seven contract-required unique indexes/constraints:
+The migration must use the existing M5.1 migration runner and preserve deterministic discovery, checksum integrity, idempotent application and transaction boundaries. No runtime modification is projected.
 
-- Customer `(store_id, phone_normalized)`
-- Conversation `(store_id, external_thread_id)`
-- Message `(store_id, external_message_id)`
-- InboundInbox `(provider, external_event_id)`
-- DomainOutbox `(idempotency_key)`
-- Order `(store_id, display_number)`
-- Device `(store_id, id)`
+## 8. Current determinism result
 
-No additional performance indexes are included in this projection.
-
-## Transaction projection
-
-The future migration must execute through the existing M5.1 migration runner and preserve its deterministic ordering, checksum recording, idempotent application and transaction boundary. No change to those mechanisms is projected.
-
-## Foreign-key projection
-
-The future migration must create FKs only from the frozen relationship matrix. Any relation whose source/target field or delete/update behavior remains UNKNOWN must be excluded or remain blocked rather than inferred during implementation.
-
-## Rollback/recovery projection
-
-No ad hoc rollback SQL is assumed. Schema upgrade/recovery behavior must follow the existing migration/backup contracts. Destructive or irreversible behavior requires explicit approved migration semantics before implementation.
-
-## Determinism test
-
-The projection is considered complete only when the specification contains enough information for another engineer to generate identical SQL without choosing:
-
-- table names;
-- missing parent keys;
-- nullability;
-- defaults;
-- enum encoding;
-- FK actions;
-- credential storage semantics;
-- missing field types.
-
-The current specification fails that deterministic-generation test; therefore `0002` remains prohibited.
+A second engineer cannot yet generate identical DDL from the current package without asking for unresolved field definitions, parent keys, nullability/defaults, FK actions and physical status encoding. Therefore the projection is intentionally non-executable and `0002` remains prohibited.
