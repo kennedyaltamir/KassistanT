@@ -46,6 +46,9 @@ Status: INDEPENDENT / NOT AN AUTHORIZATION
 | EXT-01 | External | WhatsApp application/configuration | EXTERNAL_ACTION_REQUIRED | C1 | Operator | EXTERNAL/UNKNOWN | Baseline states professional WhatsApp direction | PARTIALLY_VERIFIED | provider account/config | CONDITIONAL | YES | YES | Confirm required account/config |
 | REL-01 | Release | Packaging/signing/update | EXTERNAL_ACTION_REQUIRED + VERIFICATION_REQUIRED | C2 | Release owner | NOT_STARTED | Baseline + roadmap | VERIFIED | functional desktop | NO_C1 | YES | YES | Plan production readiness separately |
 | REL-02 | Recovery | Backup/restore/recovery | IMPLEMENTATION_REQUIRED + VERIFICATION_REQUIRED | C2 | IA01/ops | NOT_STARTED | Baseline/roadmap | VERIFIED | stable persistence | NO_C1 | YES | YES | Define production-readiness gate |
+| C3-01 | Future | SaaS/multi-tenant evolution | DEFERRED | C3 | Future | DEFERRED | Baseline Future scope | VERIFIED | Post-MVP | NO | YES | NO | Keep deferred |
+| C3-02 | Future | ERP/industrial accounting/stock scope | DEFERRED | C3 | Future | DEFERRED / explicitly outside MVP | Baseline scope limits | VERIFIED | Post-MVP | NO | YES | NO | Keep out of C1 |
+| C3-03 | Future | Other baseline Future items not promoted to MVP | DEFERRED | C3 | Future | DEFERRED | Baseline | PARTIALLY_VERIFIED | Scope decision | NO | YES | NO | Revisit only with explicit product decision |
 
 ### Matrix interpretation
 
