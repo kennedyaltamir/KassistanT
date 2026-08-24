@@ -37,6 +37,27 @@ IA-03 will not claim global ordering, exactly-once delivery, durable replay or a
 
 The runtime must consume the current approved `DomainEvent` shape without silently expanding `packages/contracts/**`. Broader documented envelope metadata may be preserved when actually supplied, but is not locally promoted into a new global contract.
 
+### D03-008 — EventBus V1 local runtime policies
+**Status:** DECISION / OPERATOR-APPROVED / IA-03 LOCAL RUNTIME
+
+The operator explicitly approved the following V1 policies:
+
+- subscriber failure is isolated;
+- `publish()` continues through all subscriptions selected by its dispatch snapshot;
+- failures are aggregated and reported after selected handlers settle;
+- subscriptions have opaque identities;
+- `unsubscribe()` is idempotent;
+- dispatch uses a snapshot of subscriptions;
+- duplicate subscriptions are independent registrations;
+- `publish()` is asynchronous and awaits handlers sequentially;
+- V1 has no `AbortSignal` and cancellation is lifecycle/unsubscribe based;
+- V1 has no EventBus-owned timeout;
+- `await publish()` completes after all selected handlers settle;
+- EventBus has `NO_ORDERING_GUARANTEE`;
+- EventBus does not persist, retry durably, or couple to DomainOutbox.
+
+These are local EventBus implementation policies explicitly approved by the operator. They do not modify protected global contracts.
+
 ## Open / not approved
 
 ### CONTRACT-001 — DomainOutbox ownership and scope
@@ -56,4 +77,4 @@ The repository records a version-authority inconsistency. IA-03 must not infer a
 
 ## Proposals
 
-None. The EventBus closure documents a bounded implementation candidate and does not modify a protected global contract.
+None. EventBus V1 local policies in D03-008 are approved decisions, not proposals.
