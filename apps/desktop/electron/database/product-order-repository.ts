@@ -10,6 +10,7 @@ export interface ProductRecord {
 
 export interface OrderRepository {
   save(order: Order): void;
+  update(order: Order): void;
   getById(id: string, storeId?: string): Promise<Order | null>;
   listByStore(storeId: string): Promise<Order[]>;
 }
@@ -112,44 +113,28 @@ export class SQLiteOrderRepository implements OrderRepository {
   constructor(private readonly database: SQLiteDatabase) {}
 
   save(order: Order): void {
+    this.database.transaction(() => this.insertGraph(order));
+  }
+
+  update(order: Order): void {
     this.database.transaction(() => {
-      this.database.execute(
-        `INSERT INTO "order" (id, store_id, status, total_amount_cents, total_currency)
-         VALUES (?, ?, ?, ?, ?)`,
+      const existing = this.database.query<{ id: string }>(
+        `SELECT id FROM "order" WHERE id = ? AND store_id = ?`,
         order.id,
-        order.storeId,
+        order.storeId
+      )[0];
+      if (!existing) throw new Error("ORDER_NOT_FOUND");
+
+      this.database.execute(
+        `UPDATE "order"
+         SET status = ?, total_amount_cents = ?, total_currency = ?
+         WHERE id = ? AND store_id = ?`,
         order.status,
         order.total.amount_cents,
-        order.total.currency
+        order.total.currency,
+        order.id,
+        order.storeId
       );
-
-      for (const item of order.items) {
-        this.database.execute(
-          `INSERT INTO order_item (
-             id, order_id, name, quantity, unit_price_cents, unit_price_currency
-           ) VALUES (?, ?, ?, ?, ?, ?)`,
-          item.id,
-          order.id,
-          item.name,
-          item.quantity,
-          item.unit_price.amount_cents,
-          item.unit_price.currency
-        );
-
-        for (const modifier of item.modifiers) {
-          this.database.execute(
-            `INSERT INTO order_item_modifier (
-               id, order_item_id, name, quantity, price_cents, price_currency
-             ) VALUES (?, ?, ?, ?, ?, ?)`,
-            modifier.id,
-            item.id,
-            modifier.name,
-            modifier.quantity,
-            modifier.price.amount_cents,
-            modifier.price.currency
-          );
-        }
-      }
     });
   }
 
@@ -181,6 +166,46 @@ export class SQLiteOrderRepository implements OrderRepository {
       if (order) orders.push(order);
     }
     return orders;
+  }
+
+  private insertGraph(order: Order): void {
+    this.database.execute(
+      `INSERT INTO "order" (id, store_id, status, total_amount_cents, total_currency)
+       VALUES (?, ?, ?, ?, ?)`,
+      order.id,
+      order.storeId,
+      order.status,
+      order.total.amount_cents,
+      order.total.currency
+    );
+
+    for (const item of order.items) {
+      this.database.execute(
+        `INSERT INTO order_item (
+           id, order_id, name, quantity, unit_price_cents, unit_price_currency
+         ) VALUES (?, ?, ?, ?, ?, ?)`,
+        item.id,
+        order.id,
+        item.name,
+        item.quantity,
+        item.unit_price.amount_cents,
+        item.unit_price.currency
+      );
+
+      for (const modifier of item.modifiers) {
+        this.database.execute(
+          `INSERT INTO order_item_modifier (
+             id, order_item_id, name, quantity, price_cents, price_currency
+           ) VALUES (?, ?, ?, ?, ?, ?)`,
+          modifier.id,
+          item.id,
+          modifier.name,
+          modifier.quantity,
+          modifier.price.amount_cents,
+          modifier.price.currency
+        );
+      }
+    }
   }
 
   private async hydrateOrder(orderRow: OrderRow | undefined): Promise<Order | null> {
