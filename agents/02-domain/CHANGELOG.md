@@ -31,5 +31,13 @@
 - Added `HUMAN-DOMAIN-DECISIONS.md`.
 - Reduced DREQ-001..006 to four decisions required for the proposed first slice.
 - Deferred `DREQ-003` and `DREQ-004` for the first pure in-memory slice.
-- Confirmed no non-trivial first runtime slice is currently READY.
+- Confirmed no non-trivial first runtime slice was implementation-ready before human decisions.
 - Preserved implementation freeze and unresolved global contracts.
+
+### Human decision closure — first Domain slice
+- **DREQ-001 APPROVED:** `Order` is the V1 aggregate root; `OrderItem` and `OrderItemModifier` are aggregate-owned children; `OrderStatusHistory` is deferred and not required for the V1 aggregate boundary.
+- **DREQ-002 APPROVED:** first normative transition is `DRAFT -> CONFIRMED`, triggered by `ConfirmOrder`, producing `order.confirmed`.
+- **DREQ-005 APPROVED:** first-slice domain error semantics are `INVALID_ORDER_STATE`, `CONFIRMATION_DATA_INVALID`, `DUPLICATE_CONFIRMATION`, and `CONCURRENCY_CONFLICT`; global/public/transport mappings and technical idempotency/concurrency mechanisms remain out of scope.
+- **DREQ-006 APPROVED:** authentication remains outside the aggregate; authorization belongs to the application/application-service boundary; the domain receives a minimal approved `ActorContext` without credentials; ActorContext shape is not frozen.
+- Implementation authorization remains pending explicit human authorization after post-decision readiness re-audit.
+- No product code, contracts, schema, migration or external configuration was changed by the decision closure.
