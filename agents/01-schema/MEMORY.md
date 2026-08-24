@@ -2,52 +2,55 @@
 
 ## Permanent verified facts
 
-### Repository and authority
-
 - Repository: `kennedyaltamir/KassistanT`.
-- IA-01 territory: Canonical SQLite Schema / Persistence Schema Foundation.
-- Integration authority is `main`.
-- Active implementation branch: `Agent01-schema-canonical-sqlite`.
+- Integration authority: `main`.
+- Active branch: `Agent01-schema-canonical-sqlite`.
 - Phase 1 and Phase 2 work are documentation-only; protected contracts and M5.1 runtime remain untouched.
+- Canonical schema inventory: 28 entities.
 
-### Baseline
-
-- Approved baseline: `KassisT_Approved_Technical_Baseline_v1.0.1.md`.
-- Baseline SHA: `02830152099f58307912ce382c064a3c4075f505`.
-- SQLite is MVP persistence.
-- Timestamps persist in UTC.
-- Money uses integer cents / BRL.
-- UUIDv7 is the identifier direction where supported.
-
-### M5.1 foundation
+## M5.1 foundation
 
 M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 checksums, idempotent migration application, checksum drift detection, transaction boundaries, database errors, health checks and UUIDv7/UTC/BRL primitives.
 
 `0001_bootstrap.sql` still creates only `_schema_metadata`; canonical business tables are not implemented.
 
-### Phase 2 physical specification
+## Schema decision package
 
-- `CANONICAL-SCHEMA-SPEC.md` now consolidates physical naming proposals, semantic fields, scope, state storage, mutability and implementation order.
-- `ENTITY-PHYSICAL-MAP.md` maps all 28 canonical entities to lower_snake_case table-name proposals while explicitly keeping naming PROPOSED.
-- `RELATIONSHIP-SPEC.md` records 23 relationships and refuses to invent missing parent keys or delete/update actions.
-- `CONSTRAINT-SPEC.md` freezes only the seven contract-required unique constraints and keeps most NOT NULL/DEFAULT/CHECK/FK actions open.
-- `INDEX-SPEC.md` limits REQUIRED_BY_CONTRACT indexes to the seven explicit unique constraints.
-- `MIGRATION-0002-READINESS.md` records every table as blocked for deterministic DDL under current evidence.
-- `MIGRATION-0002-PROJECTION.md` projects dependency order and migration structure without creating `0002`.
+- `SCHEMA-DECISION-MATRIX.md` classifies local, cross-agent, global, deferred and non-blocking decisions.
+- `SCHEMA-AUTHORITY-MATRIX.md` separates semantic authority from IA-01 physical ownership.
+- `TABLE-READINESS-MATRIX.md` reclassifies the 28 tables by decision authority.
+- `CANONICAL-SCHEMA-SPEC.md` consolidates the physical proposal.
+- `MIGRATION-0002-READINESS.md` and `MIGRATION-0002-PROJECTION.md` remain documentary and prohibit migration creation.
 
-### Remaining schema-critical gaps
+## Reclassified readiness
 
-- Physical SQL table naming is a proposal, not an approved convention.
-- UUID and timestamp physical SQLite encoding is not frozen.
-- Several entities lack complete field-level definitions: Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential, KnowledgeItem.
-- Parent key names are missing for OrderItem, OrderItemModifier and OrderStatusHistory.
-- Nullability and SQL defaults are mostly UNKNOWN.
-- FK ON DELETE / ON UPDATE behavior is UNKNOWN.
-- Lifecycle/status SQL representation is not frozen, although semantic values are known.
-- DomainOutbox remains blocked where physical ownership/scope depends on CONTRACT-001.
+- `READY_AFTER_LOCAL_DECISION`: 3 tables.
+- `READY_AFTER_CROSS_AGENT_DECISION`: 14 tables.
+- `READY_AFTER_GLOBAL_DECISION`: 1 table.
+- `BLOCKED`: 10 tables.
+- `READY_FOR_MIGRATION`: 0 tables.
 
-## Open contracts
+## Local physical proposals awaiting operator confirmation
 
-- `CONTRACT-001`: DomainOutbox ownership/scope.
-- `CONTRACT-002`: `order.status_changed` semantics; currently non-blocking unless its final decision changes physical schema.
-- `GOV-001`: baseline/document authority history.
+- `lower_snake_case` physical naming.
+- UUID as canonical textual `TEXT`.
+- UTC timestamps as canonical RFC3339/ISO-8601 `TEXT`.
+- booleans as SQLite `INTEGER 0/1` where semantics are frozen.
+- contract-defined JSON payloads as `TEXT` JSON.
+
+These are implementation proposals, not global architectural decisions.
+
+## Schema-critical blockers
+
+- `FIELD-GAPS`: incomplete semantic field inventories.
+- `CHILD-KEY-GAPS`: missing parent key definitions for OrderItem, OrderItemModifier and OrderStatusHistory.
+- `NULLABILITY-DEFAULT-GAPS`: semantic required/optional/default rules are incomplete.
+- `FK-ACTION-GAPS`: delete/update actions are not contractually frozen.
+- `ENUM-PHYSICAL-GAPS`: state catalog is known for several entities, but SQL representation is not frozen.
+- `CONTRACT-001`: global blocker only for affected DomainOutbox physical semantics.
+- `CONTRACT-002`: currently non-blocking for schema.
+- `GOV-001`: deferred unless an actual source conflict changes schema interpretation.
+
+## Memory policy
+
+Only verified facts and explicitly approved posture belong here. Proposals remain proposals until operator/project authority approves them.
