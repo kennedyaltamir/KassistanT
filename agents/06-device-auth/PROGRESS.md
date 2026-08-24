@@ -2,62 +2,33 @@
 
 ## Current phase
 
-**Device Authentication Contract Readiness Audit**
+**Device Authentication Contract Closure / Post-Audit Correction**
 
 ## Status
 
-`READINESS_COMPLETE / CONTRACTS_PARTIAL / IMPLEMENTATION_FROZEN`
+`CONTRACT_REVIEW_READY / IMPLEMENTATION_FROZEN`
 
 ## Confirmed
 
-- Agent identity: IA-06 — Device Authentication.
-- Branch is `Agent06-device-authentication`.
-- The branch was aligned with `main` before this readiness commit.
-- Device enrollment/authentication contracts were re-audited against repository sources.
-- OpenAPI and WSS projections were reviewed.
-- Domain, backend authentication/authorization, idempotency, audit and error documents were reviewed.
-- Runtime device-auth code remains not implemented.
-- Readiness package created entirely under `agents/06-device-auth/**`.
-- No global contract was changed.
+- Repository and territory remain controlled by IA-06.
+- No product runtime was implemented.
+- No shared contracts were modified.
+- Security concerns are now tracked as independent layers.
+- Ed25519 primitive is `DEFINED`.
+- Cryptographic wire contract is `OPEN / DR-02`.
+- Session, authorization, rate limiting, idempotency and rotation have independent gates.
+- Logical Secure Storage boundary is defined; concrete technology/runtime validation is external.
+- Minimum audit requirements are explicitly identified.
+- Signature Verification Boundary is `READY_AFTER_MINIMUM_DR02_CLOSURE` but still requires explicit operator authorization before implementation.
 
-## Readiness result
+## Decision requests
 
-### READY
+DR-01 through DR-08 remain open project decisions.
 
-- Ed25519 as the approved algorithm/direction.
-- Public/private key separation boundary.
-- Provisioning Service as named management authority.
-- `DEVICE_REVOKED` revocation outcome and session termination requirement.
-- Basic ownership boundaries and cross-agent dependencies.
+## Current blockers
 
-### PARTIAL
-
-- Device identity field model.
-- Enrollment endpoints.
-- Authentication flow.
-- Secure Storage boundary.
-- Revoke/status/audit/error semantics.
-- Gateway/WSS/desktop interfaces.
-
-### BLOCKED
-
-- Production enrollment implementation.
-- Production authentication/session implementation.
-- Authorization middleware/policy.
-- Numerical rate limiting.
-- Endpoint-specific idempotency.
-- Rotation lifecycle.
-- Final device error catalog.
-- Deterministic implementation tests dependent on missing protocol details.
-
-### EXTERNAL
-
-- Supported Windows Secure Storage runtime validation.
-
-## Implementation status
-
-No production code created. No migration created. No contracts changed. No Gateway implementation changed.
+Full runtime remains blocked by applicable DRs and cross-agent interfaces. The pure verification slice is blocked only by its minimum DR-02 subset and explicit implementation authorization.
 
 ## Next phase
 
-Wait for project-level contract closure and explicit implementation authorization.
+Project authority review of `DEVICE-AUTH-APPROVAL-REQUEST.md`, followed by explicit approval or rejection of the relevant slice.
