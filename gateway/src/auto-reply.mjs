@@ -24,9 +24,7 @@ function loadPolicies() {
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    conversationPolicies = parsed && typeof parsed === 'object'
-      ? /** @type {ConversationPolicyMap} */ (parsed)
-      : {};
+    conversationPolicies = parsed && typeof parsed === 'object' ? /** @type {ConversationPolicyMap} */ (parsed) : {};
   } catch {
     conversationPolicies = {};
   }
@@ -46,7 +44,7 @@ function getConversationPolicy(jid) {
   return value && typeof value === 'object' ? value : {};
 }
 
-/** @param {string} jid @param {{ enabled?: boolean | null, prompt?: string }} patch */
+/** @param {string} jid @param {Partial<ConversationPolicy> & { enabled?: boolean | null }} patch */
 export function setConversationPolicy(jid, patch = {}) {
   if (typeof jid !== 'string' || !jid.trim()) throw new Error('Conversation JID is required');
   if (!jid.endsWith('@lid') && !jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@g.us')) {
@@ -70,18 +68,16 @@ export function setConversationPolicy(jid, patch = {}) {
   return { jid, ...next };
 }
 
-/** @param {string} jid */
 export function clearConversationPolicy(jid) {
   return setConversationPolicy(jid, { enabled: null, prompt: '' });
 }
 
-/** @param {string} jid */
 export function getConversationPolicyStatus(jid) {
   return { jid, ...getConversationPolicy(jid) };
 }
 
 export function listConversationPolicies() {
-  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid: /** @type {string} */ (jid), ...(value || {}) }));
+  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...(value || {}) }));
 }
 
 /** @param {string} jid @returns {ContextMessage[]} */
@@ -92,35 +88,35 @@ function conversationContext(jid) {
     .filter(message => message.jid === jid && typeof message.text === 'string')
     .slice(-maxContextMessages)
     .map(message => {
-      const text = message.text?.trim();
-      if (!text) return null;
-      return {
-        role: message.direction === 'OUTBOUND' ? 'assistant' : 'user',
-        content: text,
-      };
+      if (message.fromMe || message.direction === 'OUTBOUND') {
+        return { role: 'assistant', content: message.text };
+      }
+      return { role: 'user', content: message.text };
     });
-
-  return context.filter(message => message !== null);
+  return context.filter((message) => message !== null);
 }
 
-/** @param {string | null} jid */
-function isSupportedRecipient(jid) {
-  return typeof jid === 'string' && (
-    jid.endsWith('@lid') ||
-    jid.endsWith('@s.whatsapp.net') ||
-    jid.endsWith('@g.us')
-  );
+export function getAutoReplyStatus() {
+  return {
+    ...getLlmStatus(),
+    inflightConversations: inFlight.size,
+    configuredConversations: listConversationPolicies().length,
+  };
 }
 
-/** @param {MessageSnapshot | null | undefined} message */
-async function handleMessage(message) {
-  const status = getLlmStatus();
-  if (!status.enabled) return;
-  if (!message || message.direction !== 'INBOUND') return;
-  if (!isSupportedRecipient(message.jid)) return;
-  const text = message.text?.trim();
-  if (!text) return;
+export function startAutoReply() {
+  if (started) return;
+  started = true;
+  subscribe((message) => {
+    if (!message || message.direction !== 'INBOUND' || message.fromMe || !message.jid || typeof message.text !== 'string' || !message.text.trim()) {
+      return;
+    }
+    void handleInbound(message);
+  });
+}
 
+/** @param {MessageSnapshot} message */
+async function handleInbound(message) {
   const jid = message.jid;
   if (!jid) return;
   const policy = getConversationPolicy(jid);
@@ -141,7 +137,9 @@ async function handleMessage(message) {
   lastReplyAt.set(jid, now);
 
   try {
-    const reply = await generateReply(context, { systemPrompt: promptOverride });
+    const reply = promptOverride
+      ? await generateReply(context, { systemPrompt: promptOverride })
+      : await generateReply(context);
     await sendText(jid, reply);
     console.log(`[KassisT AI] auto-reply sent to ${jid}`);
   } catch (error) {
@@ -152,30 +150,4 @@ async function handleMessage(message) {
   } finally {
     inFlight.delete(jid);
   }
-}
-
-export function startAutoReply() {
-  if (started) return;
-  started = true;
-  subscribe(event => {
-    if (event.type === 'message') {
-      void handleMessage(event.message);
-    }
-  });
-
-  const status = getLlmStatus();
-  console.log(
-    `[KassisT AI] local auto-reply ${status.enabled ? 'ENABLED' : 'DISABLED'}; model=${status.model}; url=${status.baseUrl}`
-  );
-}
-
-export function getAutoReplyStatus() {
-  const config = getAiConfig();
-  return {
-    ...getLlmStatus(),
-    contextMessages: config.contextMessages,
-    cooldownMs: config.cooldownMs,
-    inflightConversations: inFlight.size,
-    configuredConversations: listConversationPolicies().length,
-  };
 }
