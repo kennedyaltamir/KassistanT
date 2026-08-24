@@ -1,277 +1,139 @@
 # KassisT — IA-01 Human Schema Review
 
-Status: **WAITING FOR OWNER / OPERATOR RESPONSES / 0002 FORBIDDEN**
+Status: **REVIEW REQUIRED / 0002 NOT AUTHORIZED**
 Branch: `Agent01-schema-canonical-sqlite`
 
-## Response consolidation state
-
-No new semantic-owner response was supplied in the current execution input.
-
-Therefore:
-
-- `OWNER_RESPONSES_RECEIVED = 0`
-- `OWNER_RESPONSES_ACCEPTED = 0`
-- `OWNER_RESPONSES_PARTIAL = 0`
-- `OWNER_RESPONSES_CONFLICTING = 0`
-- `OWNER_RESPONSES_NOT_VERIFIED = 0`
-- all previously issued cross-agent requests remain pending;
-- no proposal has been promoted to `APPROVED`;
-- no table has been promoted to `READY`;
-- no conflict has been fabricated from absence of evidence.
-
-The only authoritative state change in this execution is the explicit recording that responses are still pending.
-
-## A. Decisions ready for immediate operator approval
+## 1. Local operator decisions still pending
 
 ### SD-001 — Physical SQL naming
-**QUESTION**
-Adotar `lower_snake_case` para nomes físicos das tabelas e colunas do schema canônico?
+**Question:** adopt `lower_snake_case` for physical table/column names?
 
-**EVIDENCE**
-`_schema_metadata` já usa snake_case; os campos documentados também usam snake_case. Não existe regra global explícita de naming.
+**Evidence:** repository bootstrap and documented field names already use snake_case, but no protected global naming rule freezes it.
 
-**OPTIONS**
-- A: aprovar `lower_snake_case` para o território de schema da IA-01.
-- B: definir outra convenção.
-- C: promover a questão para regra global de repository.
-
-**RECOMMENDATION**
-A.
-
-**IMPACT**
-Todas as 28 tabelas e futuras migrations.
-
-**OWNER**
-IA-01, com confirmação do operador.
-
-**RISK / REVERSIBILITY**
-Médio / moderada antes de DDL, baixa após consumo pelo runtime.
-
-**APPROVAL REQUIRED**
-SIM — operador.
-
-**RESPONSE STATUS**
-`PENDING`
+**Recommendation:** approve for IA-01 schema territory.
 
 ### SD-002 — UUID physical representation
-**QUESTION**
-Persistir UUIDv7 como canonical UUID string em SQLite `TEXT`?
+**Question:** persist canonical UUIDv7 strings as SQLite `TEXT`?
 
-**EVIDENCE**
-M5.1 fornece UUIDv7 string-compatible; não há decisão BLOB no contrato protegido.
+**Evidence:** UUIDv7 is a semantic/project convention; protected documentation does not select BLOB.
 
-**OPTIONS**
-- A: `TEXT` canonical UUID.
-- B: `BLOB` 16-byte.
-- C: outra representação aprovada.
-
-**RECOMMENDATION**
-A.
-
-**IMPACT**
-IDs, FKs, unique keys e correlação entre componentes.
-
-**OWNER**
-IA-01, sujeita à confirmação do operador.
-
-**APPROVAL REQUIRED**
-SIM — operador.
-
-**RESPONSE STATUS**
-`PENDING`
+**Recommendation:** `TEXT` canonical UUID string.
 
 ### SD-003 — UTC timestamp representation
-**QUESTION**
-Persistir timestamps UTC como RFC3339/ISO-8601 canonical `TEXT`?
+**Question:** persist UTC timestamps as canonical RFC3339/ISO-8601 `TEXT`?
 
-**EVIDENCE**
-UTC é semântica aprovada; representação SQLite não está congelada.
+**Evidence:** UTC semantics are frozen; SQLite physical representation is not.
 
-**OPTIONS**
-- A: canonical UTC text.
-- B: Unix epoch integer.
-- C: outro formato aprovado.
-
-**RECOMMENDATION**
-A.
-
-**IMPACT**
-Todos os timestamps persistidos.
-
-**OWNER**
-IA-01, sujeita à confirmação do operador.
-
-**APPROVAL REQUIRED**
-SIM — operador.
-
-**RESPONSE STATUS**
-`PENDING`
+**Recommendation:** canonical UTC text.
 
 ### SD-004 — Boolean physical representation
-**QUESTION**
-Usar `INTEGER` com `CHECK (value IN (0,1))`?
+**Question:** use SQLite `INTEGER` with `CHECK (value IN (0,1))`?
 
-**EVIDENCE**
-Há semântica booleana na baseline; SQLite é a persistência MVP.
+**Recommendation:** approve.
 
-**OPTIONS**
-- A: INTEGER 0/1 + CHECK.
-- B: TEXT `TRUE/FALSE`.
-- C: outra convenção.
+### SD-005 — JSON payload representation
+**Question:** where the contract explicitly defines JSON and relational decomposition is unnecessary, persist canonical JSON as `TEXT`?
 
-**RECOMMENDATION**
-A.
+**Recommendation:** approve narrowly; relational fields remain relational.
 
-**IMPACT**
-Campos boolean-like em várias entidades.
+All five remain `PENDING OPERATOR APPROVAL`.
 
-**OWNER**
-IA-01, sujeita à confirmação do operador.
+## 2. Verified cross-agent evidence incorporated
 
-**APPROVAL REQUIRED**
-SIM — operador.
+### DREQ-001 — Order aggregate boundary
+IA-02 confirms `Order` as aggregate root and `OrderItem`/`OrderItemModifier` as aggregate-owned children. `OrderStatusHistory` is deferred and not required for the V1 aggregate boundary. fileciteturn159file0
 
-**RESPONSE STATUS**
-`PENDING`
+**Physical consequence:** ownership is clarified, but parent key names, FK actions, ordering, uniqueness and persistence representation are still open. No DDL follows automatically.
 
-### SD-005 — JSON-like payload representation
-**QUESTION**
-Quando o contrato identifica explicitamente conteúdo JSON e não há necessidade relacional, armazenar canonical JSON em `TEXT`?
+### DREQ-002 — ConfirmOrder
+IA-02 confirms `DRAFT -> CONFIRMED` via `ConfirmOrder`, emitting `order.confirmed`. fileciteturn159file0
 
-**EVIDENCE**
-Persistence/Job/Audit/AI contracts descrevem payload/metadata; não existe tipo JSON SQLite aprovado.
+**Physical consequence:** one semantic transition is confirmed. It does not freeze the complete persisted Order lifecycle or authorize `order.status_changed` persistence.
 
-**OPTIONS**
-- A: canonical JSON in TEXT.
-- B: BLOB encoding.
-- C: decomposição relacional quando o contrato exigir consulta estrutural.
+### DREQ-005 — ConfirmOrder error semantics
+Approved domain categories remain semantic outcomes only. IA-02 explicitly does not decide persistence, idempotency or concurrency mechanisms. fileciteturn159file0
 
-**RECOMMENDATION**
-A somente para payloads realmente definidos como JSON; C quando o contrato exigir campos relacionais.
+**Physical consequence:** no error table, `error_code` column, retry metadata or concurrency/version column is inferred.
 
-**IMPACT**
-Job, Inbox, Audit, Log, AIExecution e integrações relevantes.
+### DREQ-006 — Actor / authorization boundary
+IA-02 confirms authentication remains outside the aggregate and authorization belongs to application/application-service boundaries. ActorContext shape is not frozen. fileciteturn159file0
 
-**OWNER**
-IA-01 como convenção física, caso não contradiga contrato específico.
+**Physical consequence:** no ActorContext persistence is authorized.
 
-**APPROVAL REQUIRED**
-SIM — operador.
+### IA-03 — Event infrastructure
+IA-03 confirms WSS ACK represents durable local persistence in `InboundInbox`; the execution sequence is EventBus → InboundInbox → Job/Audit and DomainOutbox only after CONTRACT-001 resolution. DomainOutbox remains open. fileciteturn161file0
 
-**RESPONSE STATUS**
-`PENDING`
-
-## B. Cross-agent response status
-
-| Owner | Requests | Responses received | Accepted | Partial | Conflicting | Not verified | Current status |
-|---|---:|---:|---:|---:|---:|---:|---|
-| IA-02 | 3 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-03 | 3 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-04 | 4 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-05 | 3 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-06 | 2 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-07 | 1 | 0 | 0 | 0 | 0 | 0 | WAITING |
-| IA-08 | 0 | 0 | 0 | 0 | 0 | 0 | NO BLOCKING REQUEST |
-
-A request without a supplied owner response remains unresolved.
-
-## C. Cross-agent requests pending
-
-### IA-02 — Domain Runtime
-- `REQ-02-01`: required/optional/nullable/default semantic ownership.
-- `REQ-02-02`: lifecycle/state semantic catalogs for Conversation/Message/AI/Order.
-- `REQ-02-03`: per-entity Store scoping where `store_id` is not explicit.
-
-**STATUS:** `PENDING`
-
-### IA-03 — Event Infrastructure
-- `REQ-03-01`: InboundInbox field inventory and processing/reconciliation semantics.
-- `REQ-03-02`: DomainOutbox local-vs-Gateway physical fields and transaction scope.
-- `REQ-03-03`: Job/Audit persistence semantics.
-
-**STATUS:** `PENDING`
+**Physical consequence:** Inbox persistence is confirmed as a real schema dependency, but the exact field inventory is still absent. DomainOutbox remains a localized global blocker.
 
 ### IA-04 — Order Engine
-- `REQ-04-01`: OrderItem parent key/cardinality/ownership.
-- `REQ-04-02`: OrderItemModifier parent keys, ordering and uniqueness.
-- `REQ-04-03`: OrderStatusHistory parent/order reference, identity and actor semantics.
-- `REQ-04-04`: Order address/payment reference optionality and ownership.
+IA-04 confirms `CONFIRMED` as the operational sale milestone and keeps CONTRACT-001/002 open. Its current decision registry does not define the missing parent-key field names or a physical persistence model for OrderStatusHistory. fileciteturn160file0
 
-**STATUS:** `PENDING`
-
-### IA-05 — Conversation + LLM
-- `REQ-05-01`: Conversation/Message persistence semantics.
-- `REQ-05-02`: AIProfile/AIExecution persistence field inventory.
-- `REQ-05-03`: KnowledgeItem identity/content/scope model.
-
-**STATUS:** `PENDING`
+### IA-05 — Conversation / LLM
+IA-05 states AIExecution requires cross-agent logical closure with IA-01/IA-03 and that Conversation transition semantics come from IA-02. No complete physical field inventory is approved. fileciteturn162file0
 
 ### IA-06 — Device Authentication
-- `REQ-06-01`: Device status/lifecycle persistence.
-- `REQ-06-02`: Store/Device identity and required uniqueness/security metadata.
-
-**STATUS:** `PENDING`
+IA-06 confirms the security boundary and that several enrollment/session/idempotency decisions remain open; no canonical SQLite field inventory is frozen by its current decision registry. fileciteturn163file0
 
 ### IA-07 — Gateway / WSS
-- `REQ-07-01`: any Gateway-owned persistence that must cross into Desktop SQLite.
+IA-07 confirms Gateway is the external integration boundary and preserves `CONTRACT-001` as ambiguous. No Desktop SQLite ownership decision is added. fileciteturn164file0
 
-**STATUS:** `PENDING`
+## 3. Owner response state
 
-### IA-08 — Desktop UI
-No blocking request issued. UI remains outside canonical persistence authority unless a concrete physical requirement is demonstrated.
+| Owner | Requests | Verified responses | Schema classification |
+|---|---:|---:|---|
+| IA-02 | 3 | 4 approved domain decisions | PARTIALLY RESOLVED |
+| IA-03 | 3 | 1 relevant infrastructure decision set | PARTIALLY RESOLVED |
+| IA-04 | 4 | existing order decisions; no parent-key closure | PARTIALLY RESOLVED |
+| IA-05 | 3 | contract-closure conclusions; no field inventory | OPEN |
+| IA-06 | 2 | security boundary decisions; no field inventory | OPEN |
+| IA-07 | 1 | Gateway boundary confirmed; CONTRACT-001 open | OPEN |
+| IA-08 | 0 | no persistence request required | NO BLOCKING DEPENDENCY |
 
-## D. Global decisions
+Important: the supplied owner decisions were incorporated only where their exact text/evidence closes a schema question. No missing schema field was inferred.
 
-### GD-001 — CONTRACT-001
-Resolve DomainOutbox ownership/scope across Core/Gateway.
+## 4. Priority remaining requests
 
-**STATUS:** `PENDING GLOBAL DECISION`
+1. **IA-04 — OrderItem / OrderItemModifier:** exact parent-key names, FK targets/actions, cardinality, ordering and uniqueness.
+2. **IA-04 + IA-02 — OrderStatusHistory:** explicit persistence decision; DREQ-001 only defers its aggregate-boundary requirement.
+3. **IA-03 — InboundInbox / Job / Audit:** complete physical field inventories and correlation/idempotency representation.
+4. **IA-05 — Conversation / Message / AIProfile / AIExecution / KnowledgeItem:** canonical physical field inventories and status/reference representation.
+5. **IA-06 — Device / IntegrationCredential:** exact persistence fields that cross the security boundary without secret material.
+6. **Global authority — CONTRACT-001:** exact DomainOutbox ownership/scope/transaction implications.
 
-### GD-002 — Physical conventions
-Approve or reject IA-01 proposals SD-001..SD-005.
+## 5. Current deterministic subset
 
-**STATUS:** `PENDING OPERATOR APPROVAL`
+No table is currently `DETERMINISTIC`.
 
-### GD-003 — GOV-001
-Only adjudicate if an actual normative document conflict changes schema interpretation.
+`DETERMINISTIC_AFTER_APPROVAL`:
+- `store`
+- `product_image`
+- `log`
 
-**STATUS:** `DEFERRED`
+`DETERMINISTIC_AFTER_CROSS_AGENT_DECISION`:
+- 14 tables identified in `TABLE-READINESS-MATRIX.md`.
 
-## E. Current readiness
+`BLOCKED`:
+- 10 tables with missing field/relationship semantics.
 
-| Table | Current status | Required next authority |
-|---|---|---|
-| store | READY_AFTER_LOCAL | operator approves local physical decisions |
-| device | READY_AFTER_CROSS_AGENT | IA-06 + local physical approvals |
-| settings | BLOCKED | IA-02 / product authority |
-| product_category | BLOCKED | IA-02 |
-| product | READY_AFTER_CROSS_AGENT | IA-02 + local physical approvals |
-| product_modifier | READY_AFTER_CROSS_AGENT | IA-02 / IA-04 + local physical approvals |
-| product_image | READY_AFTER_LOCAL | IA-01 physical approval |
-| promotion | BLOCKED | IA-02 / IA-04 |
-| customer | READY_AFTER_CROSS_AGENT | IA-02 / IA-05 + local approvals |
-| customer_address | BLOCKED | IA-02 / IA-04 |
-| conversation | READY_AFTER_CROSS_AGENT | IA-02 / IA-05 + local approvals |
-| message | BLOCKED | IA-03 / IA-05 + local approvals |
-| order | BLOCKED | IA-02 / IA-04 + local approvals |
-| order_item | BLOCKED | IA-04 |
-| order_item_modifier | BLOCKED | IA-04 |
-| order_status_history | BLOCKED | IA-04 / IA-02 |
-| payment_method | BLOCKED | IA-02 / IA-04 |
-| notification | BLOCKED | IA-03 + provider/domain owners |
-| integration | BLOCKED | IA-02 + provider owner |
-| integration_credential | BLOCKED | IA-06 + provider owner |
-| inbound_inbox | BLOCKED | IA-03 |
-| domain_outbox | BLOCKED_GLOBAL | project authority / CONTRACT-001 |
-| job | BLOCKED | IA-03 |
-| audit_log | BLOCKED | IA-03 + domain owners |
-| log | READY_AFTER_LOCAL | IA-01 physical approval |
-| ai_profile | BLOCKED | IA-05 / IA-02 |
-| ai_execution | BLOCKED | IA-05 / IA-03 |
-| knowledge_item | BLOCKED | IA-02 / IA-05 |
+`DETERMINISTIC_AFTER_GLOBAL_DECISION`:
+- `domain_outbox`.
 
-## F. Gate
+## 6. Explicit non-decisions
 
-Migration `0002` remains forbidden.
+The following remain outside schema authority:
 
-No owner response is inferred from existing documentation, recommendations, or prior requests. The next state transition requires actual owner/authority responses followed by validation and conflict detection.
+- domain error categories from DREQ-005;
+- ActorContext persistence from DREQ-006;
+- aggregate ownership as an automatic authorization to invent FK names;
+- `order.confirmed` as authorization to persist `order.status_changed`;
+- WSS/EventBus/Gateway runtime structures as Desktop SQLite tables without explicit cross-boundary persistence requirements.
+
+## 7. Operator response format
+
+`APPROVE SD-001`
+`REJECT SD-001`
+`APPROVE OPTION-B SD-002`
+
+Cross-agent responses should provide `QUESTION_ID + RESPONSE + EVIDENCE`.
+
+Until then, no proposal becomes a decision and migration `0002` remains forbidden.
