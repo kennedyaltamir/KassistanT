@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normalizeRecipient, recordMessage, getMessages, subscribe } from './whatsapp.mjs';
 
-test('normalizeRecipient accepts a WhatsApp JID unchanged', () => {
+/** @typedef {{ id: string, jid: string | null, direction: 'INBOUND' | 'OUTBOUND', fromMe: boolean, text: string | null, timestamp: number, status: 'UNKNOWN' | 'RECEIVED' }} MessageSnapshot */
+
+ test('normalizeRecipient accepts a WhatsApp JID unchanged', () => {
   assert.equal(normalizeRecipient('5511999999999@s.whatsapp.net'), '5511999999999@s.whatsapp.net');
 });
 
@@ -19,6 +21,7 @@ test('normalizeRecipient rejects empty recipients', () => {
 });
 
 test('same message.id is persisted once and published once', () => {
+  /** @type {MessageSnapshot} */
   const message = {
     id: 'dedup-history-sse-1',
     jid: '5511999999999@s.whatsapp.net',
@@ -28,6 +31,7 @@ test('same message.id is persisted once and published once', () => {
     timestamp: 1,
     status: 'UNKNOWN',
   };
+  /** @type {Array<{ type: 'message', message: { id: string } }>} */
   const events = [];
   const unsubscribe = subscribe(event => {
     if (event.type === 'message' && event.message.id === message.id) events.push(event);
@@ -49,6 +53,7 @@ test('same message.id is persisted once and published once', () => {
 });
 
 test('different message IDs remain independent', () => {
+  /** @type {MessageSnapshot} */
   const first = {
     id: 'dedup-independent-1',
     jid: '5511999999999@s.whatsapp.net',
@@ -58,6 +63,7 @@ test('different message IDs remain independent', () => {
     timestamp: 2,
     status: 'UNKNOWN',
   };
+  /** @type {MessageSnapshot} */
   const second = {
     id: 'dedup-independent-2',
     jid: '5511999999999@s.whatsapp.net',
@@ -67,6 +73,7 @@ test('different message IDs remain independent', () => {
     timestamp: 3,
     status: 'UNKNOWN',
   };
+  /** @type {Array<{ type: 'message', message: { id: string } }>} */
   const events = [];
   const unsubscribe = subscribe(event => {
     if (event.type === 'message' && [first.id, second.id].includes(event.message.id)) events.push(event);
@@ -82,6 +89,7 @@ test('different message IDs remain independent', () => {
 });
 
 test('different INBOUND and OUTBOUND IDs are not conflated', () => {
+  /** @type {MessageSnapshot} */
   const inbound = {
     id: 'direction-independent-inbound',
     jid: '5511999999999@s.whatsapp.net',
@@ -91,6 +99,7 @@ test('different INBOUND and OUTBOUND IDs are not conflated', () => {
     timestamp: 4,
     status: 'RECEIVED',
   };
+  /** @type {MessageSnapshot} */
   const outbound = {
     id: 'direction-independent-outbound',
     jid: '5511999999999@s.whatsapp.net',
@@ -108,6 +117,7 @@ test('different INBOUND and OUTBOUND IDs are not conflated', () => {
 });
 
 test('message ID deduplication survives transport session restart', () => {
+  /** @type {MessageSnapshot} */
   const message = {
     id: 'session-restart-dedup-1',
     jid: '5511999999999@s.whatsapp.net',
