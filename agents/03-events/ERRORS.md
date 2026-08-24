@@ -43,12 +43,22 @@ EventBus is documented as in-process/post-commit local communication. The reposi
 ## ERR-009 — Persistence model duplication
 **Status:** READINESS RISK
 
-IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence. Such duplication would create competing sources of truth.
+IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence.
 
 ## ERR-010 — Reliability policy invention
 **Status:** READINESS RISK
 
-Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative. Local guesses would become accidental architecture.
+Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative.
+
+## ERR-011 — Event contract field mismatch
+**Status:** OPEN / NON-BLOCKING FOR READINESS
+
+`docs/domain/events.md` describes a richer envelope than `packages/contracts/src/events.ts` currently materializes. IA-03 must preserve supplied metadata but must not silently expand the protected contract.
+
+## ERR-012 — Subscriber semantics incomplete
+**Status:** OPEN / IMPLEMENTATION GATE
+
+The repository does not yet define deterministic EventBus subscriber failure isolation, scheduling, timeout/cancellation or ordering semantics. These must be closed before production runtime implementation.
 
 ## Recovery traps
 
@@ -56,4 +66,4 @@ Retry count, job backoff, leases, timeout values, retention and dead-letter tran
 - Retry without idempotency can create duplicate logical effects.
 - Replay without causation/correlation breaks traceability.
 - Dead-letter state is not a business outcome.
-- Treating WSS reconnect backoff as JobQueue retry policy would cross a transport boundary without authorization.
+- Treating WSS reconnect backoff as JobQueue retry policy crosses a transport boundary without authorization.
