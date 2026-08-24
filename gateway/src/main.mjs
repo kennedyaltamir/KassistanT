@@ -1,6 +1,6 @@
 import { createHttpServer, connect } from './http.mjs';
 import { startAutoReply } from './auto-reply.mjs';
-import { getLlmSettings } from './llm-settings.mjs';
+import { getLlmSettings, registerLlmSettingsObserver } from './llm-settings.mjs';
 import { updateAllLocalModels } from './llm.mjs';
 
 const host = process.env.KASSIST_GATEWAY_HOST ?? '127.0.0.1';
@@ -10,6 +10,8 @@ let updateTimer = null;
 
 function scheduleLlmUpdate() {
   if (updateTimer) clearTimeout(updateTimer);
+  updateTimer = null;
+
   const settings = getLlmSettings();
   if (!settings.autoUpdateEnabled) return;
 
@@ -25,9 +27,7 @@ function scheduleLlmUpdate() {
   }, settings.intervalHours * 60 * 60 * 1000);
 }
 
-export function rescheduleLlmUpdate() {
-  scheduleLlmUpdate();
-}
+registerLlmSettingsObserver(() => scheduleLlmUpdate());
 
 server.listen(port, host, async () => {
   console.log(`[KassisT WhatsApp Gateway] listening on http://${host}:${port}`);
