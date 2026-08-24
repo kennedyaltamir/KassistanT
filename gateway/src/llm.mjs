@@ -64,7 +64,7 @@ export async function getLocalModelInventory() {
     return {
       runtime: 'ollama',
       available: true,
-      status: 'INSTALLED',
+      status: 'READY',
       models: body.models.map(normalizeModel).filter(Boolean),
       error: null,
     };
@@ -94,6 +94,20 @@ export async function getLlmProviderStatus() {
   };
 }
 
+async function updateLocalModelInternal(name) {
+  const response = await ollamaRequest('/api/pull', {
+    method: 'POST',
+    body: JSON.stringify({ model: name, stream: false }),
+  }, MODEL_UPDATE_TIMEOUT_MS);
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
+    throw new Error(`Ollama model update failed (${response.status})`);
+  }
+  console.log(`[KassisT LLM] LLM_MODEL_UPDATE_COMPLETED provider=ollama model=${name}`);
+  return { model: name, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
+}
+
 export async function updateLocalModel(model) {
   const name = String(model ?? '').trim();
   if (!name) throw new Error('Model name is required');
@@ -102,17 +116,7 @@ export async function updateLocalModel(model) {
   updateInProgress = true;
   console.log(`[KassisT LLM] LLM_MODEL_UPDATE_STARTED provider=ollama model=${name}`);
   try {
-    const response = await ollamaRequest('/api/pull', {
-      method: 'POST',
-      body: JSON.stringify({ model: name, stream: false }),
-    }, MODEL_UPDATE_TIMEOUT_MS);
-    const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
-      throw new Error(`Ollama model update failed (${response.status})`);
-    }
-    console.log(`[KassisT LLM] LLM_MODEL_UPDATE_COMPLETED provider=ollama model=${name}`);
-    return { model: name, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
+    return await updateLocalModelInternal(name);
   } finally {
     updateInProgress = false;
   }
@@ -120,19 +124,29 @@ export async function updateLocalModel(model) {
 
 export async function updateAllLocalModels() {
   if (updateInProgress) throw new Error('Another model update is already running');
-  const inventory = await getLocalModelInventory();
-  if (!inventory.available) throw new Error(inventory.error || 'Ollama unavailable');
+  updateInProgress = true;
+  try {
+    const inventory = await getLocalModelInventory();
+    if (!inventory.available) throw new Error(inventory.error || 'Ollama unavailable');
 
-  const updated = [];
-  const failed = [];
-  for (const item of inventory.models) {
-    try {
-      updated.push(await updateLocalModel(item.name));
-    } catch {
-      failed.push({ model: item.name, status: 'FAILED', error: 'Model update failed' });
+    const updated = [];
+    const failed = [];
+    for (const item of inventory.models) {
+      try {
+        console.log(`[KassisT LLM] LLM_MODEL_UPDATE_STARTED provider=ollama model=${item.name}`);
+        updated.push(await updateLocalModelInternal(item.name));
+      } catch {
+        failed.push({ model: item.name, status: 'FAILED', error: 'Model update failed' });
+      }
     }
+    return { updated, failed };
+  } finally {
+    updateInProgress = false;
   }
-  return { updated, failed };
+}
+
+export function isModelUpdateInProgress() {
+  return updateInProgress;
 }
 
 export async function generateReply(messages, options = {}) {
