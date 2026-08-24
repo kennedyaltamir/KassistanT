@@ -24,3 +24,20 @@ export type { Currency, Money } from "./money.js";
 export type { TransactionBoundary } from "./persistence.js";
 export { assertUtcTimestamp, utcNow } from "./time.js";
 export { generateUuidV7, isUuidV7 } from "./uuidv7.js";
+
+export { confirmOrder } from "./confirm-order.js";
+export type {
+  ConfirmationData,
+  ConfirmOrderCommand,
+  ConfirmOrderFailure,
+  ConfirmOrderResult,
+  ConfirmOrderSuccess,
+  OrderConfirmedEvent
+} from "./confirm-order.js";
+export {
+  ORDER_DOMAIN_ERRORS,
+  orderDomainError
+} from "./order-errors.js";
+export type { OrderDomainError, OrderDomainErrorCode } from "./order-errors.js";
+export { Order } from "./order.js";
+export type { OrderItem, OrderItemModifier, OrderProps } from "./order.js";
