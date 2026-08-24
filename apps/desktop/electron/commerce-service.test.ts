@@ -23,8 +23,9 @@ test("Products are created with integer cents and recovered after reopen", async
   const ctx = await context();
   const options = { ...ctx, storeId: "store-test" };
   const first = new CommerceService(options);
+  let created;
   try {
-    const created = await first.createProduct({ name: "Açaí", price_amount_cents: 1290 });
+    created = await first.createProduct({ name: "Açaí", price_amount_cents: 1290 });
     assert.equal(created.currency, "BRL");
     assert.equal(created.price_amount_cents, 1290);
     assert.deepEqual(await first.listProducts(), [created]);
@@ -34,13 +35,11 @@ test("Products are created with integer cents and recovered after reopen", async
 
   const second = new CommerceService(options);
   try {
-    assert.deepEqual(await second.listProducts(), await (async () => {
-      const rows = await second.listProducts();
-      assert.equal(rows.length, 1);
-      assert.equal(rows[0]?.name, "Açaí");
-      assert.equal(rows[0]?.price_amount_cents, 1290);
-      return rows;
-    })());
+    const recovered = await second.listProducts();
+    assert.equal(recovered.length, 1);
+    assert.deepEqual(recovered[0], created);
+    assert.equal(recovered[0]?.name, "Açaí");
+    assert.equal(recovered[0]?.price_amount_cents, 1290);
   } finally {
     await second.close();
     await rm(ctx.directory, { recursive: true, force: true });
@@ -85,17 +84,16 @@ test("Order creation uses canonical product pricing and confirmation is lifecycl
     const product = await service.createProduct({ name: "Milkshake", price_amount_cents: 1500 });
     const draft = await service.createDraftOrder({ items: [{ product_id: product.id, quantity: 2 }] });
     assert.equal(draft.status, "DRAFT");
-    assert.deepEqual(draft.total_amount_cents, 3000);
+    assert.equal(draft.total_amount_cents, 3000);
     assert.equal(draft.items[0]?.unit_price_cents, 1500);
 
-    const invalid = await assert.rejects(
+    await assert.rejects(
       () => service.confirmOrder({ order_id: draft.id, final_summary: "", confirmed: true }),
       (error) => {
         assertCommerceError(error, "CONFIRMATION_DATA_INVALID");
         return true;
       }
     );
-    assert.equal(invalid, undefined);
 
     const confirmed = await service.confirmOrder({
       order_id: draft.id,
