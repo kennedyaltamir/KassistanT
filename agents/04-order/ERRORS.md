@@ -105,3 +105,13 @@
 - Required minimal change: add the Money test path to the `tsTests` list.
 - IA-04 authorization: FALSE.
 - Rule: IA-04 must not modify the shared harness.
+
+## E-014 — Money slice frozen pending external harness integration
+
+- Severity: MEDIUM
+- Status: HANDOFF / FROZEN
+- Problem: all IA-04-owned work for the Money slice is complete, but official-suite inclusion and execution remain outside IA-04 ownership.
+- Impact: the slice cannot be marked merge-ready or GREEN from IA-04 evidence alone.
+- Required owner: shared test harness / integration authority.
+- Required action: review and apply the minimal harness registration, then execute direct test, official suite and CI verification.
+- IA-04 action: STOP until external verification changes the state.
