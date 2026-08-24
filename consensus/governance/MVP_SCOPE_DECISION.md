@@ -48,7 +48,7 @@ Image; Audio; PDF Import; Campaign; Advanced Attribution; Advanced KPI; Multi-pr
 
 ## Legacy Reconciliation
 
-`docs/domain/entities.md` remains a derived/normative candidate and must be reconciled with the now-frozen Customer, Conversation and Message contracts. Existing implementation remains non-authoritative wherever it conflicts with these decisions.
+`docs/domain/entities.md` remains a derived/normative candidate and is reconciled by the post-decision IA-01 artifacts with the now-frozen Customer, Conversation and Message contracts. Existing implementation remains non-authoritative wherever it conflicts with these decisions.
 
 ## Superseded Requirements
 
@@ -60,4 +60,4 @@ This decision defines **what** belongs to the MVP. It does not itself define all
 
 ## Release Consequence
 
-`MVP_SCOPE_DECISION = APPROVED`, but `READY_FOR_IA02` remains false until the remaining contract/schema reconciliation gate is complete.
+`MVP_SCOPE_DECISION = APPROVED` and IA-01 has completed the normative schema/contract reconciliation required by the Operator gate. Therefore `READY_FOR_IA02 = TRUE` at the governance/contract boundary. This does not imply runtime implementation, CI success, audit acceptance, merge authorization or production readiness.
