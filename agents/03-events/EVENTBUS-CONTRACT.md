@@ -2,7 +2,7 @@
 
 ## Status
 
-`READINESS / NO RUNTIME IMPLEMENTATION`
+`RUNTIME GATE / BLOCKED`
 
 This document defines the minimum implementation boundary supported by current repository evidence. It does not modify or supersede `packages/contracts/**` and does not resolve `CONTRACT-002`.
 
@@ -49,44 +49,43 @@ The repository does not establish that EventBus itself writes durable state, coo
 
 ## Subscribe semantics
 
-The repository establishes the existence of local consumers but does not normatively define executable handler shape, sync/async scheduling, cancellation, registration lifecycle or concurrent-dispatch behavior.
+The repository establishes the existence of local consumers but does not normatively define executable handler shape, sync/async scheduling, cancellation, registration lifecycle, duplicate registration, or concurrent-dispatch behavior.
 
-These remain `UNKNOWN` until the implementation contract is finalized. No stronger behavior should be inferred from terminology alone.
+These remain `UNKNOWN` until the implementation contract is finalized.
 
 ## Ordering
 
-`UNKNOWN` at EventBus scope. No global ordering, per-aggregate ordering, FIFO, or concurrent-handler guarantee is documented for the in-process EventBus.
+`EXPLICIT / NO_ORDERING_GUARANTEE` at EventBus scope. No global, per-event-type, per-aggregate, FIFO, or subscriber-registration ordering guarantee is documented.
 
 The separate WSS contract defines transport sequence semantics; that is not an EventBus ordering guarantee.
 
 ## Delivery semantics
 
-`UNSPECIFIED / NO DURABILITY GUARANTEE`.
+`EXPLICIT / NO_DURABILITY_GUARANTEE`.
 
-The documented fact is only that EventBus is in-process and serves post-commit local consumers. It must not be classified as exactly-once, at-least-once or durable replay infrastructure.
+The documented fact is only that EventBus is in-process and serves post-commit local consumers. It must not be classified as exactly-once, at-least-once, or durable replay infrastructure.
 
 ## Error boundary
 
-EventBus must not become a hidden business-rule or durable-recovery authority.
-
-Current evidence does not define the exact handler error API. The future implementation must explicitly define:
+Current evidence does not define the exact handler error API. The runtime contract must still define:
 
 - whether one subscriber failure affects other subscribers;
 - whether publish reports handler failure directly;
 - whether handler failure is isolated or aggregated;
-- timeout/cancellation behavior.
+- timeout/cancellation behavior;
+- dispatch completion semantics.
 
-Until that is finalized, these are `UNKNOWN`.
+These are `BLOCKING / UNKNOWN` for runtime implementation.
 
 ## Retry ownership
 
-EventBus does **not** own durable retry semantics based on current evidence. `docs/backend/jobs.md` assigns retry/backoff/attempt state/locking/observability to JobQueue. EventBus must not silently absorb JobQueue responsibilities.
+EventBus does **not** own durable retry based on current evidence. `docs/backend/jobs.md` assigns retry/backoff/attempt state/locking/observability to JobQueue. EventBus must not silently absorb JobQueue responsibilities.
 
 A local handler failure therefore must not imply automatic EventBus retry.
 
 ## Idempotency and deduplication
 
-No EventBus-specific durable deduplication is documented. Duplicate-safety remains a responsibility of the relevant durable boundary and consumer behavior. EventBus must not claim exactly-once processing.
+No EventBus-specific durable deduplication is documented. Duplicate safety remains a responsibility of the relevant durable boundary and consumer behavior. EventBus must not claim exactly-once processing.
 
 ## Transaction interaction
 
@@ -117,6 +116,6 @@ This is a readiness boundary, not an implementation authorization.
 
 ## Readiness classification
 
-`READY_WITH_OPEN_NONBLOCKING_ITEMS`
+`BLOCKED`
 
-The scope and transaction relation are sufficiently bounded for implementation preparation, but executable subscribe/error/order semantics must be finalized before production code is considered ready.
+Runtime implementation remains blocked by undefined unsubscribe lifecycle, scheduling, subscriber failure propagation, subscriber isolation, cancellation, timeout, multiple-subscriber execution semantics, and dispatch completion semantics.
