@@ -95,14 +95,52 @@ The sequence remains: validate envelope → durable `InboundInbox` persistence �
 
 Sequence is documented as monotonic per `(store_id, device_id)`, but persistence ownership, duplicate/gap handling and replay storage remain PARTIAL. Reconnect/reauthentication semantics are also not closed by IA-06.
 
+## WSS Integration Gate Package — 2026-08-24
+
+### IA-06 gate
+
+Required before WSS lifecycle implementation:
+
+- executable authenticated-session result;
+- authoritative `device_id`;
+- definitive `session_id` if sessions exist;
+- explicit session expiry semantics if applicable;
+- executable revocation signal;
+- explicit reconnect/reauthentication behavior.
+
+Current: `BLOCKED`.
+
+### IA-03 gate
+
+Required before WSS receive/ACK/recovery implementation:
+
+- executable durable-intake result;
+- persisted / duplicate / failure outcomes;
+- explicit ACK authorization semantics;
+- persistence-before-ACK guarantee;
+- selected replay/resume boundary, or explicit deferral;
+- sequence ownership and duplicate/gap semantics for the selected slice.
+
+Current: `BLOCKED`.
+
+### V1 minimization
+
+The first WSS lifecycle slice does not automatically require full replay, resync or numerical backpressure tuning. Those capabilities may be explicitly deferred only when the selected V1 contract permits the deferral. No semantics are inferred locally.
+
 ### Artifacts
 
-- `WSS-INTEGRATION-BOUNDARY.md` — cross-agent ownership/interface matrix.
-- `WSS-SESSION-DECISION-MATRIX.md` — unresolved session questions and required approvals.
+- `WSS-INTEGRATION-GATE.md`
+- `WSS-IA06-CONTRACT.md`
+- `WSS-IA03-CONTRACT.md`
+- `WSS-RUNTIME-V1-REQUIREMENTS.md`
+- `WSS-INTEGRATION-BOUNDARY.md`
+- `WSS-SESSION-DECISION-MATRIX.md`
 
 ### Runtime gate
 
-`WSS connection lifecycle abstraction` = `BLOCKED` pending executable IA-06 session identity/authentication boundary and IA-03 durable intake/ACK/replay interfaces. No runtime code was added in this phase.
+`WSS connection lifecycle abstraction = BLOCKED`.
+
+No runtime code was added in this phase.
 
 ## Evidence rule
 
