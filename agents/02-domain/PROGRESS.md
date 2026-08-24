@@ -1,32 +1,26 @@
 # IA-02 — Progress
 
-## Current phase
+## D1 — Contract Lock and Domain Readiness Audit
+**Status:** COMPLETE / IMPLEMENTATION_NOT_STARTED / BLOCKED_FOR_D2
 
-Agent Configuration / Territory Audit.
+### Confirmed
+- `main` and `Agent02-domain-runtime` were aligned at audit start.
+- `packages/domain/**` remains foundation-only.
+- The canonical entity inventory is documented but runtime entities/aggregates are absent.
+- State catalogs exist, but normative transition matrices are incomplete.
+- Order commands and domain invariants are documented, but executable contracts remain partial.
+- Domain query semantics and error taxonomy remain partial.
+- `CONTRACT-001` and `CONTRACT-002` remain active blockers for affected runtime behavior.
+- `GOV-001` remains outside IA-02 authority.
 
-## Status
+### Artifacts
+- `DOMAIN-READINESS.md`
+- `STATE-TRANSITION-MATRIX.md`
+- `DOMAIN-CONTRACT-MATRIX.md`
+- `READINESS-GAPS.md`
 
-**CONFIGURATION_COMPLETE / IMPLEMENTATION_NOT_STARTED**
+### Implementation freeze
+No product code, contracts, schema, migration or external configuration was changed.
 
-## Audited state
-
-- Repository and `main` state audited.
-- Approved baseline and domain documentation audited.
-- HTTP, WSS, device and provider boundaries inspected for domain dependencies.
-- `packages/domain/**` inspected.
-- Current domain code is foundation-level, not a complete runtime.
-- Current SQLite migration state is foundation-only.
-- Open contract ambiguities affecting domain behavior were recorded.
-- Agent ownership boundaries were documented.
-
-## Current implementation evidence
-
-Observed domain code consists of lifecycle types, Money, UTC time, UUIDv7, a transaction boundary type, an LLM provider interface and foundation tests. No evidence was found for complete runtime entities, command handlers, domain services or aggregate implementations.
-
-## Not started
-
-No production domain implementation was created during this configuration phase.
-
-## Completion criterion
-
-All required agent configuration documents exist under `agents/02-domain/`, ownership is delimited, blockers are recorded, and implementation remains frozen.
+### Gate
+D2 may start only after the first implementation slice has explicit aggregate, command, transition, error and event semantics and is independent from unresolved blockers.
