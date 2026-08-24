@@ -24,3 +24,14 @@
 - Added readiness documents: lifecycle, pricing, commands, errors, dependencies and implementation gates.
 - Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff.
 - No production code, migration, schema, domain package, contract package or infrastructure code was modified.
+
+## 2026-08-24 — First Safe Implementation Slice: Canonical Money Reuse
+
+- Audited the existing Money source before writing code.
+- Confirmed canonical source: `packages/domain/src/money.ts`.
+- Confirmed public export through `packages/domain/src/index.ts` and package `@kassist/domain`.
+- Confirmed representation as safe integer BRL cents and deterministic add/subtract operations.
+- Selected `REUSE_EXISTING_CANONICAL_MONEY`; no duplicate Money primitive or production adapter was created.
+- Added `apps/desktop/electron/order/money-contract.test.ts` covering creation, zero/positive/negative values, addition, subtraction, repeated integer-cent arithmetic, safe-integer boundaries and currency mismatch.
+- Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff with the implementation boundary and test limitation.
+- No changes were made to `packages/domain/**`, `packages/contracts/**`, database/schema, global docs or other agent territories.
