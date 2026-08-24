@@ -51,8 +51,8 @@ test("duplicate subscriptions are independent registrations", async () => {
   const bus = new EventBus();
   const calls: string[] = [];
 
-  bus.subscribe("order.created", () => calls.push("A"));
-  bus.subscribe("order.created", () => calls.push("A"));
+  bus.subscribe("order.created", () => { calls.push("A"); });
+  bus.subscribe("order.created", () => { calls.push("A"); });
 
   const result = await bus.publish(createEvent());
 
@@ -69,7 +69,7 @@ test("dispatch uses a snapshot of subscriptions", async () => {
     calls.push("A");
     if (!added) {
       added = true;
-      bus.subscribe("order.created", () => calls.push("B"));
+      bus.subscribe("order.created", () => { calls.push("B"); });
     }
   });
 
@@ -186,8 +186,8 @@ test("V1 does not define ordering or persistence/retry/timeout behavior", async 
   const bus = new EventBus();
   const calls: string[] = [];
 
-  bus.subscribe("order.created", () => calls.push("first"));
-  bus.subscribe("order.created", () => calls.push("second"));
+  bus.subscribe("order.created", () => { calls.push("first"); });
+  bus.subscribe("order.created", () => { calls.push("second"); });
 
   const result = await bus.publish(createEvent());
 
