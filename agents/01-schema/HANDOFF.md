@@ -7,28 +7,33 @@
 - Active branch: `Agent01-schema-canonical-sqlite`
 - Integration authority: `main`
 
+## Branch reconciliation
+
+The branch now includes current `main` at `86387b02ed55ef3af3b24f1591b3e0b0ff436a30` as a merge parent. The reconciliation merge commit is `456e6661647bba47a3e2dbeb9bc170a276cb61e7` and preserved the IA-01 documentation history without destructive rewrite.
+
+Comparison against current `main` shows only `agents/01-schema/**` differences.
+
 ## Current result
 
-Parallel Schema Continuation is **PARTIALLY RESOLVED / WAITING FOR PHYSICAL CLOSURE**.
+Post-D2 Schema Consolidation is **PHYSICALLY BLOCKED / DETERMINISTIC GATE PENDING**.
 
 ## Verified state
 
 1. 28 canonical entities remain in scope.
 2. No table is currently `DETERMINISTIC`.
-3. 3 tables (`store`, `product_image`, `log`) become deterministic after the five IA-01 local physical proposals are approved.
-4. 14 tables require cross-agent semantic closure in addition to the local physical conventions.
-5. `domain_outbox` requires global resolution of `CONTRACT-001` where physical ownership/scope is affected.
-6. 10 tables remain directly blocked by incomplete field/relationship semantics.
-7. DREQ-001 confirms Order aggregate ownership but does not freeze physical parent keys.
-8. DREQ-002 confirms `DRAFT -> CONFIRMED` but does not authorize `order.status_changed` persistence.
-9. DREQ-005 and DREQ-006 produce no schema persistence authorization.
-10. IA-03 confirms durable Inbox ACK means local `InboundInbox` persistence, but its complete field inventory is still missing.
-11. IA-05, IA-06 and IA-07 retain open schema dependencies.
-12. `CONTRACT-002` remains non-blocking for physical schema.
-13. `GOV-001` remains conditional/deferred.
-14. No migration `0002` exists.
-15. M5.1 and `0001_bootstrap.sql` remain unchanged.
-16. No protected contracts or other agent territories were modified.
+3. No table is currently `DETERMINISTIC_AFTER_HUMAN_APPROVAL` under the strict gate.
+4. No table is currently `DETERMINISTIC_AFTER_CROSS_AGENT_RESPONSE` under the strict gate.
+5. All 28 tables remain blocked because each still depends on one or more unresolved physical conditions.
+6. DREQ-001 confirms Order aggregate ownership but does not freeze physical parent keys.
+7. DREQ-002 confirms `DRAFT -> CONFIRMED` but does not authorize `order.status_changed` persistence.
+8. DREQ-005 and DREQ-006 produce no schema persistence authorization.
+9. IA-03 confirms durable Inbox ACK means local `InboundInbox` persistence, but its complete field inventory is still missing.
+10. IA-05, IA-06 and IA-07 retain open schema dependencies.
+11. `CONTRACT-002` remains non-blocking for physical schema.
+12. `GOV-001` remains conditional/deferred.
+13. No migration `0002` exists.
+14. M5.1 and `0001_bootstrap.sql` remain unchanged.
+15. No protected contracts or other agent territories were modified.
 
 ## Local decisions
 
@@ -44,4 +49,4 @@ Parallel Schema Continuation is **PARTIALLY RESOLVED / WAITING FOR PHYSICAL CLOS
 
 ## Migration gate
 
-`0002` remains prohibited until all included tables are deterministic, local approvals are explicit, cross-agent dependencies are resolved, physical types/nullability/defaults/FK actions/state representation are frozen, and a deterministic-generation review passes.
+`0002` remains prohibited until included tables are deterministic, local approvals are explicit, cross-agent dependencies are resolved, physical types/nullability/defaults/FK actions/state representation are frozen, and a deterministic-generation review passes.
