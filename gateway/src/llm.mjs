@@ -62,7 +62,7 @@ export async function updateLocalModel(model) {
 
   const response = await ollamaRequest('/api/pull', {
     method: 'POST',
-    body: JSON.stringify({ name, stream: false }),
+    body: JSON.stringify({ model: name, stream: false }),
   }, 300000);
   const body = await response.json().catch(() => null);
   if (!response.ok) {
