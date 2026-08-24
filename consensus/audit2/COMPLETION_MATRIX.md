@@ -49,6 +49,10 @@ Status: INDEPENDENT / NOT AN AUTHORIZATION
 | C3-01 | Future | SaaS/multi-tenant evolution | DEFERRED | C3 | Future | DEFERRED | Baseline Future scope | VERIFIED | Post-MVP | NO | YES | NO | Keep deferred |
 | C3-02 | Future | ERP/industrial accounting/stock scope | DEFERRED | C3 | Future | DEFERRED / explicitly outside MVP | Baseline scope limits | VERIFIED | Post-MVP | NO | YES | NO | Keep out of C1 |
 | C3-03 | Future | Other baseline Future items not promoted to MVP | DEFERRED | C3 | Future | DEFERRED | Baseline | PARTIALLY_VERIFIED | Scope decision | NO | YES | NO | Revisit only with explicit product decision |
+| CONTRACT-001 | Global Governance | DomainOutbox ownership/scope | HUMAN_DECISION_REQUIRED | C1 conditional | Operator | OPEN | Agent 01/03/04/07 decisions | VERIFIED | Only if C1 encodes Outbox | CONDITIONAL | YES | YES | Resolve only if impacted |
+| CONTRACT-002 | Global Governance | `order.status_changed` semantics | HUMAN_DECISION_REQUIRED | C1 conditional | Operator | OPEN | Agent 02/03/04/07 decisions | VERIFIED | Only if C1 depends on event | CONDITIONAL | YES | YES | Resolve only before impacted slice |
+| GOV-001 | Global Governance | Authority/version history | HUMAN_DECISION_REQUIRED | C1 conditional | Operator | OPEN | consensus + agent decisions | VERIFIED | Normative promotion need | CONDITIONAL | YES | YES | Resolve when authority conflict affects C1 |
+| REL-DEC-01 | Release | Decide whether release/packaging is C1 or C2 | HUMAN_DECISION_REQUIRED | C1/C2 | Operator | OPEN | Baseline + roadmap | VERIFIED | DOD-01 | CONDITIONAL | YES | YES | Decide classification |
 
 ### Matrix interpretation
 
