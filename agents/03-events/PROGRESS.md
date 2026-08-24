@@ -2,54 +2,59 @@
 
 ## Current phase
 
-EventBus Contract Closure / First Slice Preparation.
+EventBus Runtime Gate Closure.
 
 ## Status
 
-READINESS COMPLETE / PRODUCT IMPLEMENTATION FROZEN.
+`BLOCKED / RUNTIME IMPLEMENTATION FROZEN`
 
 ## Audited state
 
-- EventBus: READY_WITH_OPEN_NONBLOCKING_ITEMS; no runtime.
-- InboundInbox: NOT_IMPLEMENTED; blocked on canonical persistence and schema.
+- EventBus: NOT_IMPLEMENTED; runtime gate remains BLOCKED.
+- InboundInbox: NOT_IMPLEMENTED; blocked on canonical persistence/schema.
 - DomainOutbox: NOT_IMPLEMENTED; blocked by `CONTRACT-001`.
 - JobQueue: NOT_IMPLEMENTED; blocked on canonical `Job` persistence and incomplete reliability policy.
 - AuditLog: NOT_IMPLEMENTED; blocked on canonical persistence and sensitive-data policy details.
-- Deduplication: contract principles exist; runtime absent.
-- Retry/backoff: required concept; exact local policies remain partial/UNKNOWN.
+- Deduplication: contract principles exist; runtime absent; exact durable keys depend on canonical schema/contracts.
+- Retry/backoff: required concept; EventBus does not own durable retry; JobQueue remains the documented durable retry boundary.
 - Replay/reconciliation/dead-letter: documented concepts; runtime and exact state semantics absent.
 - Causation/correlation: represented in event/WSS contracts; runtime propagation absent.
 - SQLite: M5.1 foundation only; canonical business schema absent.
+- Event/WSS mapping: PARTIAL; WSS ACK boundary is clear, full runtime absent.
 
-## EventBus closure
+## EventBus runtime gate findings
 
-Created:
+### Closed without invention
+
+- Envelope boundary uses the current protected minimum event type.
+- Publish is in-process and post-commit.
+- EventBus is non-durable.
+- EventBus does not own durable retry.
+- DomainOutbox is outside the EventBus transaction decision.
+- EventBus has `NO_ORDERING_GUARANTEE`.
+
+### Blocking open semantics
+
+- subscriber scheduling;
+- subscriber failure propagation;
+- subscriber isolation;
+- cancellation;
+- timeout;
+- unsubscribe lifecycle;
+- duplicate registration behavior;
+- multiple-subscriber execution semantics;
+- dispatch completion semantics.
+
+## Readiness outputs
 
 - `EVENTBUS-CONTRACT.md`
+- `EVENTBUS-RUNTIME-CONTRACT.md`
 - `EVENTBUS-ERROR-MATRIX.md`
 - `EVENTBUS-TEST-MATRIX.md`
 - `EVENTBUS-IMPLEMENTATION-GATE.md`
 
-Updated:
-
-- `EVENTBUS-MATRIX.md`
-- `MEMORY.md`
-- `LEARNINGS.md`
-- `DECISIONS.md`
-- `ERRORS.md`
-- `PROGRESS.md`
-- `ROADMAP.md`
-- `HANDOFF.md`
-- `CHANGELOG.md`
-
-## Readiness conclusion
-
-The EventBus scope is sufficiently bounded for implementation preparation as an in-process, post-commit local dispatch mechanism without persistence, durable retry or DomainOutbox coupling.
-
-The event contract is not globally modified. The current TypeScript `DomainEvent` minimum remains authoritative for materialized fields; broader documented metadata is preserved only when supplied.
-
-The remaining implementation-contract gates are subscriber failure propagation/isolation, scheduling, timeout/cancellation and ordering. No undocumented delivery guarantee is claimed.
+Existing territory readiness artifacts remain authoritative within their documented scope.
 
 ## Constraint
 
-No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified.
+No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified by this phase.
