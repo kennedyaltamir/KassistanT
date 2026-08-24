@@ -5,6 +5,7 @@
 - Repository: `kennedyaltamir/KassistanT`.
 - Integration authority: `main`.
 - Active branch: `Agent01-schema-canonical-sqlite`.
+- The branch was reconciled with current `main` at `86387b02ed55ef3af3b24f1591b3e0b0ff436a30` through merge commit `456e6661647bba47a3e2dbeb9bc170a276cb61e7` without rewriting IA-01 history.
 - Phase 1, Phase 2 and schema decision work remain documentation-only; protected contracts and M5.1 runtime remain untouched.
 - Canonical schema inventory: 28 entities.
 
@@ -45,13 +46,16 @@ M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 check
 
 ## Readiness
 
+Strict deterministic gate:
+
 - `DETERMINISTIC`: 0.
-- `DETERMINISTIC_AFTER_APPROVAL`: 3 (`store`, `product_image`, `log`).
-- `DETERMINISTIC_AFTER_CROSS_AGENT_DECISION`: 14.
-- `DETERMINISTIC_AFTER_GLOBAL_DECISION`: 1 (`domain_outbox`).
-- `BLOCKED`: 10.
+- `DETERMINISTIC_AFTER_HUMAN_APPROVAL`: 0.
+- `DETERMINISTIC_AFTER_CROSS_AGENT_RESPONSE`: 0.
+- `BLOCKED`: 28.
 - `UNKNOWN`: 0.
 - `READY_FOR_DDL`: 0.
+
+Previous dependency buckets (3 local candidates, 14 cross-agent candidates, 1 global candidate, 10 direct-gap tables) remain planning categories only. They are not current deterministic states.
 
 ## Local physical proposals awaiting operator confirmation
 
