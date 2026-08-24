@@ -8,20 +8,16 @@
 - Completed and persisted the IA-03 roadmap and handoff documentation.
 
 ## 2026-08-24 — Readiness audit
-- Added `EVENT-INFRASTRUCTURE-READINESS.md` with component status, gates and implementation sequence.
-- Added `EVENTBUS-MATRIX.md` covering conceptual semantics, guarantees, dependencies and tests.
-- Added `INBOX-OUTBOX-MATRIX.md` covering durable Inbox/ACK semantics and explicit DomainOutbox ambiguity.
-- Added `JOBQUEUE-RELIABILITY-MATRIX.md` covering JobQueue and reliability mechanisms with unknowns preserved.
-- Added `EVENT-INFRASTRUCTURE-DEPENDENCIES.md` covering IA-01 through IA-08 integration dependencies.
-- Added `IMPLEMENTATION-GATES.md` defining objective readiness gates for concrete runtime slices.
+- Added Event Infrastructure readiness matrices and implementation gates.
+- Added EventBus contract, error, test and runtime-readiness documentation.
 - Updated IA-03 decisions, memory, learnings, errors, progress, roadmap and handoff.
 - No application code, contracts, schema, migrations, workflows, package configuration or main branch were modified.
 
-## 2026-08-24 — EventBus runtime gate
-- Added `EVENTBUS-RUNTIME-CONTRACT.md` defining the evidence-backed runtime boundary without implementing code.
-- Updated `EVENTBUS-MATRIX.md` to distinguish closed negative guarantees from blocked lifecycle/error semantics.
-- Updated `EVENTBUS-ERROR-MATRIX.md` with explicit blocking conditions for subscriber failure, isolation, cancellation and timeout.
-- Updated `EVENTBUS-TEST-MATRIX.md` so future tests cannot encode undefined semantics.
-- Updated `EVENTBUS-IMPLEMENTATION-GATE.md` to classify runtime readiness as `BLOCKED` until the remaining lifecycle/error gates are explicit.
+## 2026-08-24 — EventBus local decision closure
+- Added `HUMAN-EVENTBUS-DECISIONS.md` containing the nine decision gates and explicit local-policy recommendations.
+- Classified the remaining EventBus choices as local runtime policy, deferred/non-blocking, cross-agent dependency or global/external.
+- Proposed isolated subscriber failure handling, aggregate failure reporting, async publication, opaque subscription identity, idempotent unsubscribe, unsubscribe-only cancellation, no V1 timeout, publish-time subscriber snapshots and all-selected-handlers-settled completion.
+- Updated `EVENTBUS-RUNTIME-CONTRACT.md`, `EVENTBUS-TEST-MATRIX.md` and `EVENTBUS-IMPLEMENTATION-GATE.md`.
 - Updated IA-03 memory, learnings, errors, progress, roadmap and handoff.
-- No product runtime, tests, contracts, schema, migrations or global documentation were modified.
+- No new global decision was recorded in `DECISIONS.md` because all new choices remain proposals pending human approval.
+- No EventBus runtime or runtime tests were implemented.
