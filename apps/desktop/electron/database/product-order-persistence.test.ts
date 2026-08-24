@@ -3,9 +3,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { addMoney, confirmOrder, createMoney, generateUuidV7, Order, type OrderItem, type OrderItemModifier } from "../../../../packages/domain/src/index.js";
+import type { Order } from "../../../../packages/domain/src/index.js";
 import { SQLiteOrderRepository, SQLiteProductRepository, type ProductRecord } from "./product-order-repository.js";
 import { SQLiteDatabase } from "./sqlite-database.js";
+
+const DOMAIN = "../../../../packages/domain/src/index.js";
 
 async function openTestDatabase() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "kassist-c1-"));
@@ -19,7 +21,29 @@ async function openTestDatabase() {
   return { database, directory, filePath, migrationsPath };
 }
 
-function product(): ProductRecord {
+async function buildFixtureOrder(): Promise<Order> {
+  const { addMoney, createMoney, generateUuidV7, Order } = await import(DOMAIN);
+  const modifier = {
+    id: generateUuidV7(1_759_100_000_200),
+    name: "Cheese",
+    quantity: 1,
+    price: createMoney(250)
+  };
+  const item = {
+    id: generateUuidV7(1_759_100_000_300),
+    name: "Burger",
+    quantity: 2,
+    unit_price: createMoney(1500),
+    modifiers: [modifier]
+  };
+  const total = addMoney(
+    createMoney(item.unit_price.amount_cents * item.quantity),
+    modifier.price
+  );
+  return Order.createDraft("store-c1", [item], total);
+}
+
+function product(generateUuidV7: (seed?: number) => string, createMoney: (amount: number) => { amount_cents: number; currency: "BRL" }): ProductRecord {
   return {
     id: generateUuidV7(1_759_100_000_100),
     store_id: "store-c1",
@@ -28,38 +52,12 @@ function product(): ProductRecord {
   };
 }
 
-function modifier(): OrderItemModifier {
-  return {
-    id: generateUuidV7(1_759_100_000_200),
-    name: "Cheese",
-    quantity: 1,
-    price: createMoney(250)
-  };
-}
-
-function orderItem(): OrderItem {
-  return {
-    id: generateUuidV7(1_759_100_000_300),
-    name: "Burger",
-    quantity: 2,
-    unit_price: createMoney(1500),
-    modifiers: [modifier()]
-  };
-}
-
-function draftOrder(): Order {
-  const item = orderItem();
-  const itemTotal = createMoney(item.unit_price.amount_cents * item.quantity);
-  const modifierTotal = createMoney(250);
-  const total = addMoney(itemTotal, modifierTotal);
-  return Order.createDraft("store-c1", [item], total);
-}
-
 test("Product persistence survives close and reopen", async () => {
   const ctx = await openTestDatabase();
   try {
+    const { createMoney, generateUuidV7 } = await import(DOMAIN);
     const repo = new SQLiteProductRepository(ctx.database);
-    const expected = product();
+    const expected = product(generateUuidV7, createMoney);
     repo.create(expected);
     assert.deepEqual(repo.getById(expected.id), expected);
     ctx.database.close();
@@ -83,12 +81,14 @@ test("Product persistence survives close and reopen", async () => {
 test("Confirmed Order, items and modifiers survive close and reopen", async () => {
   const ctx = await openTestDatabase();
   try {
+    const { confirmOrder } = await import(DOMAIN);
+    const { createMoney, generateUuidV7 } = await import(DOMAIN);
     const productRepo = new SQLiteProductRepository(ctx.database);
     const orderRepo = new SQLiteOrderRepository(ctx.database);
-    const expectedProduct = product();
+    const expectedProduct = product(generateUuidV7, createMoney);
     productRepo.create(expectedProduct);
 
-    const draft = draftOrder();
+    const draft = await buildFixtureOrder();
     const confirmation = confirmOrder(draft, {
       confirmation: { final_summary: "Burger x2 with Cheese", confirmed: true },
       actor_context: Object.freeze({ actor_ref: "local-c1-test" })
@@ -97,7 +97,7 @@ test("Confirmed Order, items and modifiers survive close and reopen", async () =
     if (!confirmation.ok) return;
 
     orderRepo.save(confirmation.order);
-    assert.equal(orderRepo.getById(confirmation.order.id)?.status, "CONFIRMED");
+    assert.equal((await orderRepo.getById(confirmation.order.id))?.status, "CONFIRMED");
     ctx.database.close();
 
     const reopened = await SQLiteDatabase.open({
@@ -107,7 +107,7 @@ test("Confirmed Order, items and modifiers survive close and reopen", async () =
     });
     try {
       const recoveredProduct = new SQLiteProductRepository(reopened).getById(expectedProduct.id);
-      const recoveredOrder = new SQLiteOrderRepository(reopened).getById(confirmation.order.id);
+      const recoveredOrder = await new SQLiteOrderRepository(reopened).getById(confirmation.order.id);
 
       assert.deepEqual(recoveredProduct, expectedProduct);
       assert.ok(recoveredOrder);
@@ -130,9 +130,10 @@ test("Confirmed Order, items and modifiers survive close and reopen", async () =
 test("Order persistence is atomic when modifier persistence fails", async () => {
   const ctx = await openTestDatabase();
   try {
+    const { createMoney, generateUuidV7, Order } = await import(DOMAIN);
     const repo = new SQLiteOrderRepository(ctx.database);
     const duplicatedModifierId = generateUuidV7(1_759_100_001_500);
-    const item: OrderItem = {
+    const item = {
       id: generateUuidV7(1_759_100_001_100),
       name: "Burger",
       quantity: 1,
@@ -145,9 +146,12 @@ test("Order persistence is atomic when modifier persistence fails", async () => 
     const order = Order.createDraft("store-c1", [item], createMoney(2050));
 
     assert.throws(() => repo.save(order));
-    assert.equal(repo.getById(order.id), null);
+    assert.equal(await repo.getById(order.id), null);
     assert.equal(
-      ctx.database.query(`SELECT COUNT(*) AS count FROM order_item_modifier WHERE id = ?`, duplicatedModifierId)[0]?.count,
+      ctx.database.query<{ count: number }>(
+        `SELECT COUNT(*) AS count FROM order_item_modifier WHERE id = ?`,
+        duplicatedModifierId
+      )[0]?.count,
       0
     );
   } finally {

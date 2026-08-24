@@ -1,4 +1,4 @@
-import { addMoney, createMoney, type Currency, type Money, Order, type OrderItem, type OrderItemModifier } from "../../../../packages/domain/src/index.js";
+import type { Currency, Money, Order, OrderItem, OrderItemModifier } from "../../../../packages/domain/src/index.js";
 import type { SQLiteDatabase } from "./sqlite-database.js";
 
 export interface ProductRecord {
@@ -10,7 +10,7 @@ export interface ProductRecord {
 
 export interface OrderRepository {
   save(order: Order): void;
-  getById(id: string): Order | null;
+  getById(id: string): Promise<Order | null>;
 }
 
 export interface ProductRepository {
@@ -80,7 +80,7 @@ export class SQLiteProductRepository implements ProductRepository {
       id: row.id,
       store_id: row.store_id,
       name: row.name,
-      price: createMoney(row.price_amount_cents, row.price_currency)
+      price: { amount_cents: row.price_amount_cents, currency: row.price_currency }
     };
   }
 }
@@ -130,7 +130,7 @@ export class SQLiteOrderRepository implements OrderRepository {
     });
   }
 
-  getById(id: string): Order | null {
+  async getById(id: string): Promise<Order | null> {
     const orderRows = this.database.query<OrderRow>(
       `SELECT id, store_id, status, total_amount_cents, total_currency
        FROM "order" WHERE id = ?`,
@@ -145,7 +145,8 @@ export class SQLiteOrderRepository implements OrderRepository {
       id
     );
 
-    const items: OrderItem[] = itemRows.map((itemRow) => {
+    const items: OrderItem[] = [];
+    for (const itemRow of itemRows) {
       const modifierRows = this.database.query<ModifierRow>(
         `SELECT id, order_item_id, name, quantity, price_cents, price_currency
          FROM order_item_modifier WHERE order_item_id = ? ORDER BY rowid`,
@@ -156,29 +157,34 @@ export class SQLiteOrderRepository implements OrderRepository {
         id: modifierRow.id,
         name: modifierRow.name,
         quantity: modifierRow.quantity,
-        price: createMoney(modifierRow.price_cents, modifierRow.price_currency)
+        price: {
+          amount_cents: modifierRow.price_cents,
+          currency: modifierRow.price_currency
+        }
       }));
 
-      return {
+      items.push({
         id: itemRow.id,
         name: itemRow.name,
         quantity: itemRow.quantity,
-        unit_price: createMoney(itemRow.unit_price_cents, itemRow.unit_price_currency),
+        unit_price: {
+          amount_cents: itemRow.unit_price_cents,
+          currency: itemRow.unit_price_currency
+        },
         modifiers
-      };
-    });
+      });
+    }
 
-    const total = createMoney(orderRow.total_amount_cents, orderRow.total_currency);
-    const order = Order.create({
+    const { Order } = await import("../../../../packages/domain/src/order.js");
+    return Order.create({
       id: orderRow.id,
       store_id: orderRow.store_id,
       status: orderRow.status as Order["status"],
       items,
-      total
+      total: {
+        amount_cents: orderRow.total_amount_cents,
+        currency: orderRow.total_currency
+      }
     });
-
-    // Validate that the recovered aggregate's total representation remains coherent.
-    addMoney(total, createMoney(0, total.currency));
-    return order;
   }
 }
