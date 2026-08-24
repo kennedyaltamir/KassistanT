@@ -1,78 +1,54 @@
 # Customer / Conversation / Message — Decision Package
 
-Status: **OPEN_DECISION_PENDING_FORMALIZATION**
+Status: **FORMALLY_FROZEN**
 Authority: `OPERATOR_PROJECT_GOVERNANCE`
-Baseline: `MVP2` @ `0bea2a0ca7c52729cfd58bebc8cd568373222230`
+Effective from: `2026-08-24T19:52:00-03:00`
+Decision record: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`
 
 ## Customer Identity
 
-### Current evidence
-`docs/domain/entities.md` records `Customer(store_id, phone_normalized)` as a defined uniqueness rule. `agents/02-domain/CANONICAL-ENTITY-INVENTORY.md` confirms Customer is canonical. The detailed identity-resolution pipeline is not fully frozen in the current evidence set.
+**Decision:** Approve `(store_id, phone_normalized)` as the canonical Customer identity key.
 
-### Proposed contract — PENDING
-Identity key: `(store_id, phone_normalized)`.
+**Invariant:** same `store_id` + same normalized phone = same canonical Customer.
 
-### Proposed invariant — PENDING
-Same `store_id` + same normalized phone identifies the same canonical Customer.
+**Policy:** WhatsApp transport identity -> normalized phone -> identity resolution -> canonical Customer.
 
-### Proposed policy — PENDING
-WhatsApp transport identity -> normalization -> identity resolution -> canonical Customer.
-
-### Decision alternatives
-A. Approve the proposed identity key/invariant/policy as the normative Customer identity contract.
-B. Approve the uniqueness key but require an explicit identity-resolution contract before freeze.
-C. Reject and define a different canonical identity model.
-
-No option is selected by IA-01.
+**Non-scope:** cross-channel identity stitching; automatic customer merging; identity graph.
 
 ## Conversation
 
-### Current evidence
-`docs/domain/entities.md` records `Conversation(store_id, external_thread_id)` uniqueness. The entity is canonical. The evidence does not independently establish a frozen cross-channel identity graph or a formal Conversation aggregate cardinality.
+**Decision:** Approve `Customer 1 -> N Conversation`.
 
-### Proposed contract — PENDING
-`Customer 1 -> N Conversation`.
+**Identity rule:** `Conversation.id` is distinct from `external_thread_id`.
 
-`Conversation.id != external_thread_id`.
+**Uniqueness:** `UNIQUE(store_id, external_thread_id)`.
 
-### Proposed uniqueness — PENDING
-`UNIQUE(store_id, external_thread_id)`.
-
-### Explicit non-scope for this decision
-Cross-channel conversation merge, automatic conversation stitching and multi-channel identity graph remain non-scope unless separately approved.
-
-### Decision alternatives
-A. Approve the proposed `1:N` cardinality and identity separation.
-B. Approve uniqueness and identity separation but defer cardinality to a separate domain decision.
-C. Reject and define another conversation identity/cardinality model.
-
-No option is selected by IA-01.
+**Non-scope:** cross-channel conversation merge; automatic conversation stitching; multi-channel identity graph.
 
 ## Message
 
-### Current evidence
-`docs/domain/entities.md` records `Message(store_id, external_message_id)` uniqueness and identifies Message as canonical.
+**Decision:** Approve inbound-provider message idempotency scoped by store.
 
-### Proposed contract — PENDING
-External message identity is scoped by store.
+**Uniqueness:** `UNIQUE(store_id, external_message_id)` applies to inbound provider messages.
 
-### Proposed uniqueness — PENDING
-`UNIQUE(store_id, external_message_id)` to prevent logical duplicate inbound messages.
-
-### Decision alternatives
-A. Approve the proposed uniqueness as the normative message identity invariant.
-B. Approve uniqueness only for inbound provider messages and define outbound separately.
-C. Reject and define another identity scope.
-
-No option is selected by IA-01.
+Outbound message identity is intentionally not frozen by this decision and requires a separate explicit contract before implementation depends on it.
 
 ## Cross-entity invariants
 
 1. Transport identifiers are not canonical business identities by default.
-2. Store scoping must remain explicit.
-3. No implementation may freeze a proposed contract by inference.
-4. Cross-channel identity stitching is not authorized by this package.
+2. Store scoping is explicit.
+3. Implementation cannot alter these invariants by inference.
+4. Cross-channel identity stitching is not authorized.
+5. The inbound Message uniqueness rule is an idempotency boundary, not a universal outbound identity rule.
 
-## Decision State
+## Impact
 
-All three contracts remain **PENDING** until Operator approval and explicit contract closure.
+These decisions affect Customer, Conversation and Message persistence contracts, Inbox/InboundInbox idempotency, and downstream domain/runtime consumers. IA-01 must reconcile physical schema and documentation to these semantics.
+
+## Evidence
+
+`docs/domain/entities.md`; `agents/02-domain/CANONICAL-ENTITY-INVENTORY.md`; prior decision package; current branch state at `e2d8807a6e797b0fb35e6a4658f8c4aabec7535a`.
+
+## Release Consequence
+
+Customer Identity, Conversation Contract and Message Contract are formally frozen for the stated scope. `READY_FOR_IA02` remains gated by IA-01 schema/contract reconciliation and CONTRACT-001 closure.
