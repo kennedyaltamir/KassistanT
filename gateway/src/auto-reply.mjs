@@ -7,20 +7,24 @@ import { fileURLToPath } from 'node:url';
 
 /** @typedef {{ id: string, jid: string | null, direction: 'INBOUND' | 'OUTBOUND', fromMe: boolean, text: string | null, timestamp: number, status: string }} MessageSnapshot */
 /** @typedef {{ role: 'user' | 'assistant', content: string }} ContextMessage */
+/** @typedef {{ enabled?: boolean, prompt?: string }} ConversationPolicy */
+/** @typedef {Record<string, ConversationPolicy>} ConversationPolicyMap */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POLICY_PATH = path.join(__dirname, '..', 'data', 'ai-conversations.json');
 const inFlight = new Set();
 const lastReplyAt = new Map();
 let started = false;
+/** @type {ConversationPolicyMap | null} */
 let conversationPolicies = null;
 
+/** @returns {ConversationPolicyMap} */
 function loadPolicies() {
   if (conversationPolicies) return conversationPolicies;
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    conversationPolicies = parsed && typeof parsed === 'object' ? parsed : {};
+    conversationPolicies = parsed && typeof parsed === 'object' ? /** @type {ConversationPolicyMap} */ (parsed) : {};
   } catch {
     conversationPolicies = {};
   }
@@ -34,12 +38,13 @@ function savePolicies() {
   fs.renameSync(tempPath, POLICY_PATH);
 }
 
-/** @param {string} jid @returns {{ enabled?: boolean, prompt?: string }} */
+/** @param {string} jid @returns {ConversationPolicy} */
 function getConversationPolicy(jid) {
   const value = loadPolicies()[jid];
   return value && typeof value === 'object' ? value : {};
 }
 
+/** @param {string} jid @param {Partial<ConversationPolicy> & { enabled?: boolean | null }} patch */
 export function setConversationPolicy(jid, patch = {}) {
   if (typeof jid !== 'string' || !jid.trim()) throw new Error('Conversation JID is required');
   if (!jid.endsWith('@lid') && !jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@g.us')) {
@@ -91,7 +96,7 @@ function conversationContext(jid) {
       };
     });
 
-  return context.filter(message => message !== null);
+  return context.filter((message) => message !== null);
 }
 
 /** @param {string | null} jid */
@@ -126,13 +131,15 @@ async function handleMessage(message) {
   const context = conversationContext(jid);
   if (!context.length) return;
 
-  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : undefined;
+  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : null;
 
   inFlight.add(jid);
   lastReplyAt.set(jid, now);
 
   try {
-    const reply = await generateReply(context, { systemPrompt: promptOverride });
+    const reply = promptOverride
+      ? await generateReply(context, { systemPrompt: promptOverride })
+      : await generateReply(context);
     await sendText(jid, reply);
     console.log(`[KassisT AI] auto-reply sent to ${jid}`);
   } catch (error) {
