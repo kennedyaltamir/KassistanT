@@ -86,3 +86,11 @@
 - Problem: delivery and payment concepts exist, but complete command/state/error semantics are not fixed.
 - Impact: confirmation preconditions and downstream lifecycle behavior.
 - Rule: do not invent payment gateway behavior or delivery integration.
+
+## E-012 — Money slice test execution unavailable in current tool environment
+
+- Severity: INFORMATIONAL
+- Status: OPEN / NOT_VERIFIED
+- Problem: the canonical Money consumer test was added under IA-04, but this environment has no verified local checkout/runtime for executing the repository test command.
+- Impact: local test result cannot be truthfully claimed from this run.
+- Rule: report TEST_STATUS as NOT_VERIFIED until the test is actually executed; remote CI status is also tracked independently.
