@@ -37,6 +37,20 @@ Status: PARTIAL.
 
 The state-machine contract states that actor permission details remain partial.
 
+## Readiness audit conclusions — not project decisions
+
+The following are audit classifications, not new architecture decisions:
+
+- Complete Order Engine implementation: BLOCKED.
+- Deterministic Money arithmetic as an isolated pure slice: READY.
+- Complete pricing engine: BLOCKED.
+- Complete promotion evaluation: BLOCKED.
+- Complete lifecycle implementation: PARTIAL.
+- Order idempotency/concurrency contract: PARTIAL.
+- Complete error taxonomy: BLOCKED.
+
+These classifications may change only when new authoritative evidence or approved decisions change the underlying contracts.
+
 ## Proposals
 
 No proposal is promoted to project decision by this file. Future implementation proposals must be explicitly labelled `PROPOSAL` and must not alter protected contracts without authority review.
