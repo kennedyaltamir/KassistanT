@@ -1,64 +1,48 @@
 # IA-05 — Errors and Risks
 
-## Known issues
+## E05-001 — Conversation runtime absent
+Status: NOT_IMPLEMENTED. No executable `apps/desktop/electron/conversation/**` runtime was observed.
 
-### E05-001 — Conversation runtime absent
+## E05-002 — LLM runtime absent
+Status: NOT_IMPLEMENTED. No executable `apps/desktop/electron/providers/llm/**` adapter was observed.
 
-Status: NOT_IMPLEMENTED.
+## E05-003 — AI-V1 incomplete
+Status: PARTIAL. The registry marks AI-V1 PARTIAL / NOT_IMPLEMENTED / tests missing.
 
-There is no executable `apps/desktop/electron/conversation/**` runtime in the observed repository. Documentation defines the model, but runtime completion cannot be claimed.
+## E05-004 — Shared LLMProvider typing incomplete
+Status: BLOCKED / GLOBAL_DECISION_REQUIRED. The existing executable interface uses `unknown` request/result types and lives outside IA-05 documentation ownership.
 
-### E05-002 — LLM runtime absent
+## E05-005 — AIExecution contract incomplete
+Status: BLOCKED / CROSS_AGENT. Logical execution semantics require IA-01 persistence and IA-03 audit/event alignment.
 
-Status: NOT_IMPLEMENTED.
+## E05-006 — Tool authorization incomplete
+Status: BLOCKED / GLOBAL_DECISION_REQUIRED. Optional tool calling is documented, but authorization, scope, confirmation and execution envelopes are not fully specified.
 
-No executable `apps/desktop/electron/providers/llm/**` adapter was observed. `LLMProvider` exists as a minimal interface only.
+## E05-007 — Prompt/version contract incomplete
+Status: BLOCKED / CROSS_AGENT. Reproducible prompt identity/version/provenance is not yet aligned with execution persistence.
 
-### E05-003 — AI contract incomplete
+## E05-008 — Model selection unresolved
+Status: OPEN / EXTERNAL_DECISION_REQUIRED. The baseline intentionally does not define a concrete default model.
 
-Status: PARTIAL.
+## E05-009 — Conversation transition semantics incomplete
+Status: BLOCKED / CROSS_AGENT. IA-05 must consume executable IA-02 transition rules rather than inventing them.
 
-The contract registry marks `AI-V1` partial, runtime not implemented and tests missing. The current provider interface is too small to establish the full execution/structured-output/tool/error contract by itself.
+## E05-010 — Persistence dependency
+Status: BLOCKED / CROSS_AGENT. Conversation/Message/AIProfile/AIExecution/KnowledgeItem persistence depends on IA-01.
 
-### E05-004 — Tool authorization boundary incomplete
+## E05-011 — Domain/event dependency
+Status: BLOCKED / CROSS_AGENT. Domain semantics depend on IA-02 and durable event infrastructure on IA-03.
 
-Status: NOT_VERIFIED / PARTIAL.
+## E05-012 — Global contract ambiguities
+Status: BLOCKED / GLOBAL_DECISION_REQUIRED. `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain governance matters.
 
-The baseline permits optional tool calling, but the current repository does not provide a complete executable authorization model for tool invocation. Tool use must not be treated as direct business authority.
-
-### E05-005 — Prompt contract incomplete
-
-Status: NOT_VERIFIED / PARTIAL.
-
-Prompt construction is required by the product specification, but no complete versioned executable prompt contract was observed.
-
-### E05-006 — Model choice intentionally unresolved
-
-Status: OPEN / EXTERNAL.
-
-The baseline intentionally leaves model selection to benchmark/external decision. Hard-coding a model as normative would exceed IA-05 authority.
-
-### E05-007 — Conversation depends on unfinished foundations
-
-Status: BLOCKED_BY_DEPENDENCIES.
-
-Meaningful production Conversation runtime depends on canonical persistence, domain semantics and durable event infrastructure owned by other agents.
-
-### E05-008 — Human takeover is a cross-boundary state concern
-
-Status: RISK.
-
-Conversation ownership and AI state are domain-defined separately. Any implementation that models human takeover only as a prompt instruction would risk violating the state model.
-
-## Global blockers
-
-- `CONTRACT-001` can affect durable external-effect semantics.
-- `CONTRACT-002` can affect event semantics consumed downstream by conversation-related infrastructure.
-- `GOV-001` affects document/source authority and must remain globally governed.
+## E05-013 — Reliability semantics incomplete
+Status: BLOCKED / CROSS_AGENT. Retry/idempotency, timeout and cancellation outcomes require a stable AIExecution and event boundary.
 
 ## Security risks
 
-- Treat all model output as untrusted.
-- Never expose runtime credentials to prompts, Renderer or LLM output.
-- Never allow generated text or tool arguments to bypass deterministic authorization/validation.
-- Never persist sensitive diagnostic content outside approved policy.
+- Treat model output and tool arguments as untrusted.
+- Never expose secrets to prompts, Renderer or model output.
+- Never let provider output bypass Core authorization or validation.
+- Apply data minimization to AI logs, prompts, tool results and telemetry.
+- Provider unavailability must be explicit; the system must not claim successful AI operation without evidence.

@@ -1,10 +1,18 @@
 # IA-05 — Changelog
 
-## 2026-08-24 — Territory initialization
+## 2026-08-24 — AI-V1 Contract Closure / Decision Package
 
-- IA-05 formalmente designada para **Conversation + LLM**.
-- Auditoria de `main`, baseline, roadmap, domain contracts, AI/LLM provider contract, WSS boundary e runtime Desktop concluída.
-- `AGENT.md`, `SCOPE.md`, `OWNERSHIP.md`, `MEMORY.md`, `LEARNINGS.md`, `DECISIONS.md`, `ERRORS.md`, `PROGRESS.md`, `ROADMAP.md` e `HANDOFF.md` inicializados.
-- Nenhuma funcionalidade de produto foi implementada.
-- Nenhum contrato global foi alterado.
-- Nenhum arquivo fora de `agents/05-conversation-llm/**` foi modificado por esta IA.
+- Added `AI-V1-DECISION-PACKAGE.md` with gap classification, ownership, dependencies, blocking levels and minimum closure proposal.
+- Added `AI-V1-GLOBAL-DECISIONS.md` with explicit decision requests; recommendations remain PROPOSAL and are not approvals.
+- Added `AI-V1-FIRST-SLICE.md` proposing deterministic contract tests around a typed LLM request/result/error envelope after shared-contract approval.
+- Reconciled LLMProvider, AIExecution, tool authorization, prompt/version, conversation lifecycle, dependency and implementation-gate matrices.
+- Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff.
+- Confirmed no Conversation Engine, Ollama adapter, Tool Runner, prompt engine, AIExecution runtime, migration or schema change was implemented.
+- Confirmed no shared contract or global documentation was modified.
+
+## 2026-08-24 — AI-V1 Contract Readiness Audit
+
+- Completed the AI-V1 readiness audit against current repository evidence, baseline and domain/protocol/provider documentation.
+- Confirmed that Conversation runtime and LLM provider runtime remain NOT_IMPLEMENTED.
+- Confirmed that the existing `LLMProvider` contract was not modified.
+- Recorded `CONTRACT-001`, `CONTRACT-002` and `GOV-001` as unresolved global blockers.

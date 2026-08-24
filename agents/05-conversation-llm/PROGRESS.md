@@ -1,44 +1,50 @@
 # IA-05 — Progress
 
-## Current state
-
-**Phase:** Agent Configuration / Territory Audit
-
-**Agent:** IA-05 — Conversation + LLM
-
-**Implementation status:** NOT_STARTED
-
-**Audit status:** COMPLETE FOR CURRENT EVIDENCE SET
+**Phase:** AI-V1 Contract Closure / Decision Package  
+**Agent:** IA-05 — Conversation + LLM  
+**Implementation status:** NOT_STARTED  
+**Audit status:** COMPLETE  
+**AI-V1 closure status:** HOLD / BLOCKED_BY_CONTRACT_GAPS
 
 ## Confirmed repository state
 
-- `main` is the integration authority.
-- `main` currently contains the approved baseline, M5.1 SQLite foundation and API/backend/domain contract documentation.
-- Conversation runtime: `NOT_STARTED` / `NOT_IMPLEMENTED`.
-- LLM provider runtime: `NOT_STARTED` / `NOT_IMPLEMENTED`.
-- `LLMProvider` interface exists in `packages/domain/src/llm-provider.ts`.
-- `AI-V1` contract is `PARTIAL`; implementation is `NOT_IMPLEMENTED`; tests are missing.
-- Ollama is the initial local provider direction.
-- Conversation/AI/message state definitions are documented and partial.
-- Current Electron tree contains database and shell foundation but no assigned Conversation/LLM implementation directories.
+- Branch `Agent05-conversation-llm` remains based directly on `main` and contains documentation-only changes in IA-05 territory.
+- Conversation runtime is NOT_IMPLEMENTED.
+- LLM provider runtime is NOT_IMPLEMENTED.
+- Existing `LLMProvider` was not changed.
+- AI-V1 remains PARTIAL / NOT_IMPLEMENTED / tests missing.
 
-## Configuration delivered
+## Decision package delivered
 
-- Agent identity defined.
-- Scope defined.
-- Ownership defined.
-- Permanent memory initialized.
-- Audit-derived learnings initialized.
-- Approved/open decisions initialized.
-- Known errors and blockers initialized.
+- `AI-V1-DECISION-PACKAGE.md`
+- `AI-V1-GLOBAL-DECISIONS.md`
+- `AI-V1-FIRST-SLICE.md`
 
-## Not done by design
+Updated closure matrices:
 
-- No production code.
-- No provider adapter.
-- No conversation engine.
-- No prompt runtime.
-- No tool registry.
-- No model configuration implementation.
-- No tests added to product code.
-- No external platform configuration.
+- `AI-V1-READINESS.md`
+- `LLM-PROVIDER-MATRIX.md`
+- `AI-EXECUTION-CONTRACT.md`
+- `TOOL-AUTHORIZATION-MATRIX.md`
+- `PROMPT-VERSION-MATRIX.md`
+- `CONVERSATION-LIFECYCLE-MATRIX.md`
+- `AI-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
+
+## Main findings
+
+1. `LLMProvider` shared typing requires global/cross-agent approval.
+2. AIExecution requires IA-01 persistence and IA-03 audit/event alignment.
+3. Tool authorization requires a deterministic independent boundary.
+4. Prompt versioning requires reproducibility/provenance and execution references.
+5. Conversation transitions must come from IA-02.
+6. Concrete model selection remains external.
+7. `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain global governance blockers.
+
+## Proposed first slice
+
+Deterministic contract tests around a typed LLM request/result/error envelope, **after** approval of the shared contract those tests target.
+
+## Not implemented by design
+
+No Conversation Engine, Ollama adapter, prompt engine, tool runner, AIExecution runtime, model-selection runtime, migration, schema change or protected contract was implemented or modified.
