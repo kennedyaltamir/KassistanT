@@ -9,37 +9,39 @@
 
 ## Current result
 
-Cross-Agent Response Consolidation is **WAITING FOR ACTUAL OWNER / OPERATOR RESPONSES**.
+Parallel Schema Continuation is **PARTIALLY RESOLVED / WAITING FOR PHYSICAL CLOSURE**.
 
 ## Verified state
 
 1. 28 canonical entities remain in scope.
-2. 3 tables require only local IA-01 physical approvals.
-3. 14 require semantic decisions from other agents.
-4. `DomainOutbox` remains the localized global blocker under `CONTRACT-001`.
-5. 10 tables remain directly blocked by incomplete field/relationship contracts.
-6. `CONTRACT-002` is currently non-blocking for physical schema.
-7. `GOV-001` remains deferred unless a real source conflict changes schema interpretation.
-8. No owner response was supplied in the current execution input.
-9. No decision was promoted to APPROVED.
-10. No table was promoted to READY.
-11. No migration `0002` exists.
-12. M5.1 and `0001_bootstrap.sql` remain unchanged.
+2. No table is currently `DETERMINISTIC`.
+3. 3 tables (`store`, `product_image`, `log`) become deterministic after the five IA-01 local physical proposals are approved.
+4. 14 tables require cross-agent semantic closure in addition to the local physical conventions.
+5. `domain_outbox` requires global resolution of `CONTRACT-001` where physical ownership/scope is affected.
+6. 10 tables remain directly blocked by incomplete field/relationship semantics.
+7. DREQ-001 confirms Order aggregate ownership but does not freeze physical parent keys.
+8. DREQ-002 confirms `DRAFT -> CONFIRMED` but does not authorize `order.status_changed` persistence.
+9. DREQ-005 and DREQ-006 produce no schema persistence authorization.
+10. IA-03 confirms durable Inbox ACK means local `InboundInbox` persistence, but its complete field inventory is still missing.
+11. IA-05, IA-06 and IA-07 retain open schema dependencies.
+12. `CONTRACT-002` remains non-blocking for physical schema.
+13. `GOV-001` remains conditional/deferred.
+14. No migration `0002` exists.
+15. M5.1 and `0001_bootstrap.sql` remain unchanged.
+16. No protected contracts or other agent territories were modified.
 
-## Response validation rule
+## Local decisions
 
-A response is accepted only when it contains enough evidence to resolve the exact requested decision and does not conflict with another authoritative response. Assertive language such as READY/APPROVED/COMPLETE is not evidence by itself.
+`SD-001..SD-005` remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
 
-## Required next responses
+## Priority cross-agent closure
 
-- IA-02: domain nullability/defaults, lifecycle/state semantics, store scoping.
-- IA-03: Inbox, Outbox, Job, Audit, correlation/idempotency semantics.
-- IA-04: OrderItem, OrderItemModifier, OrderStatusHistory and Order persistence semantics.
-- IA-05: Conversation/Message, AIProfile/AIExecution, KnowledgeItem semantics.
-- IA-06: Device/Store identity and lifecycle persistence.
-- IA-07: Gateway/Desktop persistence boundary relevant to `CONTRACT-001`.
-- Operator/project authority: approve/reject SD-001..SD-005 and resolve `CONTRACT-001` where schema is affected.
+- IA-04: exact parent keys/FKs/actions for OrderItem and OrderItemModifier; explicit persistence decision for OrderStatusHistory.
+- IA-03: physical field inventory for InboundInbox/Job/Audit and infrastructure idempotency/correlation fields.
+- IA-05: Conversation/Message/AIProfile/AIExecution/KnowledgeItem persistence inventory.
+- IA-06: Device and secure IntegrationCredential persistence fields.
+- Global authority: DomainOutbox ownership/scope/transaction semantics under CONTRACT-001.
 
 ## Migration gate
 
-Do not create `0002` until actual responses are validated, conflicts are resolved, all schema-critical physical decisions are frozen, and deterministic-generation review confirms that another engineer can produce identical DDL without interpretation.
+`0002` remains prohibited until all included tables are deterministic, local approvals are explicit, cross-agent dependencies are resolved, physical types/nullability/defaults/FK actions/state representation are frozen, and a deterministic-generation review passes.
