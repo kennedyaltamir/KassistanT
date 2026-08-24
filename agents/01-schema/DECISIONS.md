@@ -72,14 +72,17 @@ Authority: relevant semantic owner.
 ### P-010 — Missing field models
 Authorities: IA-02 / IA-04 / IA-05 / IA-06 and provider/security owners according to the authority matrix.
 
-## Global decisions pending
+## Historical global decision request — CLOSED
 
 ### P-011 — CONTRACT-001 DomainOutbox ownership/scope
-Authority: global project authority with IA-03/IA-07 input.
+Historical classification: GLOBAL_DECISION / PENDING.
+Current normative state: **RESOLVED** by `OPERATOR_PROJECT_GOVERNANCE` on 2026-08-24.
+Resolution: Domain defines event intent; IA-03 owns durable Outbox mechanics and worker; business state and outbox intent share the required atomic transaction boundary where applicable; provider calls occur only after durable intent.
+Reference: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`.
 
 ### P-012 — GOV-001 document authority conflict
-Required only if an actual normative conflict changes schema interpretation.
+Status: DEFERRED / NON-BLOCKING unless a future normative conflict changes schema interpretation.
 
-## Rule
+## Post-decision rule
 
-No proposal in this document is project-authoritative until explicitly approved through governance.
+No current pending item in this document may contradict an explicit Operator decision. P-011 is retained as historical provenance and is no longer an active blocker.
