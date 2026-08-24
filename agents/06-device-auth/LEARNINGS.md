@@ -46,14 +46,10 @@ Revocation outcome is explicit; rotation actor is known but key lifecycle, overl
 **Classification:** FACT / AUDITED
 A subject can be contractually defined and still be NOT_STARTED/BLOCKED for implementation.
 
-### L-012 — Security closure is layered
+### L-012 — DR-02 must separate cryptographic verification from replay runtime
 **Classification:** FACT / AUDITED
-Cryptographic primitive, wire contract, replay, session, authorization, rate limiting, idempotency, rotation, revocation, audit and storage have independent gates.
-
-### L-013 — Pure verification can be isolated
-**Classification:** INFERENCE / AUDITED
-The Signature Verification Boundary can be a pure deterministic slice once the minimum DR-02 signed-byte/key/signature representation and context-binding rules are approved.
+The pure verifier only consumes the minimum DR-02A contract. Operational replay lifecycle belongs to DR-02B and must remain independently gated.
 
 ## Current readiness conclusion
 
-IA-06 is ready for project-level decision review and first-slice approval, but not authorized for production implementation.
+IA-06 is ready for human project decision review, but not production implementation. DR-02A approval is the only pending DR-02 input required for the proposed pure Signature Verification Boundary; DR-02B remains separately open.
