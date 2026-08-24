@@ -8,15 +8,54 @@
 
 `C1_FIRST_REAL_USER = NOT_STARTED`
 
-This branch is an execution track based exactly on `main @ 86387b02ed55ef3af3b24f1591b3e0b0ff436a30`. It does not replace `main` or promote any branch-progress into integrated product state.
+`CURRENT_OPERATIONAL_PHASE = MVP2`
+
+`CURRENT_OPERATIONAL_BASELINE = MVP2`
+
+`INTEGRATION_TARGET = main`
+
+The historical C1 execution model represented by `MVP` was based exactly on `main @ 86387b02ed55ef3af3b24f1591b3e0b0ff436a30`. That historical execution model remains preserved for lineage and does not define the current operational baseline of the project.
+
+`MVP2` is the current operational baseline by explicit governance decision. This classification does not transfer integration authority from `main` to `MVP2`, and branch progress must not be mistaken for integrated product state.
+
+## BASELINE GOVERNANCE
+
+```text
+HISTORICAL_C1_EXECUTION_MODEL
+  BRANCH = MVP
+  BASE_BRANCH = main
+  BASE_SHA = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30
+
+CURRENT_OPERATIONAL_BASELINE
+  BRANCH = MVP2
+  STATUS = CURRENT_OPERATIONAL_BASELINE
+
+CURRENT_INTEGRATION_TARGET
+  BRANCH = main
+  STATUS = FUTURE_CONTROLLED_INTEGRATION_TARGET
+```
+
+The designation of `MVP2` as current operational baseline is a governance decision and is not inferred from branch depth, commit count, or implementation volume.
 
 ## BASE
+
+The original C1 readiness baseline remains historically recorded as:
 
 `BASE_BRANCH = main`
 
 `BASE_SHA = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30`
 
 `MVP_BRANCH = MVP`
+
+These values describe the historical C1 execution model and must not be interpreted as the current MVP2 implementation baseline.
+
+## CURRENT MVP2 OPERATING MODEL
+
+New implementation work for the current phase should normally use feature branches based on the verified current `MVP2` head, unless a new governance decision explicitly establishes another base.
+
+`main` remains the integration authority and controlled integration target.
+
+No automatic merge from `MVP2` to `main` follows from this readiness record. Integration requires the applicable contract/decision gates, tests, verification, audit and merge authorization.
 
 ## WHAT_IS_ALREADY_IN_MAIN
 
