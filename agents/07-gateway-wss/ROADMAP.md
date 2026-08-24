@@ -16,7 +16,7 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 - Confirmar fronteiras Inbox/Outbox/EventBus fornecidas pela IA-03.
 - Confirmar necessidades de persistência sem assumir ownership do schema.
 - Resolver ou obter decisão formal para ambiguidades que bloqueiem implementação.
-- Status: EM ANDAMENTO; auditoria HTTP/WSS, fechamento do envelope estrutural, boundary audit e integration gate package concluídos.
+- Status: EM ANDAMENTO; auditoria HTTP/WSS, fechamento do envelope estrutural, boundary audit, integration gate package e acceptance gate definition concluídos.
 
 ## Fase 2 — Runtime HTTP
 
@@ -59,9 +59,16 @@ Artefatos:
 - `WSS-IA03-CONTRACT.md`
 - `WSS-RUNTIME-V1-REQUIREMENTS.md`
 
+## Dependency acceptance gate — 2026-08-24
+
+- `WSS-DEPENDENCY-ACCEPTANCE.md` define quatro resultados operacionais: `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED`, `NOT_VERIFIED`.
+- IA-06 somente pode ser aceita quando os gates necessários do slice selecionado forem executáveis/testáveis.
+- IA-03 somente pode ser aceita quando durable intake e ACK forem executáveis/testáveis; replay pode ser explicitamente deferido para V1.
+- Uma nova revisão de IA-06/IA-03 será validada por branch + commit + artefatos do gate, sem repetir a auditoria global salvo conflito de evidência.
+
 ## Próximo marco
 
-Aguardar as interfaces executáveis de IA-06 e IA-03 e então reavaliar `WSS connection lifecycle abstraction`. Não implementar runtime enquanto qualquer gate crítico estiver BLOCKED.
+Aguardar as interfaces executáveis de IA-06 e IA-03. Reavaliar a matriz de aceitação e classificar cada dependência antes de qualquer runtime WSS.
 
 ## Bloqueio permanente
 
