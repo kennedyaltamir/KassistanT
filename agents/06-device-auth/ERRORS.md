@@ -15,6 +15,20 @@ E-013 endpoint idempotency incomplete.
 E-014 audit scope incomplete.
 E-015 cross-agent dependency chain not closed.
 
+## Stratification corrections
+
+E-016 crypto primitive vs wire contract was previously too broad.
+**Status:** CLOSED AS MODELING ERROR
+Ed25519 primitive is defined independently from signed-byte representation, canonicalization and encoding.
+
+E-017 first-slice gate was previously too broad.
+**Status:** CLOSED AS MODELING ERROR
+The pure Signature Verification Boundary depends only on the minimum DR-02 cryptographic subset plus explicit implementation authorization.
+
+E-018 audit security layers were previously aggregated.
+**Status:** CLOSED AS MODELING GAP
+The minimum audit set is now separated from cryptographic correctness, session security and operational policy.
+
 ## Decision-package mapping
 
 - DR-01 closes E-002.
