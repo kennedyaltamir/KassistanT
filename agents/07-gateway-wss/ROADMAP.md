@@ -16,7 +16,7 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 - Confirmar fronteiras Inbox/Outbox/EventBus fornecidas pela IA-03.
 - Confirmar necessidades de persistência sem assumir ownership do schema.
 - Resolver ou obter decisão formal para ambiguidades que bloqueiem implementação.
-- Status: EM ANDAMENTO; auditoria HTTP/WSS concluída.
+- Status: EM ANDAMENTO; auditoria HTTP/WSS e fechamento do envelope estrutural concluídos.
 
 ## Fase 2 — Runtime HTTP
 
@@ -28,7 +28,8 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 ## Fase 3 — Runtime WSS
 
 - Validação estrutural do envelope v1: IMPLEMENTADA.
-- Transporte, handshake, ACK, sequence, replay/resume/resync, heartbeat e backpressure: BLOQUEADOS por dependências/contratos parciais.
+- Transporte, handshake, AUTH, ACK, sequence, replay/resume/resync, heartbeat, backpressure e revocation: BLOQUEADOS por dependências e contratos parciais.
+- O próximo slice proposto é `WSS connection lifecycle abstraction`, atualmente BLOCKED.
 
 ## Fase 4 — Integração e validação
 
@@ -39,7 +40,7 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 
 ## Próximo marco
 
-Obter contratos executáveis suficientes para iniciar, nesta ordem, um incremento HTTP/WSS que não dependa de `CONTRACT-001`, `CONTRACT-002`, IA-06 ausente ou IA-03 ausente.
+Obter interfaces executáveis de IA-06 para identidade/sessão e IA-03 para durabilidade/ACK/replay, além de fechar as semânticas parciais de recuperação e backpressure, antes de iniciar runtime WSS funcional.
 
 ## Bloqueio permanente
 
