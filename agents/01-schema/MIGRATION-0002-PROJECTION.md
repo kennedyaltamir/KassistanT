@@ -1,11 +1,13 @@
 # IA-01 — Migration 0002 Projection
 
-Status: **DOCUMENTARY PROJECTION ONLY**
-`0002` file: **NOT CREATED**
+Status: **DOCUMENTARY PROJECTION / HISTORICAL REFERENCE**
+`0002` file: **EXISTS PHYSICALLY BUT IS NON-AUTHORITATIVE**
 
-## 1. Gate
+## 1. Governance status
 
-This projection does not authorize implementation. The future migration may be emitted only after the schema decision package is approved and all included tables are deterministic.
+`GOV-DRIFT-0002` was resolved by Operator Option B. The physical file is retained as evidence only and is not the normative schema baseline.
+
+This document remains a projection of the intended canonical schema. It must not be interpreted as evidence that the physical 0002 file was approved or that a replacement migration is authorized.
 
 ## 2. Dependency order
 
@@ -38,48 +40,35 @@ This projection does not authorize implementation. The future migration may be e
 27. `notification`
 28. `domain_outbox`
 
-This order remains subject to approved relationship changes. `domain_outbox` is deliberately last because CONTRACT-001 can affect its physical scope.
+This order remains subject to approved relationship changes and future implementation-level DDL determinism.
 
-## 3. Decision prerequisites by group
+## 3. Frozen contract surfaces
 
-### Locally closable after operator confirmation
-
-`store`, `product_image`, `log` and other tables whose semantic fields are already complete can use the approved IA-01 physical convention once confirmed.
-
-### Cross-agent closure required
-
-Device/catalog/customer/conversation/message/order/infrastructure/AI tables require semantic-owner decisions before DDL.
-
-### Global closure required
-
-`domain_outbox` requires CONTRACT-001 resolution wherever the physical ownership model changes the schema.
-
-## 4. Required indexes/constraints
-
-The projection includes only the seven contract-required uniqueness constraints:
+The projection carries these contract-level uniqueness surfaces:
 
 - `Customer(store_id, phone_normalized)`
 - `Conversation(store_id, external_thread_id)`
-- `Message(store_id, external_message_id)`
+- inbound `Message(store_id, external_message_id)`
 - `InboundInbox(provider, external_event_id)`
 - `DomainOutbox(idempotency_key)`
 - `Order(store_id, display_number)`
 - `Device(store_id, id)`
 
-No performance-only index is assumed.
+## 4. CONTRACT-001 reconciliation
 
-## 5. FK projection
+DomainOutbox ownership is resolved:
 
-Create only frozen FKs with frozen source/target field names. Parent-key gaps on `OrderItem`, `OrderItemModifier`, and `OrderStatusHistory` remain explicit blockers. No `ON DELETE` or `ON UPDATE` action is projected until approved.
+- Domain defines event intent.
+- IA-03 owns durable Outbox mechanics and worker.
+- Business state and event intent share the required atomic boundary where applicable.
+- Provider invocation occurs only after durable intent.
 
-## 6. Status/state projection
+This resolves the previous governance blocker but does not authorize DDL or worker implementation.
 
-Persist semantic state values only after the semantic owner confirms the physical encoding. No invented SQL enum lookup tables or CHECK constraints are part of this projection.
+## 5. Determinism
 
-## 7. Transaction/runtime projection
+The canonical migration remains non-executable as a whole because field-level nullability/defaults, parent keys, FK actions and physical encodings remain partially open. This is an implementation/schema readiness limitation, not a reopened governance decision.
 
-The migration must use the existing M5.1 migration runner and preserve deterministic discovery, checksum integrity, idempotent application and transaction boundaries. No runtime modification is projected.
+## 6. Prohibited interpretation
 
-## 8. Current determinism result
-
-A second engineer cannot yet generate identical DDL from the current package without asking for unresolved field definitions, parent keys, nullability/defaults, FK actions and physical status encoding. Therefore the projection is intentionally non-executable and `0002` remains prohibited.
+The physical 0002 file is historical/non-authoritative. No execution, deletion, rename, replacement or new migration is authorized by this document.
