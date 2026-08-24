@@ -46,3 +46,13 @@
 - Confirmed no `.github/workflows/**` change is required for this fix because CI already executes `pnpm test`.
 - Confirmed IA-04 is not authorized to modify the shared harness or CI.
 - No new production slice was selected; Full Order Engine remains `BLOCKED`.
+
+## 2026-08-24 — Money Slice Freeze
+
+- Finalized the operational handoff to the shared test harness / integration authority.
+- Froze IA-04 production work on the Money slice pending external harness integration and verification.
+- Preserved `IMPLEMENTATION_STATUS = COMPLETE_FOR_SLICE` independently from direct test, official suite and CI states.
+- Kept `DIRECT_TEST = NOT_VERIFIED`, `OFFICIAL_SUITE = NOT_INCLUDED`, `CI = NOT_VERIFIED`, and `MERGE_READINESS = NOT_READY`.
+- Confirmed `NEXT_PRODUCTION_SLICE = NONE_CONFIRMED`.
+- Confirmed the next relevant action is external to IA-04 ownership: owner review of `scripts/test-desktop.mjs`.
+- No shared harness, CI, domain, contract, schema or other-agent files were modified.
