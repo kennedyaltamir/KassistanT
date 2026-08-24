@@ -2,66 +2,81 @@
 
 ## Current state
 
-`BLOCKED`
+`READY_AFTER_HUMAN_APPROVAL`
 
-This gate does not authorize runtime code. It records the exact remaining semantics required before the first EventBus production slice.
+This gate does not authorize runtime code by itself. It records the local EventBus policy package that is ready for approval.
 
-## Closed gates
+## Closed evidence-backed gates
 
 ### G0 — Branch
-`Agent03-event-infrastructure` remains based on current `main`; no unrelated territory is permitted.
+`Agent03-event-infrastructure` remains based on current `main` and contains only IA-03 territory changes.
 
 ### G1 — Event contract boundary
 Consume approved event objects without modifying `packages/contracts/**`. `CONTRACT-002` remains open and must not be normalized locally.
 
 ### G2 — Envelope
-The currently materialized minimum envelope is accepted as the protected boundary. Correlation/causation/version metadata may be preserved only when supplied by an approved source contract.
+The currently materialized minimum event envelope remains the protected input boundary. No silent contract expansion.
 
 ### G3 — Post-commit boundary
-EventBus dispatch is post-commit local communication. It is not the transaction manager and does not implement DomainOutbox.
+Dispatch is in-process and post-commit. EventBus is not a transaction manager and does not implement DomainOutbox.
 
 ### G5 — Ordering
-`NO_ORDERING_GUARANTEE` is the only supported EventBus ordering statement under current evidence. No global, per-type, per-aggregate or FIFO guarantee may be implied.
+`NO_ORDERING_GUARANTEE` is explicit.
 
 ### G6 — Retry boundary
-EventBus does not own durable retry. JobQueue owns documented retry/backoff capabilities. Subscriber failure must not imply automatic EventBus retry.
+EventBus does not own durable retry. JobQueue remains the documented durable retry boundary.
 
-## Open blocking gates
+## Local policy gates proposed for approval
 
-### G4 — Subscriber lifecycle and handler contract
-Still missing normative definitions for:
+### G4 — Subscriber lifecycle/handler contract
+Proposed local policy closes:
 
-- executable handler shape;
-- synchronous vs asynchronous scheduling;
-- subscriber failure propagation;
-- subscriber isolation;
-- cancellation;
-- timeout;
-- unsubscribe lifecycle;
-- duplicate registration behavior;
-- dispatch completion semantics.
+- async publication boundary;
+- sequential handler invocation over a publish-time snapshot;
+- failure isolation;
+- failure aggregation;
+- opaque subscription identity;
+- idempotent unsubscribe;
+- unsubscribe-only cancellation;
+- no V1 timeout;
+- all-selected-handlers-settled completion semantics;
+- duplicate registration as distinct subscriptions.
 
-**Status:** `BLOCKED`.
+Status: `PROPOSAL / HUMAN APPROVAL REQUIRED`.
 
 ### G7 — Deterministic tests
-The test matrix is specified but several tests remain blocked by the open lifecycle/error semantics. Runtime tests must not be implemented against invented behavior.
+The test matrix now directly reflects the proposed local policy. Runtime tests remain unimplemented until approval.
 
-**Status:** `BLOCKED`.
+Status: `READY_AFTER_HUMAN_APPROVAL`.
 
-## External blockers
+## External blockers outside EventBus V1
 
-`CONTRACT-001` remains open and blocks DomainOutbox implementation.
+`CONTRACT-001` remains open and blocks DomainOutbox.
 
-`CONTRACT-002` remains open and affects the normative order-event catalogue.
+`CONTRACT-002` remains open and affects the normative Order event catalogue. It does not require mutation of the current EventBus implementation boundary.
 
-`GOV-001` remains open and is not resolved here.
+`GOV-001` remains open.
 
-These are not locally resolvable by IA-03.
+None requires changing the proposed local EventBus runtime policy.
 
-## Implementation consequence
+## Approval condition
 
-The first runtime candidate remains:
+Human approval of `HUMAN-EVENTBUS-DECISIONS.md` is the required gate before writing production EventBus code.
 
-`IN-PROCESS EVENTBUS`
+The approval must cover the proposed local observable behavior. No global contract modification is requested.
 
-but runtime implementation must not begin until G4 and G7 are explicitly closed without inventing behavior.
+## Start condition after approval
+
+After approval, the first runtime slice may begin within:
+
+`apps/desktop/electron/infrastructure/events/**`
+
+with directly associated tests only, maintaining the explicit non-goals:
+
+- SQLite persistence;
+- Inbox/Outbox/JobQueue/AuditLog;
+- WSS;
+- durable retry;
+- replay/reconciliation/dead-letter;
+- business rules;
+- protected contract changes.
