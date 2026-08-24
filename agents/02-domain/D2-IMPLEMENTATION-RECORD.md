@@ -23,6 +23,7 @@
 - D2 domain error semantics.
 - Generic actor-context boundary without a transport DTO.
 - D2 unit tests.
+- Internal test support for `CONCURRENCY_CONFLICT` semantic coverage without exposing a concurrency mechanism in `ConfirmOrderCommand`.
 
 ## Explicit exclusions
 
