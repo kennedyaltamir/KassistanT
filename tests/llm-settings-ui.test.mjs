@@ -11,7 +11,7 @@ const llmSettings = readFileSync(path.join(root, "apps", "desktop", "src", "llm-
 const credentialSource = readFileSync(path.join(root, "gateway", "src", "credentials.mjs"), "utf8");
 const providerRegistry = readFileSync(path.join(root, "gateway", "src", "provider-registry.mjs"), "utf8");
 
- test("Settings navigation exists in the real desktop page", () => {
+test("Settings navigation exists in the real desktop page", () => {
   assert.match(indexHtml, /data-page=\"settings\"/);
 });
 
