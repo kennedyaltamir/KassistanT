@@ -6,27 +6,26 @@
 - **FACT:** The future code territory is under `apps/desktop/electron/infrastructure/{events,inbox,outbox,jobs,audit}/**`.
 - **FACT:** The repository currently documents these contracts but the roadmap audits EventBus, InboundInbox, DomainOutbox, JobQueue and AuditLog runtime as not implemented.
 - **FACT:** WSS ACK means durable local persistence of an inbound event in `InboundInbox`; it does not mean customer processing completed.
-- **FACT:** `InboundInbox` has a defined idempotency/uniqueness concept using `(provider, external_event_id)`; exact canonical schema mapping remains an IA-01/contract concern.
-- **FACT:** `DomainOutbox` is explicitly documented as a persistence boundary for external effects, but its ownership/scope is ambiguous under `CONTRACT-001`.
-- **FACT:** `JobQueue` is defined as the asynchronous job boundary but its runtime is not implemented.
-- **FACT:** Audit requirements are documented, but the AuditLog runtime is not implemented.
-- **FACT:** Correlation and causation identifiers are part of the event envelope.
-- **FACT:** Canonical SQLite currently contains only `_schema_metadata`; business persistence is future work.
-- **FACT:** `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved in the audited repository state.
-- **FACT:** IA-03 cannot redefine protected contracts or global architecture locally.
-- **FACT:** EventBus is documented as in-process communication, not durable storage, and post-commit local consumers are the documented use case.
-- **FACT:** WSS sequence is monotonic per `(store_id, device_id)`; exact Inbox processing ordering beyond transport sequence is not fully specified.
-- **FACT:** WSS reconnect uses jitter/backoff with a five-minute ceiling, but the exact jitter algorithm is partial; that transport policy must not be assumed to be JobQueue policy.
-- **FACT:** Audit documentation identifies actor, action, entity, before/after reference, correlation and timestamp, plus critical audit-worthy events.
-- **FACT:** Error handling requires correlation and retryability classification, but the full error catalogue is missing.
-- **READINESS DECISION:** First candidate runtime slice is EventBus in-process dispatch, subject to stable event contracts and deterministic testability.
-- **READINESS DECISION:** InboundInbox, JobQueue and AuditLog require canonical persistence from IA-01 before production implementation.
-- **READINESS DECISION:** DomainOutbox remains blocked by `CONTRACT-001`.
-- **FACT:** EventBus ordering is explicitly `NO_ORDERING_GUARANTEE` under current evidence; WSS sequence must not be promoted into EventBus ordering.
-- **FACT:** EventBus does not own durable retry; JobQueue is the documented durable retry boundary.
-- **FACT:** EventBus dispatch is documented as post-commit local communication and does not own persistence, DomainOutbox or transaction coordination.
-- **READINESS RESULT:** Subscriber scheduling, failure propagation, subscriber isolation, cancellation, timeout, unsubscribe lifecycle and dispatch-completion semantics remain undefined by protected sources and are genuine runtime blockers.
+- **FACT:** `DomainOutbox` remains ambiguous under `CONTRACT-001`.
+- **FACT:** JobQueue is the documented durable retry boundary.
+- **FACT:** EventBus is in-process, post-commit and non-durable.
+- **FACT:** EventBus has `NO_ORDERING_GUARANTEE` under current evidence.
+- **FACT:** EventBus does not own durable retry, persistence, DomainOutbox or transaction coordination.
+- **FACT:** `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved.
+
+## 2026-08-24 — Local EventBus decision package
+
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** `publish()` is asynchronous and dispatches selected subscribers after the post-commit boundary.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** Subscribers are isolated; one failure does not suppress other selected subscribers.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** Subscriber failures are aggregated and surfaced after all selected handlers settle.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** `subscribe()` returns an opaque subscription identity and duplicate registrations are distinct registrations.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** `unsubscribe()` is idempotent and prevents future dispatches; it does not forcibly cancel an already-running handler.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** V1 uses unsubscribe-only cancellation and does not introduce `AbortSignal`.
+- **PROPOSAL / DEFERRED:** V1 has no EventBus timeout; timeout policy remains outside the local V1 contract.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** `await publish(event)` completes only after all selected handlers settle; failure is reported after dispatch.
+- **PROPOSAL / LOCAL_RUNTIME_POLICY:** Multiple-subscriber dispatch uses a publish-time snapshot; each distinct subscription is invoked at most once for that dispatch.
+- **READINESS RESULT:** EventBus is `READY_AFTER_HUMAN_APPROVAL`; no runtime code should be written until the operator approves the proposed observable behavior.
 
 ## Not permanent / do not treat as fact
 
-Exact retention periods, queue limits, retry counts, jitter algorithm for jobs, lease durations, dead-letter state machine, reconciliation algorithm, endpoint replay/TTL rules, state-sync payloads, DomainOutbox ownership semantics, EventBus handler scheduling, cancellation, timeout, failure propagation, subscriber isolation and publish completion semantics are not fully specified and must not be invented.
+The proposals above are not approved project decisions. They must not be described as existing runtime behavior until accepted and implemented. No timeout value, ordering guarantee, durable retry, persistence semantics or protected contract change is implied.
