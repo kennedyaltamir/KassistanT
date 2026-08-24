@@ -37,6 +37,42 @@ interface Money {
 
 IA-04 added `apps/desktop/electron/order/money-contract.test.ts` to verify consumption of the canonical primitive and supported boundaries. No production adapter was needed because the canonical package already exposes the required arithmetic.
 
+## Money Slice Final Handoff
+
+**MONEY_SLICE_STATUS:** `READY_FOR_TEST_HARNESS_INTEGRATION`
+
+**Test file:** `apps/desktop/electron/order/money-contract.test.ts`
+
+**Direct test:** `NOT_VERIFIED` — no executable checkout/runtime was available in this session.
+
+**Official Desktop suite:** `NOT_INCLUDED`.
+
+**Official entrypoint:** `pnpm test` → `pnpm -r test` → `@kassist/desktop` → `scripts/test-desktop.mjs`.
+
+### Shared test harness handoff
+
+**FILE:** `scripts/test-desktop.mjs`
+
+**CURRENT_OWNER:** shared test harness / integration authority. IA-04 does not own this shared file.
+
+**CURRENT_PROBLEM:** `money-contract.test.ts` is not present in the `tsTests` list of `scripts/test-desktop.mjs`.
+
+**PROPOSED_MINIMAL_CHANGE:** add exactly:
+
+```text
+apps/desktop/electron/order/money-contract.test.ts
+```
+
+to the `tsTests` list.
+
+**EXPECTED_EFFECT:** the Money consumer test becomes part of the official Desktop test path.
+
+**CI_IMPACT:** no new workflow entry is required for this fix because the existing CI workflow already executes `pnpm test`; once the shared harness includes the test, it will flow through the existing CI test command.
+
+**AUTHORIZATION:** IA-04 is not authorized to modify `scripts/test-desktop.mjs` or `.github/workflows/**`.
+
+**REQUIRED_NEXT_OWNER_ACTION:** the authorized owner/integration authority should review and apply the minimal harness change, then execute the direct test and official Desktop suite and verify CI independently.
+
 ## What is sufficiently established
 
 1. `CONFIRMED` is the operational sale milestone.
@@ -67,7 +103,7 @@ IA-04 added `apps/desktop/electron/order/money-contract.test.ts` to verify consu
 
 ## Test state
 
-The Money consumer test exists, but local execution remains `NOT_VERIFIED` because the current environment does not provide a verified project checkout/runtime for running the repository test command. Remote GitHub status currently has no status entries for the latest branch commit, so `REMOTE_CI_STATUS = NOT_VERIFIED`.
+The Money consumer test exists, but direct execution remains `NOT_VERIFIED` because the current environment does not provide a verified project checkout/runtime. Official Desktop suite inclusion is currently `FALSE` until the shared harness is changed by its authorized owner. Remote GitHub CI status remains `NOT_VERIFIED`.
 
 ## Current dependencies
 
@@ -96,3 +132,10 @@ The Money consumer test exists, but local execution remains `NOT_VERIFIED` becau
 ## Continuation rule
 
 Before implementation begins, reread this handoff, the readiness artifacts, current `main` contracts and the latest IA-01/02/03 handoffs. Re-audit if any upstream contract, schema or ownership boundary changes.
+
+## Final state
+
+- **MONEY_SLICE:** `READY_FOR_TEST_HARNESS_INTEGRATION`
+- **FULL_ORDER_ENGINE:** `BLOCKED`
+- **NEXT_PRODUCTION_SLICE:** `NONE_CONFIRMED`
+- **NEXT_SAFE_TECHNICAL_ACTION:** `OWNER_REVIEW_OF_SHARED_TEST_HARNESS`
