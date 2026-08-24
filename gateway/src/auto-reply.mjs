@@ -18,7 +18,11 @@ function conversationContext(jid) {
 }
 
 function isSupportedRecipient(jid) {
-  return typeof jid === 'string' && (jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
+  return typeof jid === 'string' && (
+    jid.endsWith('@lid') ||
+    jid.endsWith('@s.whatsapp.net') ||
+    jid.endsWith('@g.us')
+  );
 }
 
 async function handleMessage(message) {
