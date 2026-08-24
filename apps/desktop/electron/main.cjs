@@ -1,5 +1,14 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
+
+ipcMain.handle("kassist:runtime-info", () => ({
+  electron: process.versions.electron,
+  node: process.versions.node,
+  appVersion: app.getVersion(),
+  contextIsolation: true,
+  nodeIntegration: false,
+  sandbox: true
+}));
 
 function createMainWindow() {
   const window = new BrowserWindow({
