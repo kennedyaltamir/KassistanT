@@ -1,47 +1,53 @@
 # IA-06 Device Authentication Matrix
 
-Status: CONTRACT READINESS AUDIT; no runtime implementation.
+Status: STRATIFIED CONTRACT REVIEW; no runtime implementation.
 
-## Authentication flow
+## Layered flow
 
-| Step | Actor | Input | Output | Persistence | Evidence | Status |
-|---|---|---|---|---|---|---|
-| Challenge issuance | Gateway | authenticated device context / connection | challenge message | Session/challenge state implied but not specified | WSS `AUTH` exists; exact challenge schema missing | PARTIAL |
-| Challenge signing | Desktop | nonce/challenge + session context | Ed25519 signature | Private key remains Secure Storage | Authentication contract | PARTIAL |
-| Verification | Gateway | public key + signed challenge context | `AUTH_OK` or `AUTH_FAILED` | Device identity/session state implied | Authentication contract | PARTIAL |
-| Revocation check | Gateway | device identity/state | reject with `DEVICE_REVOKED` when revoked | Device state in persistence | Revocation contract/baseline | PARTIAL |
-| Session establishment | Gateway/Desktop | successful proof of possession | authenticated device session | Exact session model not defined | WSS protocol + auth docs | BLOCKED |
-| Reauthentication | Gateway/Desktop | future challenge/session context | success/failure | Exact semantics missing | No complete contract found | UNKNOWN/BLOCKED |
+| Layer | Step | Actor | Input | Output | Status |
+|---|---|---|---|---|---|
+| Challenge protocol | Challenge issuance | Gateway | authenticated device context / connection | challenge message | OPEN / DR-02 |
+| Crypto primitive | Challenge signing | Desktop | approved signed challenge context | Ed25519 signature | PRIMITIVE DEFINED / WIRE OPEN |
+| Crypto primitive | Verification | Gateway | approved signed bytes + public key + signature | deterministic valid/invalid result | READY AFTER MINIMUM DR-02 |
+| Replay security | Replay check | Gateway | challenge lifecycle/context | accept/reject | OPEN / DR-02 |
+| Session security | Session establishment | Gateway/Desktop | successful proof of possession | authenticated session | OPEN / DR-03 |
+| Session security | Reauthentication | Gateway/Desktop | new approved challenge/session context | success/failure | OPEN / DR-03 |
+| Revocation | Revocation check | Gateway | device lifecycle state | `DEVICE_REVOKED` when revoked | PARTIAL / DEFINED OUTCOME |
 
-## Required protocol decisions
+## Cryptographic primitive
 
-### Challenge generation
-The Gateway is the trust authority for challenge validity; the Desktop local clock cannot be the sole authority. The exact challenge lifetime is not defined.
+Ed25519 challenge-response is the approved primitive. Public/private key separation and Gateway verification with the registered public key are normative.
 
-### Challenge uniqueness / nonce
-A nonce/challenge exists conceptually, but the exact encoding, length, uniqueness requirement and generation algorithm are not specified. Do not invent them.
+## Cryptographic wire contract
 
-### Signed payload
-The contract says the Desktop signs `nonce + session context`. Exact serialization/canonicalization and field ordering are not defined.
+The following remain open and are not implied by Ed25519 itself:
 
-### Verification
-The Gateway verifies using the registered Ed25519 public key. Exact public-key representation and signature encoding are not specified.
+- exact signed bytes;
+- challenge representation;
+- serialization/canonicalization;
+- public-key representation;
+- signature representation;
+- context binding;
+- replay/freshness handling.
 
-### Replay protection
-Fresh challenge/verification flow implies replay resistance, but the repository does not fully define challenge storage, reuse rejection, expiration handling or replay error semantics. Status: BLOCKED for implementation.
+## Session security
 
-### Failure handling
-`AUTH_FAILED` is defined. Exact public error code mapping, retryability and lockout behavior are not defined.
+Session identity, expiry, renewal, reconnect/resume and reauthentication are independent from pure signature verification and remain governed by DR-03.
 
-### Session establishment
-A successful authentication establishes a trusted device session, but exact session identifier, lifetime, idle timeout, reauthentication, reconnect/resume binding and invalidation semantics remain undefined.
+## Failure semantics
+
+`AUTH_OK` and `AUTH_FAILED` are evidenced protocol outcomes. Device-specific error identifiers, retryability and HTTP mappings remain DR-08.
 
 ## WSS integration
 
-Defined WSS message types include `AUTH`, `AUTH_OK`, `AUTH_FAILED`, `RESUME`, `RESUME_OK`, `DEVICE_REVOKED` and `ERROR`. The WSS envelope defines `protocol_version`, `message_id`, `message_type`, `device_id`, `timestamp`, `payload`, plus event/correlation/causation/sequence fields when applicable.
+WSS defines `AUTH`, `AUTH_OK`, `AUTH_FAILED`, `RESUME`, `RESUME_OK`, `DEVICE_REVOKED` and `ERROR`. The envelope defines `protocol_version`, `message_id`, `message_type`, `device_id`, `timestamp`, `payload`, and applicable event/correlation/causation/sequence fields.
 
-The exact authentication payload schemas and session semantics are not defined in the current contract projection.
+Exact authentication payloads are not treated as closed merely because the WSS envelope exists.
 
-## Authentication readiness
+## Readiness interpretation
 
-**PARTIAL / BLOCKED.** The cryptographic direction and trust boundary are explicit. The protocol cannot be implemented safely until payload canonicalization, freshness/replay, session lifecycle, error mapping and authorization interactions are closed.
+`CRYPTO_PRIMITIVE = DEFINED` does not mean `CRYPTO_WIRE_CONTRACT = DEFINED`.
+
+`AUTHENTICATION_PROOF = READY_AFTER_MINIMUM_DR02` does not mean `SESSION = READY`.
+
+Authentication and authorization remain separate security layers.
