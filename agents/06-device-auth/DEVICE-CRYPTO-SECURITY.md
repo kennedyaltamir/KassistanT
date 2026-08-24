@@ -1,6 +1,6 @@
 # IA-06 Device Crypto and Security Readiness
 
-Status: STRATIFIED DR-02 REVIEW / IMPLEMENTATION FROZEN.
+Status: STRATIFIED CONTRACT REVIEW / IMPLEMENTATION FROZEN.
 
 ## Layer 1 — Cryptographic primitive
 
@@ -12,29 +12,50 @@ Status: STRATIFIED DR-02 REVIEW / IMPLEMENTATION FROZEN.
 
 This layer does not define HTTP, session, authorization or rate-limit behavior.
 
-## Layer 2 — DR-02A Cryptographic Verification Contract
+## Layer 2 — Cryptographic verification contract
 
-**Status: OPEN / GLOBAL_DECISION_REQUIRED**
+**Status: OPEN / DR-02A**
 
-The minimum contract required by the pure Signature Verification Boundary must define:
+The minimum verification boundary requires:
 
-1. the logical signed-context concept;
-2. the exact bytes presented to the verifier;
-3. public-key representation;
-4. signature representation;
-5. context binding required to prevent incompatible-context signature reuse, where required by the approved protocol;
-6. deterministic verification result semantics (`valid` / `invalid`).
+- Ed25519 verification;
+- a logically defined signed context;
+- an explicit set of approved logical context elements;
+- a deterministic rule deriving the exact bytes presented to the verifier;
+- deterministic public-key representation;
+- deterministic signature representation;
+- deterministic valid/invalid result semantics.
 
-The repository does not yet provide these wire-level details completely. They must be approved; they must not be invented locally.
+### CRYPTOGRAPHIC_CONTEXT_BINDING_BOUNDARY
 
-## Layer 3 — DR-02B Operational Replay Protocol
+Context binding is part of the cryptographic verification contract only to the extent required to prevent a valid signature over one authenticated context from being accepted in an incompatible context.
 
-**Status: OPEN / REPLAY RUNTIME**
+The logical context is the set of protocol elements authenticated by the signature. Candidate elements for authority review are:
 
-Replay/challenge runtime is separate from the pure cryptographic verifier and includes:
+- device identity;
+- protocol/domain separation;
+- authentication purpose or operation identifier;
+- challenge identity;
+- protocol version, if required by the approved contract.
+
+These are analysis candidates only. Only explicitly approved elements become part of the signed context.
+
+The boundary is satisfied when:
+
+1. signer and verifier derive the same logical context deterministically;
+2. approved context elements are represented deterministically in the bytes verified by Ed25519;
+3. no unapproved context element is silently added to or removed from those bytes.
+
+This boundary does not define challenge freshness, uniqueness, expiration, persistence, reuse rejection or replay detection.
+
+## Layer 3 — Operational replay security
+
+**Status: OPEN / DR-02B**
+
+The protocol requires fresh challenge-based proof, but the repository does not fully specify:
 
 - challenge uniqueness;
-- challenge freshness policy;
+- freshness policy;
 - challenge lifecycle/storage;
 - reuse rejection;
 - expiration;
@@ -42,7 +63,7 @@ Replay/challenge runtime is separate from the pure cryptographic verifier and in
 - replay error semantics;
 - persistence and recovery behavior.
 
-A DR-02A approval does not approve DR-02B. No numeric freshness window, TTL or replay-store design is defined here.
+Replay prevention must remain explicit before challenge runtime is implemented. It must not be inferred from the context-binding boundary or from an arbitrary local timestamp/TTL.
 
 ## Layer 4 — Operational security
 
@@ -91,4 +112,4 @@ Revocation results in `DEVICE_REVOKED` and session termination. It does not impl
 
 ## Validation gates
 
-Pure signature verification can be tested after DR-02A is approved. Replay/session/authorization/rate-limit/rotation/secure-storage tests require their respective contracts and must not be conflated with the pure verifier boundary.
+Pure signature verification can be tested after DR-02A approval. Replay/session/authorization/rate-limit/rotation/secure-storage tests require their respective contracts and should not be conflated with the pure verifier boundary.
