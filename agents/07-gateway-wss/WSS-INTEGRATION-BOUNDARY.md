@@ -30,7 +30,7 @@ This is an integration model, not an executable implementation contract.
 
 ### Boundary rule
 
-IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. IA-07 must consume authenticated identity/session outcomes and must not recreate cryptographic authority. fileciteturn95file0turn97file0turn102file0
+IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. IA-07 must consume authenticated identity/session outcomes and must not recreate cryptographic authority.
 
 ## 3. IA-03 → IA-07
 
@@ -45,7 +45,7 @@ IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authenticat
 
 ### Boundary rule
 
-IA-07 owns transport framing and network delivery mechanics. IA-03 owns durable event intake, deduplication, replay/recovery and the ACK persistence boundary. IA-07 must not implement a competing Inbox, Outbox or replay store. fileciteturn99file0turn100file0turn101file0
+IA-07 owns transport framing and network delivery mechanics. IA-03 owns durable event intake, deduplication, replay/recovery and the ACK persistence boundary. IA-07 must not implement a competing Inbox, Outbox or replay store.
 
 ## 4. IA-07 → IA-08
 
@@ -56,7 +56,7 @@ IA-07 owns transport framing and network delivery mechanics. IA-03 owns durable 
 | Connection status | Connected/disconnected/reconnecting state for UI | IA-07 transport | IA-07 → IA-08 | Connection lifecycle runtime | BLOCKED |
 | Revocation notification | `DEVICE_REVOKED` transport event | IA-06 authority, IA-07 transport | IA-07 → IA-08 | Device revocation runtime | BLOCKED |
 
-IA-08 owns renderer/UI presentation and client UX; it does not own WSS authentication, durable persistence or transport protocol authority. fileciteturn105file0
+IA-08 owns renderer/UI presentation and client UX; it does not own WSS authentication, durable persistence or transport protocol authority.
 
 ## 5. Runtime ownership split
 
@@ -106,7 +106,7 @@ Owns:
 - `CONTRACT-002` may affect event delivery semantics.
 - `GOV-001` remains unresolved.
 - Exact sequence persistence/replay and recovery semantics remain partial.
-- Backpressure limits remain unspecified. fileciteturn98file0turn100file0turn101file0
+- Backpressure limits remain unspecified.
 
 ## 7. External configuration — identification only
 
@@ -119,4 +119,45 @@ Owns:
 | Device signing | NOT_VERIFIED | Device-auth boundary | Ed25519 proof-of-possession | IA-06 security validation | IA-06 |
 | WSS deployment | NOT_VERIFIED | Gateway hosting/runtime | Secure WebSocket endpoint | WSS interoperability test | NOT_CONFIGURED |
 
-No external configuration was executed.
+## 8. Integration gate package
+
+### IA-06 → IA-07 minimum gate
+
+IA-07 requires an executable and testable authenticated-session boundary containing, at minimum:
+
+- authoritative `device_id`;
+- authenticated result (`AUTH_OK`/failure);
+- definitive session identity if sessions exist;
+- explicit session expiry semantics if expiry exists;
+- authoritative revocation signal;
+- explicit reconnect/reauthentication behavior.
+
+IA-06 remains the cryptographic authority. IA-07 consumes the result and owns transport mechanics.
+
+### IA-03 → IA-07 minimum gate
+
+IA-07 requires an executable and testable durable-intake boundary containing:
+
+- validated-event handoff;
+- persisted / duplicate / failure result;
+- explicit ACK authorization semantics;
+- persistence-before-ACK guarantee;
+- defined replay/resume boundary for the selected V1 slice, or an explicit deferred boundary;
+- sequence ownership and duplicate/gap behavior sufficient for the selected recovery scope.
+
+IA-03 remains the persistence/recovery authority.
+
+### V1 release condition
+
+WSS connection lifecycle is not ready until these gates are satisfied. The full acceptance criteria are maintained in:
+
+- `WSS-INTEGRATION-GATE.md`
+- `WSS-IA06-CONTRACT.md`
+- `WSS-IA03-CONTRACT.md`
+- `WSS-RUNTIME-V1-REQUIREMENTS.md`
+
+## 9. Current readiness
+
+`WSS_RUNTIME_READINESS = BLOCKED`.
+
+No new global architectural decision was created by this package.
