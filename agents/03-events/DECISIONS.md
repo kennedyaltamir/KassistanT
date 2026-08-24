@@ -20,9 +20,22 @@ WSS ACK represents durable local persistence of the inbound event in `InboundInb
 ### D03-004 — Readiness sequence
 **Status:** DECISION / IA-03 READINESS BASELINE
 
-The readiness audit establishes the following implementation ordering for IA-03, subject to gate satisfaction: EventBus → InboundInbox → JobQueue/AuditLog → reliability/recovery integrations → DomainOutbox after `CONTRACT-001` resolution. This is an IA-03 execution sequence, not a new global architecture decision.
+EventBus → InboundInbox → JobQueue/AuditLog → reliability/recovery integrations → DomainOutbox after `CONTRACT-001` resolution. This is an IA-03 execution sequence, not a new global architecture decision.
 
-The first candidate slice is the in-process EventBus because its documented responsibility does not require durable persistence. It remains a candidate until the event contract consumed by the implementation is stable.
+### D03-005 — EventBus readiness boundary
+**Status:** DECISION / IA-03 READINESS BASELINE
+
+The first candidate is an in-process, post-commit EventBus without persistence, durable retry or DomainOutbox coupling. This is a readiness boundary, not a new global contract.
+
+### D03-006 — EventBus guarantee non-inflation
+**Status:** DECISION / IA-03 READINESS BASELINE
+
+IA-03 will not claim global ordering, exactly-once delivery, durable replay or automatic retry for EventBus without explicit protected evidence.
+
+### D03-007 — Event envelope non-expansion
+**Status:** DECISION / IA-03 READINESS BASELINE
+
+The runtime must consume the current approved `DomainEvent` shape without silently expanding `packages/contracts/**`. Broader documented envelope metadata may be preserved when actually supplied, but is not locally promoted into a new global contract.
 
 ## Open / not approved
 
@@ -43,4 +56,4 @@ The repository records a version-authority inconsistency. IA-03 must not infer a
 
 ## Proposals
 
-None. The readiness audit does not create a new global contract and does not resolve any open item.
+None. The EventBus closure documents a bounded implementation candidate and does not modify a protected global contract.
