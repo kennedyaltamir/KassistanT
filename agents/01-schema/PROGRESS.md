@@ -2,69 +2,54 @@
 
 ## Current phase
 
-**Parallel Schema Continuation / Cross-Agent Consolidation**
+**Controlled Parallel Execution / Canonical Schema Consolidation**
 
 ## Phase status
 
 - Phase 1: `DONE WITH BLOCKERS`.
 - Phase 2: `COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`.
 - Decision package: `COMPLETE / REVIEW REQUIRED`.
-- Cross-agent consolidation: `PARTIAL / EVIDENCE INCORPORATED`.
+- Parallel consolidation: `ACTIVE / SCHEMA-GATE PENDING`.
+
+## Latest verified evidence
+
+The approved IA-02 D2 decisions were incorporated only where they have a physical consequence.
+
+- DREQ-001 confirms `Order` as aggregate root and `OrderItem` / `OrderItemModifier` as aggregate-owned children.
+- DREQ-001 does not freeze parent key names, FK actions, ordering, uniqueness or physical representation.
+- DREQ-001 explicitly leaves `OrderStatusHistory` persistence/ownership unresolved.
+- DREQ-002 confirms `DRAFT -> CONFIRMED` through `ConfirmOrder` and `order.confirmed`.
+- DREQ-002 does not authorize persisted `order.status_changed` structures.
+- DREQ-005 and DREQ-006 are semantic decisions and explicitly do not authorize new persistence representations.
+- IA-03, IA-05, IA-06 and IA-07 still expose physical persistence dependencies without complete schema field closure.
 
 ## Current readiness
 
+Under the strict deterministic-state model:
+
 - `DETERMINISTIC`: 0.
-- `DETERMINISTIC_AFTER_APPROVAL`: 3.
-- `DETERMINISTIC_AFTER_CROSS_AGENT_DECISION`: 14.
-- `DETERMINISTIC_AFTER_GLOBAL_DECISION`: 1 (`domain_outbox`).
-- `BLOCKED`: 10.
+- `DETERMINISTIC_AFTER_HUMAN_APPROVAL`: 0.
+- `DETERMINISTIC_AFTER_CROSS_AGENT_RESPONSE`: 0.
+- `BLOCKED`: 28.
 - `UNKNOWN`: 0.
-- `READY_FOR_DDL`: 0.
 
-## Verified owner evidence incorporated
+Previous planning buckets remain useful but must not be confused with readiness:
 
-### IA-02
-DREQ-001, DREQ-002, DREQ-005 and DREQ-006 are verified in the IA-02 decision registry.
+- 3 candidate tables primarily waiting on local physical approval.
+- 14 candidate tables with material cross-agent semantic dependencies.
+- 1 candidate table with localized global dependency (`DomainOutbox`).
+- 10 tables with direct field/relationship gaps.
 
-Physical impact:
-- aggregate ownership for Order/OrderItem/OrderItemModifier is clearer;
-- initial Order transition is confirmed;
-- domain errors do not create persistence requirements;
-- ActorContext persistence is explicitly not frozen/authorized.
+## Human decisions
 
-These decisions do not close the missing physical parent-key, nullability, FK-action or state-encoding questions.
+SD-001..SD-005 remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
 
-### IA-03
-Durable Inbox ACK is defined as local persistence in `InboundInbox`. DomainOutbox remains blocked by CONTRACT-001. Exact physical Inbox/Job/Audit field inventories remain incomplete.
+## Migration
 
-### IA-04
-`CONFIRMED` remains the operational sale milestone. Parent-key schema details for OrderItem/OrderItemModifier and persistence details for OrderStatusHistory remain unresolved.
+`0002 = NOT_AUTHORIZED`.
 
-### IA-05
-AIExecution still requires cross-agent logical closure with IA-01/IA-03; no complete canonical physical inventory is approved.
-
-### IA-06
-Device authentication security boundaries are approved, but device persistence/status and secure credential-reference fields remain open.
-
-### IA-07
-Gateway remains the external integration boundary and CONTRACT-001 remains ambiguous; no new Desktop SQLite ownership decision was established.
-
-## Local decisions
-
-`SD-001..SD-005` remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
-
-## Contract impact
-
-- `CONTRACT-001`: localized global blocker for DomainOutbox physical design.
-- `CONTRACT-002`: currently non-blocking for physical schema.
-- `GOV-001`: conditional/deferred; only escalated if a real source conflict changes schema interpretation.
-
-## Implementation status
-
-`IMPLEMENTATION_STARTED = FALSE`.
-
-No migration was created. `0001_bootstrap.sql`, M5.1 runtime, protected contracts, global documentation and other agent territories remain unchanged.
+No migration was created. `0001_bootstrap.sql` and M5.1 remain unchanged.
 
 ## Next gate
 
-Collect the remaining physical/semantic owner responses and explicit operator approvals, validate conflicts, update readiness and only then evaluate the deterministic DDL gate.
+Collect explicit operator approval and actual owner responses; validate them against evidence; resolve conflicts; then reclassify tables. Only after all physical properties are closed may the deterministic-generation gate pass.
