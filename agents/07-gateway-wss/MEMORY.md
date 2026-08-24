@@ -28,10 +28,20 @@ Fatos permanentes confirmados:
 
 ## Session / integration gate — 2026-08-24
 
-- IA-06 is the authority for device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. IA-07 consumes the authenticated outcome and owns generic WSS transport mechanics. 
+- IA-06 is the authority for device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. IA-07 consumes the authenticated outcome and owns generic WSS transport mechanics.
 - IA-06 must provide an executable/testable authenticated-session boundary before IA-07 can implement a session lifecycle. Minimum required evidence: authoritative `device_id`, authentication result, definitive `session_id` if sessions exist, explicit expiry semantics if applicable, revocation signal and reconnect/reauthentication rule.
 - IA-03 is the authority for InboundInbox, deduplication, durable ACK boundary, replay/recovery and event infrastructure. IA-07 must consume a testable durable-intake result with persisted/duplicate/failure outcomes and explicit ACK authorization.
 - Replay/resume/recovery may be deferred for the first V1 lifecycle slice only if the selected delivery contract explicitly allows that deferral. Sequence ownership and duplicate/gap behavior must still be explicit for any feature implemented.
 - Backpressure must have minimum behavioral semantics before runtime; numeric thresholds are not to be invented locally.
 - IA-07 must not implement competing Inbox, Outbox, replay storage, cryptographic verification or session authority.
 - `WSS-INTEGRATION-GATE.md`, `WSS-IA06-CONTRACT.md`, `WSS-IA03-CONTRACT.md` and `WSS-RUNTIME-V1-REQUIREMENTS.md` are the operational gate package for the next runtime phase.
+
+## Dependency acceptance gate — 2026-08-24
+
+- `WSS-DEPENDENCY-ACCEPTANCE.md` defines objective results for future IA-06 and IA-03 revisions: `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED`, `NOT_VERIFIED`.
+- Future dependency revalidation uses the supplied branch/commit and gate artifacts only; a full architectural audit is not repeated unless evidence conflicts with an authoritative source.
+- IA-06 cannot be accepted for WSS lifecycle until authenticated-session, revocation, reconnect/reauthentication and required error distinctions are executable and testable.
+- IA-03 cannot be accepted for WSS receive/ACK runtime until durable intake and ACK authorization are executable/testable; replay may be explicitly deferred for the selected V1 slice.
+- Current IA-06 acceptance = `NOT_VERIFIED`.
+- Current IA-03 acceptance = `NOT_VERIFIED`.
+- Current first-slice proposal = `connection lifecycle without replay`; status remains `BLOCKED` until both dependency acceptance gates pass and replay deferral is explicit.
