@@ -1,84 +1,40 @@
 # IA-01 — Migration 0002 Readiness
 
-Status: **BLOCKED**  
-Migration `0002`: **PROHIBITED IN PHASE 2**
+Status: **BLOCKED — DECISION PACKAGE PENDING**
+Migration `0002`: **PROHIBITED**
 
-## Table readiness
+## Reclassified table readiness
 
-| Entity | Readiness |
+| Category | Tables |
 |---|---|
-| Store | BLOCKED |
-| Device | BLOCKED |
-| Settings | BLOCKED |
-| ProductCategory | BLOCKED |
-| Product | BLOCKED |
-| ProductModifier | BLOCKED |
-| ProductImage | BLOCKED |
-| Promotion | BLOCKED |
-| Customer | BLOCKED |
-| CustomerAddress | BLOCKED |
-| Conversation | BLOCKED |
-| Message | BLOCKED |
-| Order | BLOCKED |
-| OrderItem | BLOCKED |
-| OrderItemModifier | BLOCKED |
-| OrderStatusHistory | BLOCKED |
-| PaymentMethod | BLOCKED |
-| Notification | BLOCKED |
-| Integration | BLOCKED |
-| IntegrationCredential | BLOCKED |
-| InboundInbox | BLOCKED |
-| DomainOutbox | BLOCKED |
-| Job | BLOCKED |
-| AuditLog | BLOCKED |
-| Log | BLOCKED |
-| AIProfile | BLOCKED |
-| AIExecution | BLOCKED |
-| KnowledgeItem | BLOCKED |
+| READY_AFTER_LOCAL_DECISION | `store`, `product_image`, `log` |
+| READY_AFTER_CROSS_AGENT_DECISION | `device`, `product`, `product_modifier`, `promotion`, `customer`, `conversation`, `message`, `order`, `notification`, `inbound_inbox`, `job`, `audit_log`, `ai_profile`, `ai_execution` |
+| READY_AFTER_GLOBAL_DECISION | `domain_outbox` |
+| READY_AFTER_EXTERNAL_DECISION | none |
+| BLOCKED | `settings`, `product_category`, `customer_address`, `order_item`, `order_item_modifier`, `order_status_history`, `payment_method`, `integration`, `integration_credential`, `knowledge_item` |
 
-## Why every table remains blocked
+## Important interpretation
 
-The current protected contract does not yet provide a deterministic combination of physical table names, physical identity encoding, complete field types, nullability, defaults, FK actions and SQL state representation.
+These categories describe the decision authority required to make the table deterministic. They do not mean that the required decision has already been approved.
 
-This is intentional: marking a table `READY_FOR_MIGRATION` while any of these require interpretation would violate the project evidence policy.
+### Local decisions
 
-## Blocker matrix
+IA-01 may propose and, after explicit operator confirmation, standardize physical SQLite choices for already-frozen semantics: table/column naming, UUID textual representation, UTC timestamp textual representation, boolean `INTEGER 0/1`, JSON payloads as `TEXT`, and deferral of performance-only indexes.
 
-### TABLE-NAMING
-Physical SQL names are not explicitly frozen. Lower snake case is a consistent proposal, not an approved decision.
+### Cross-agent decisions
 
-### FIELD-GAPS
-The most significant missing schemas are `Settings`, `ProductCategory`, `CustomerAddress`, `PaymentMethod`, `Integration`, `IntegrationCredential`, and `KnowledgeItem`.
+Semantic owners must close field inventory, nullability/defaults, lifecycle catalogs, parent keys, store scope and FK actions before IA-01 can freeze DDL. Primary authorities are IA-02, IA-04, IA-05, IA-06 and IA-03 according to `SCHEMA-AUTHORITY-MATRIX.md`.
 
-### CHILD-KEY-GAPS
-`OrderItem`, `OrderItemModifier`, and `OrderStatusHistory` lack explicit parent key field names. A deterministic migration cannot invent them.
+### Global decision
 
-### PHYSICAL-TYPE-GAPS
-UUID physical representation and timestamp physical representation are not frozen. Money is sufficiently constrained semantically to use integer cents, but a full DDL contract still needs the remaining types.
+`DomainOutbox` remains dependent on CONTRACT-001 because physical ownership/scope may differ between local Core and Gateway.
 
-### NULLABILITY-DEFAULT-GAPS
-Exact nullability and SQL defaults are mostly unspecified.
+## Non-blocking items
 
-### FK-ACTION-GAPS
-ON DELETE / ON UPDATE behavior is unspecified.
+`CONTRACT-002` is currently non-blocking for physical schema. The order lifecycle state remains defined; the disputed `order.status_changed` event catalog does not require a schema change unless the approved event decision introduces persisted state/history changes.
 
-### ENUM-PHYSICAL-GAPS
-Lifecycle and status values are known semantically, but SQL storage strategy and CHECK representation are not frozen.
+Performance-only indexes are deferred and do not block `0002`.
 
-### CONTRACT-001
-DomainOutbox physical semantics may cross local Core/Gateway boundaries; schema cannot encode an ownership choice unilaterally.
+## Required gate
 
-### CONTRACT-002
-The event ambiguity does not currently require a schema change by itself; it becomes blocking only if the final event decision introduces a new physical persistence requirement.
-
-### GOV-001
-If source authority changes interpretation of a schema-critical field, the matrix must be re-audited before DDL generation.
-
-## Gate to next phase
-
-`0002` may proceed only after every table is either:
-
-- `READY_FOR_MIGRATION`, or
-- explicitly excluded from the migration by an approved scope decision.
-
-The deterministic-generation test is: a second engineer must be able to produce identical CREATE TABLE / CREATE INDEX definitions from the specification without asking what a missing field or relationship means.
+`0002` becomes authorized only when every table included in the migration is deterministic and every schema-critical dependency is either explicitly approved or explicitly excluded by approved scope. Deferred future tables may remain outside the migration only through an explicit scope decision.
