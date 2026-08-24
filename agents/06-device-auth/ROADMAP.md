@@ -12,36 +12,54 @@ Identity, scope, ownership, memory, learnings, decisions, errors, progress, road
 
 Audited device identity, enrollment, provisioning, authentication, challenge-response, Ed25519 boundary, Secure Storage, session identity, revoke, rotate, status, authorization, rate limiting, idempotency, errors, audit, events and cross-agent integration.
 
-## Phase C — Contract Closure
-**Status:** BLOCKED / PROJECT AUTHORITY
+## Phase C — Stratified Contract Closure
+**Status:** IN_PROGRESS / PROJECT AUTHORITY
 
-Required:
+Decision layers are intentionally independent:
 
-- complete enrollment request/response schemas;
-- endpoint authn/authz and status matrix;
-- endpoint idempotency semantics;
-- numerical rate-limit policies;
-- complete authentication/session semantics;
-- complete rotation lifecycle;
-- sufficient device error taxonomy;
-- sufficient audit/event semantics.
+1. Device identity semantics vs physical persistence.
+2. Ed25519 primitive vs cryptographic wire contract.
+3. Challenge/replay security vs session security.
+4. Authorization vs authentication.
+5. Rate limiting vs cryptographic correctness.
+6. Endpoint idempotency vs protocol verification.
+7. Rotation vs revocation.
+8. Auditability vs secret handling.
 
-## Phase D — Cross-agent Interface Agreement
+Open project decisions remain DR-01..DR-08.
+
+## Phase D — First-Slice Approval
+**Status:** BLOCKED PENDING PROJECT AUTHORITY
+
+The proposed first slice is `Signature Verification Boundary`.
+It requires only the minimum DR-02 cryptographic subset and explicit implementation authorization.
+It does not require unrelated enrollment/session/authorization/rate-limit/idempotency/rotation decisions.
+
+## Phase E — Cross-agent Interface Agreement
 **Status:** NOT_STARTED
 
-Stabilize interfaces with IA-01, IA-02, IA-03, IA-07 and IA-08, without crossing ownership.
+Stabilize interfaces with IA-01, IA-02, IA-03, IA-07 and IA-08 without crossing ownership.
 
-## Phase E — Runtime Implementation
+## Phase F — Runtime Implementation
 **Status:** BLOCKED
 
 Future scope: secure key lifecycle, enrollment, Ed25519 proof-of-possession, challenge-response, session identity, revocation, rotation, authorization enforcement, rate limiting, audit integration and tests.
 
-## Phase F — Validation and Integration
+## Phase G — Validation and Integration
 **Status:** NOT_STARTED
 
 Future gates: unit/integration/security/contract tests, CI on actual PR HEAD, cross-agent validation, human review, approved merge and post-merge audit.
 
-## Current readiness artifacts
+## Current decision artifacts
+
+- `DEVICE-AUTH-DECISION-PACKAGE.md`
+- `DEVICE-AUTH-APPROVAL-REQUEST.md`
+- `DEVICE-GLOBAL-DECISIONS.md`
+- `DEVICE-FIRST-SLICE.md`
+- `DEVICE-EXTERNAL-CONFIGURATION.md`
+- `IMPLEMENTATION-GATES.md`
+
+## Current evidence artifacts
 
 - `DEVICE-AUTH-READINESS.md`
 - `DEVICE-ENROLLMENT-MATRIX.md`
@@ -51,7 +69,6 @@ Future gates: unit/integration/security/contract tests, CI on actual PR HEAD, cr
 - `DEVICE-ERROR-MATRIX.md`
 - `DEVICE-CRYPTO-SECURITY.md`
 - `DEVICE-DEPENDENCIES.md`
-- `IMPLEMENTATION-GATES.md`
 
 ## External dependency
 
