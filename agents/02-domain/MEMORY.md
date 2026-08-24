@@ -5,7 +5,7 @@
 - IA-02 is the **Domain Runtime** agent.
 - Primary code ownership is `packages/domain/**`.
 - The approved baseline states: **LLM interprets; system/Core decides**.
-- Domain money semantics are integer cents in BRL; totals are deterministic and LLM output is not authoritative for totals. cite removed
+- Domain money semantics are integer cents in BRL; totals are deterministic and LLM output is not authoritative for totals.
 - Domain persistence conventions include UTC timestamps and UUIDv7 identifiers where supported.
 - Canonical domain entities are documented, including Store, Device, Settings, Product, Customer, Conversation, Message, Order, PaymentMethod, InboundInbox, DomainOutbox, Job, AuditLog, AIProfile, AIExecution and KnowledgeItem.
 - Order lifecycle states are DRAFT, CONFIRMED, IN_PRODUCTION, READY, OUT_FOR_DELIVERY, DELIVERED and CANCELLED.
@@ -20,4 +20,4 @@
 
 ## Memory rule
 
-This file stores durable facts only. It is not an activity diary. Future entries must be grounded in repository evidence and labeled when the fact is superseded.
+This file stores durable facts only. It is not an activity diary. Future entries must be grounded in repository evidence and labeled when superseded.
