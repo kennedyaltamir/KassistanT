@@ -1,6 +1,6 @@
 # ADR Registry
 
-The approved baseline records ADR-001 through ADR-020. This registry does not introduce new decisions; it records the identifiers already present in the baseline.
+The approved baseline records ADR-001 through ADR-020. ADR-021 is added for MVP2 LLM credential and local model management.
 
 ADR-001 Electron + React + TypeScript
 ADR-002 SQLite
@@ -22,5 +22,6 @@ ADR-017 Modo Simulação
 ADR-018 CONFIRMED como marco operacional da venda
 ADR-019 KassisT/Google source of truth
 ADR-020 Governance/versioning
+ADR-021 LLM Credentials and Local Model Management
 
 Individual ADR files may be materialized in a later documentation increment without changing their approved decisions.
