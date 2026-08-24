@@ -2,21 +2,13 @@
 
 ## Status
 
-`READINESS / NO RUNTIME IMPLEMENTATION`
+`PROPOSAL / HUMAN APPROVAL REQUIRED`
 
-This document is a territory-level readiness contract. It does not modify or supersede `packages/contracts/**`, does not resolve `CONTRACT-001`, and does not resolve `CONTRACT-002`.
-
-## Evidence hierarchy
-
-1. `docs/backend/event-bus.md`
-2. `docs/domain/events.md`
-3. `packages/contracts/src/events.ts`
-4. WSS contract only where explicitly transport-scoped
-5. IA-03 readiness artifacts
+This document defines the smallest proposed local runtime contract for EventBus V1. It does not modify `packages/contracts/**`, does not resolve `CONTRACT-001`, and does not resolve `CONTRACT-002`.
 
 ## EventEnvelope
 
-The currently materialized TypeScript event contract requires:
+The currently materialized TypeScript event contract remains the protected input boundary:
 
 - `event_id: string`
 - `event_type: DomainEventType`
@@ -25,174 +17,144 @@ The currently materialized TypeScript event contract requires:
 - `occurred_at_utc: string`
 - `payload: unknown`
 
-The domain documentation additionally describes `event_version`, `aggregate_type`, `producer`, `correlation_id`, `causation_id`, `schema` and `payload`. These additional fields are documented evidence but are not all present in the current TypeScript contract. Runtime code must not silently expand the protected contract.
-
-Where correlation or causation data exists in the approved event source, the EventBus must preserve it. Absence must not be synthesized.
+Correlation/causation metadata is preserved when supplied by an approved source contract. IA-03 does not expand the global envelope.
 
 ## Publish
 
-**Specification:** EventBus provides in-process local publication of an approved event after the business transaction commits.
+**Proposal:** `publish(event)` is asynchronous and may be invoked only from the documented post-commit application boundary.
 
-**Evidence:** `docs/backend/event-bus.md` explicitly defines EventBus as in-process communication and post-commit local consumers.
+`business transaction -> commit -> EventBus publish/dispatch`
 
-**Status:** `EXPLICIT`.
-
-**Implementation consequence:** the first slice must not persist events, participate in the business transaction, or couple publication to DomainOutbox.
+EventBus does not participate in the transaction, persist the event, or implement DomainOutbox.
 
 ## Subscribe
 
-**Specification:** Local consumers may register against approved event types.
+**Proposal:**
 
-**Evidence:** backend documentation identifies local consumers such as notifications, sounds, badges and dashboard updates.
+```ts
+subscribe(eventType: DomainEventType, handler: EventHandler): Subscription;
+```
 
-**Status:** `PARTIAL`.
+`Subscription` is an opaque local registration identity.
 
-**Implementation consequence:** the concrete handler signature, scheduling model and lifecycle must not be invented from this document alone.
+`EventHandler` accepts the approved event object and may return `void | Promise<void>`.
 
 ## Unsubscribe
 
-**Specification:** A subscription lifecycle exists conceptually, but the repository does not define a normative executable unsubscribe contract.
+**Proposal:**
 
-**Evidence:** No protected source currently defines subscription identity, duplicate registration semantics, duplicate unsubscribe behavior or cleanup guarantees.
+```ts
+unsubscribe(subscription: Subscription): void;
+```
 
-**Status:** `UNKNOWN`.
+Unsubscribe is idempotent. Repeating unsubscribe is a no-op. The registration is removed from the active subscription set.
 
-**Implementation consequence:** runtime implementation remains gated on an explicit local contract or approved implementation decision.
+An already-started handler is not forcibly cancelled by unsubscribe.
 
 ## Scheduling
 
-**Specification:** Publication is post-commit, but the repository does not define whether subscriber handlers run synchronously, asynchronously, through microtasks, or through a queue.
+**Proposal:** async publication boundary with sequential handler invocation over a publish-time subscriber snapshot.
 
-**Evidence:** `docs/backend/event-bus.md` defines only in-process/post-commit behavior.
+This avoids synchronous stack coupling while preserving deterministic local behavior. No durable queue or external scheduler is introduced.
 
-**Status:** `UNKNOWN`.
-
-**Implementation consequence:** no scheduling model may be claimed as normative yet.
+This is a local implementation policy, not an ordering guarantee.
 
 ## Subscriber failure propagation
 
-**Specification:** The repository does not define whether a handler failure is returned to the publisher, collected, logged only, or represented through another result contract.
+**Proposal:** subscriber failures are isolated from other selected subscribers. `publish()` waits for all selected handlers to settle, collects failures, and rejects with an aggregate failure when one or more handlers failed.
 
-**Status:** `UNKNOWN`.
+No durable retry is performed by EventBus.
 
-**Implementation consequence:** production runtime is blocked until the failure boundary is explicitly defined.
+## Subscriber failure isolation
 
-## Subscriber isolation
+**Proposal:** failure of subscriber A must not prevent independent selected subscribers B/C from executing.
 
-**Specification:** The repository does not define whether failure of subscriber A allows subscriber B/C to execute, whether dispatch is fail-fast, or whether errors are aggregated.
-
-**Status:** `UNKNOWN`.
-
-**Implementation consequence:** multiple-subscriber failure behavior is an implementation gate.
+A handler is invoked at most once per dispatch snapshot.
 
 ## Cancellation
 
-**Specification:** No protected EventBus source defines publisher cancellation, subscriber cancellation, `AbortSignal`, or cancellation cleanup semantics.
+**Proposal:** V1 uses unsubscribe-only cancellation. No `AbortSignal` or second cancellation protocol is introduced.
 
-**Status:** `UNKNOWN`.
-
-**Implementation consequence:** the runtime must not invent cancellation behavior and must not claim cancellation support until defined.
+Unsubscribe prevents future dispatches. It does not interrupt a handler that has already started.
 
 ## Timeout
 
-**Specification:** No protected EventBus source defines handler or dispatch timeouts, timeout ownership, timeout errors, or post-timeout behavior.
+**Proposal:** no EventBus timeout in V1; timeout policy is explicitly deferred.
 
-**Status:** `UNKNOWN`.
-
-**Implementation consequence:** no timeout value or implicit timeout mechanism may be introduced as contract behavior.
+The absence of a timeout is intentional. No numeric timeout is introduced. Long-running durable work remains outside EventBus and may be governed by JobQueue/application boundaries.
 
 ## Ordering
 
-**Specification:** EventBus has no documented ordering guarantee.
+`NO_ORDERING_GUARANTEE`.
 
-**Status:** `EXPLICIT / NO_ORDERING_GUARANTEE`.
+No global, per-type, per-aggregate, registration-order, or FIFO guarantee is exposed by this contract.
 
-**Implementation consequence:** implementation and tests must not promise global, per-event-type, per-aggregate, registration-order, or FIFO ordering unless a later protected contract adds one.
-
-The WSS `sequence` field is transport-scoped and must not be reused as EventBus ordering semantics.
+The proposed implementation may iterate a local snapshot deterministically, but that iteration detail must not become an externally relied-upon ordering guarantee.
 
 ## Multiple subscribers
 
-**Specification:** Multiple local consumers exist, but registration order, execution order, parallelism/sequentiality and duplicate registration behavior are undefined.
+**Proposal:** at publish start, capture an active subscriber snapshot for the event type. Each distinct registration is invoked at most once for that dispatch.
 
-**Status:** `PARTIAL / GATED`.
+Registering the same handler more than once creates distinct subscriptions; each registration has its own token and receives one invocation in the same dispatch snapshot.
 
-**Implementation consequence:** routing to multiple subscribers is in scope conceptually; execution/failure semantics remain gated.
+Unsubscribe affects future dispatches. An in-flight dispatch operates on its captured snapshot.
 
-## Delivery
+## Duplicate subscription behavior
 
-**Specification:** EventBus is in-process and non-durable.
+**Proposal:** duplicate registrations are allowed and are distinct subscription identities.
 
-**Status:** `EXPLICIT / NO_DURABILITY_GUARANTEE`.
-
-It is not classified as exactly-once, at-least-once, durable replay, or durable delivery infrastructure.
-
-## Retry boundary
-
-**Specification:** EventBus does not own durable retry. Job contracts assign retry/backoff/attempt state/locking/observability to JobQueue.
-
-**Status:** `EXPLICIT`.
-
-**Implementation consequence:** subscriber failure must not trigger implicit EventBus retry.
-
-## Transaction boundary
-
-**Specification:**
-
-`business transaction -> commit -> local EventBus dispatch`
-
-**Status:** `EXPLICIT`.
-
-DomainOutbox transaction semantics are deliberately excluded because `CONTRACT-001` remains open.
+No global deduplication of handler registrations is performed.
 
 ## Dispatch completion
 
-**Specification:** The repository does not define whether `publish()` completion means acceptance, handler start, handler invocation, all-handler completion, or merely scheduling.
+**Proposal:** `await publish(event)` means all selected handlers have settled. It does not mean persistence, external delivery, business processing completion, or durable success.
 
-**Status:** `UNKNOWN`.
+When all handlers succeed, the publish promise resolves.
 
-**Implementation consequence:** the public completion contract is a blocking gate.
+When one or more handlers fail, the publish promise rejects after all selected handlers have settled, using an aggregate failure representation.
+
+## Delivery
+
+`NON-DURABLE`.
+
+No exactly-once, at-least-once, durable replay, or durable delivery guarantee is claimed.
+
+## Retry boundary
+
+EventBus does not own durable retry. JobQueue is the documented durable retry boundary when asynchronous work requires persistence, attempts, locking and backoff.
+
+A subscriber failure never causes an implicit durable retry.
 
 ## Observability
 
-**Specification:** Event correlation and causation must remain traceable when present. Dispatch failures should be observable.
+The runtime should expose dispatch failure information through the local observability mechanism available to the Desktop Core. Correlation/causation identifiers must be preserved when supplied.
 
-**Status:** `PARTIAL`.
-
-No normative EventBus metric schema or logging payload has been established.
+No new protected telemetry schema is created by this proposal.
 
 ## Audit
 
-**Specification:** EventBus does not implicitly audit every in-process dispatch. Audit remains the responsibility of the audit boundary and applicable business/security event policy.
+EventBus does not create an AuditLog entry for every dispatch. Business/security audit remains the responsibility of the audit boundary and applicable event policy.
 
-**Status:** `EXPLICIT`.
+## Decision classification
 
-## Runtime readiness classification
+All behavioral choices in this document are `PROPOSAL / LOCAL_RUNTIME_POLICY` pending human approval.
 
-`BLOCKED`
+They do not modify global contracts and do not resolve `CONTRACT-001`, `CONTRACT-002` or `GOV-001`.
 
-The following gates are explicitly closed:
+## Proposed V1 API
 
-- Event envelope scope is bounded by the existing contract.
-- Publish is post-commit/in-process.
-- EventBus is non-durable.
-- EventBus does not own retry.
-- No ordering guarantee is claimed.
-- DomainOutbox remains outside the EventBus transaction decision.
+```ts
+interface EventBus {
+  subscribe(eventType: DomainEventType, handler: EventHandler): Subscription;
+  unsubscribe(subscription: Subscription): void;
+  publish(event: DomainEvent): Promise<DispatchResult>;
+}
+```
 
-The following remain genuine runtime blockers because the repository does not define them:
+The exact exported type names remain implementation details until the runtime slice is approved.
 
-- unsubscribe lifecycle;
-- scheduling semantics;
-- subscriber failure propagation;
-- subscriber isolation;
-- cancellation;
-- timeout;
-- multiple-subscriber execution semantics;
-- dispatch completion semantics.
+## Runtime readiness
 
-## First runtime slice
+`READY_AFTER_HUMAN_APPROVAL`
 
-`PROPOSED_FIRST_RUNTIME_SLICE = IN-PROCESS EVENTBUS`
-
-It is **not yet implementation-authorized**. Authorization requires the remaining local gates to become explicit without modifying protected contracts or inventing behavior.
+The proposed local semantics close the previously undefined lifecycle/error questions without requiring a new global architectural decision. Runtime implementation remains frozen until human approval of this proposed observable behavior.
