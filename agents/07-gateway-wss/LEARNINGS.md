@@ -20,6 +20,18 @@
 - O incremento WSS implementado valida somente campos explicitamente definidos: versão 1.0, `message_id`, tipo normativo, `device_id`, `timestamp_utc`, `payload`, campos correlacionados opcionais e `ACK.event_id`. FACT.
 - O contrato atual não estabelece formato específico de IDs, ISO estrito para timestamp, limites positivos de `sequence`, política para campos desconhecidos ou negociação de versão. Esses pontos permanecem PARTIAL/UNKNOWN e não devem ser inventados pelo runtime. FACT.
 
+## Session boundary — 2026-08-24
+
+- IA-06 owns trustworthy device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. FACT.
+- IA-07 owns generic WSS transport and connection mechanics after authenticated identity is supplied; it must not duplicate device cryptographic authority. FACT/BOUNDARY.
+- Session identity exists at the IA-06 device-auth boundary, but its exact fields, lifecycle, expiration and reconnect/reauthentication semantics are not fully specified. FACT.
+- IA-03 owns durable InboundInbox intake, deduplication, ACK boundary and replay/recovery infrastructure. FACT.
+- IA-07 owns transport framing and must consume IA-03 persistence/replay interfaces rather than implementing competing storage. FACT/BOUNDARY.
+- Revocation authority is IA-06; the transport reaction (session/connection termination) belongs to IA-07 once an executable revocation signal is defined. FACT/BOUNDARY.
+- `sequence` is documented as monotonic per `(store_id, device_id)`, but persistent ownership and gap/replay semantics remain PARTIAL. FACT.
+- IA-08 consumes connection/session state and events for UI; it does not own authentication, durable persistence or transport authority. FACT.
+- The session boundary is now recorded in `WSS-INTEGRATION-BOUNDARY.md` and unresolved decisions in `WSS-SESSION-DECISION-MATRIX.md`.
+
 ## Limites epistemológicos
 
 - Detalhes não comprovados no runtime devem permanecer `NOT_VERIFIED`/`UNKNOWN`.
