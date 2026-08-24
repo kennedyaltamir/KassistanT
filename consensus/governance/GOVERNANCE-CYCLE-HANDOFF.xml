@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<governance_cycle_handoff protocol="KASSIST-GOVERNANCE-CYCLE" version="1.2.0" status="READY_FOR_IA02">
+<governance_cycle_handoff protocol="KASSIST-GOVERNANCE-CYCLE" version="1.2.1" status="READY_FOR_IA02">
   <repository>kennedyaltamir/KassistanT</repository>
   <branch>ia01/post-decision-reconciliation-20260824</branch>
   <implementation_point_sha>0e1897cae007530cbe8aed20b97e04a25340cc87</implementation_point_sha>
-  <current_head_sha>PLACEHOLDER_CURRENT_BRANCH_HEAD</current_head_sha>
+  <current_head_sha>fb19700619bfc7c637f6ff38603d7c49feee5203</current_head_sha>
   <main_sha>86387b02ed55ef3af3b24f1591b3e0b0ff436a30</main_sha>
   <normative_decision_record>consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml</normative_decision_record>
 
