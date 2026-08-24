@@ -1,22 +1,34 @@
 import { getMessages, sendText, subscribe } from './whatsapp.mjs';
 import { generateReply, getLlmStatus } from './llm.mjs';
 
+/** @typedef {{ id: string, jid: string | null, direction: 'INBOUND' | 'OUTBOUND', fromMe: boolean, text: string | null, timestamp: number, status: string }} MessageSnapshot */
+/** @typedef {{ role: 'user' | 'assistant', content: string }} ContextMessage */
+
 const maxContextMessages = Math.max(1, Number(process.env.KASSIST_AI_CONTEXT_MESSAGES ?? 12));
 const cooldownMs = Math.max(0, Number(process.env.KASSIST_AI_COOLDOWN_MS ?? 1500));
 const inFlight = new Set();
 const lastReplyAt = new Map();
 let started = false;
 
+/** @param {string} jid @returns {ContextMessage[]} */
 function conversationContext(jid) {
-  return getMessages(500)
-    .filter(message => message.jid === jid && typeof message.text === 'string' && message.text.trim())
+  /** @type {(ContextMessage | null)[]} */
+  const context = getMessages(500)
+    .filter(message => message.jid === jid && typeof message.text === 'string')
     .slice(-maxContextMessages)
-    .map(message => ({
-      role: message.direction === 'OUTBOUND' ? 'assistant' : 'user',
-      content: message.text.trim(),
-    }));
+    .map(message => {
+      const text = message.text?.trim();
+      if (!text) return null;
+      return {
+        role: message.direction === 'OUTBOUND' ? 'assistant' : 'user',
+        content: text,
+      };
+    });
+
+  return context.filter((message) => message !== null);
 }
 
+/** @param {string | null} jid */
 function isSupportedRecipient(jid) {
   return typeof jid === 'string' && (
     jid.endsWith('@lid') ||
@@ -25,14 +37,17 @@ function isSupportedRecipient(jid) {
   );
 }
 
+/** @param {MessageSnapshot | null | undefined} message */
 async function handleMessage(message) {
   const status = getLlmStatus();
   if (!status.enabled) return;
   if (!message || message.direction !== 'INBOUND') return;
   if (!isSupportedRecipient(message.jid)) return;
-  if (typeof message.text !== 'string' || !message.text.trim()) return;
+  const text = message.text?.trim();
+  if (!text) return;
 
   const jid = message.jid;
+  if (!jid) return;
   if (inFlight.has(jid)) return;
 
   const now = Date.now();
