@@ -9,3 +9,18 @@
 - Initialized permanent memory, audit learnings, decision register, error/risk register, progress, roadmap and handoff.
 - Recorded `CONTRACT-001`, `CONTRACT-002`, incomplete domain error codes, partial actor rules and partial canonical fields as unresolved blockers.
 - No product runtime implementation was started.
+
+## 2026-08-24 — Order Engine Contract Readiness Audit
+
+- Audited Order, OrderItem, OrderItemModifier, OrderStatusHistory, PaymentMethod, Customer, CustomerAddress, Product, ProductModifier, Promotion and Store dependencies.
+- Audited lifecycle catalog without inventing transition adjacency.
+- Audited pricing and money semantics, preserving integer cents/BRL and deterministic totals.
+- Audited promotion, delivery and payment semantics and recorded incomplete contracts as blockers.
+- Audited command matrix and confirmed executable command schemas are partial.
+- Audited domain error requirements and confirmed canonical error-code catalogue is missing.
+- Audited idempotency/concurrency requirements and confirmed operation-specific semantics remain incomplete.
+- Audited order events and preserved `CONTRACT-002`.
+- Audited persistence/durable-effect boundary and preserved `CONTRACT-001`.
+- Added readiness documents: lifecycle, pricing, commands, errors, dependencies and implementation gates.
+- Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff.
+- No production code, migration, schema, domain package, contract package or infrastructure code was modified.
