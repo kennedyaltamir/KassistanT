@@ -13,7 +13,7 @@ Decision record: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`
 
 **Policy:** WhatsApp transport identity -> normalized phone -> identity resolution -> canonical Customer.
 
-**Non-scope:** cross-channel identity stitching; automatic customer merging; identity graph.
+**Non-scope:** cross-channel identity stitching; automatic customer merging; identity graph; provider-specific identity as canonical business identity.
 
 ## Conversation
 
@@ -43,12 +43,12 @@ Outbound message identity is intentionally not frozen by this decision and requi
 
 ## Impact
 
-These decisions affect Customer, Conversation and Message persistence contracts, Inbox/InboundInbox idempotency, and downstream domain/runtime consumers. IA-01 must reconcile physical schema and documentation to these semantics.
+These decisions affect Customer, Conversation and Message persistence contracts, Inbox/InboundInbox idempotency, and downstream domain/runtime consumers.
 
 ## Evidence
 
-`docs/domain/entities.md`; `agents/02-domain/CANONICAL-ENTITY-INVENTORY.md`; prior decision package; current branch state at `e2d8807a6e797b0fb35e6a4658f8c4aabec7535a`.
+`docs/domain/entities.md`; `agents/02-domain/CANONICAL-ENTITY-INVENTORY.md`; `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`.
 
 ## Release Consequence
 
-Customer Identity, Conversation Contract and Message Contract are formally frozen for the stated scope. `READY_FOR_IA02` remains gated by IA-01 schema/contract reconciliation and CONTRACT-001 closure.
+Customer Identity, Conversation Contract and Message Contract are formally frozen for the stated scope. IA-01 post-decision reconciliation is complete for these contracts; remaining implementation-level schema gaps do not reopen the normative decisions.
