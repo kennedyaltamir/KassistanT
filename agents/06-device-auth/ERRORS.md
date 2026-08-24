@@ -1,51 +1,47 @@
 # IA-06 Errors and Risks
 
-## E-001 — Runtime absent
+## Current blockers
 
-**Status:** OPEN / NOT_IMPLEMENTED
+E-002 enrollment contract partial.
+E-003 rate-limit policy missing.
+E-004 authorization matrix incomplete.
+E-006 Secure Storage mechanism/runtime unverified.
+E-008 session lifecycle incomplete.
+E-009 challenge replay contract incomplete.
+E-010 rotation lifecycle incomplete.
+E-011 Device field schema incomplete.
+E-012 device-auth error catalog incomplete.
+E-013 endpoint idempotency incomplete.
+E-014 audit scope incomplete.
+E-015 cross-agent dependency chain not closed.
 
-The repository has device enrollment/authentication contracts but no verified production runtime in the IA-06 ownership paths.
+## Stratification corrections
 
-**Risk:** Documentation can be mistaken for implementation evidence.
+E-016 crypto primitive vs wire contract was previously too broad.
+**Status:** CLOSED AS MODELING ERROR
+Ed25519 primitive is defined independently from signed-byte representation, canonicalization and encoding.
 
-### E-002 — Enrollment contract is partial
+E-017 first-slice gate was previously too broad.
+**Status:** CLOSED AS MODELING ERROR
+The pure Signature Verification Boundary depends only on the minimum DR-02 cryptographic subset plus explicit implementation authorization.
 
-**Status:** OPEN / CONTRACT GAP
+E-018 audit security layers were previously aggregated.
+**Status:** CLOSED AS MODELING GAP
+The minimum audit set is now separated from cryptographic correctness, session security and operational policy.
 
-The enrollment contract states that exact request/response schemas, status codes, authorization and endpoint idempotency remain partial/missing.
+## Decision-package mapping
 
-**Risk:** Implementation would otherwise require inventing externally observable behavior.
+- DR-01 closes E-002.
+- DR-02 closes E-009 and cryptographic wire gaps.
+- DR-03 closes E-008.
+- DR-04 closes E-004.
+- DR-05 closes E-003.
+- DR-06 closes E-013.
+- DR-07 closes E-010.
+- DR-08 closes E-012.
 
-### E-003 — Authentication rate limits are underspecified
+## Global blockers
 
-**Status:** OPEN / POLICY GAP
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain outside IA-06 authority.
 
-The authentication contract names independent limits for enrollment, AUTH, RESUME and reconnect but provides no numerical policy.
-
-**Risk:** Arbitrary limits could become accidental normative behavior.
-
-### E-004 — Authorization matrix is incomplete
-
-**Status:** OPEN / CONTRACT GAP
-
-Backend authorization documentation identifies the Provisioning Service as authorized for enrollment authorization, revocation, key rotation and device status, but says the endpoint-by-endpoint authorization matrix is not fully defined.
-
-**Risk:** Authentication success must not be conflated with authorization for every operation.
-
-### E-005 — Gateway ownership boundary
-
-**Status:** OPEN / COORDINATION RISK
-
-IA-06 owns `gateway/src/device-auth/**` while IA-07 owns the rest of Gateway. HTTP/WSS routing and authentication integration therefore require a stable interface without ownership leakage.
-
-### E-006 — External secure-storage behavior not yet verified
-
-**Status:** NOT_VERIFIED / EXTERNAL DEPENDENCY
-
-The baseline mandates Windows Secure Storage for the Desktop private key, but this audit did not perform an external Windows runtime validation of the eventual storage implementation.
-
-### E-007 — No claim of cryptographic implementation
-
-**Status:** CONTROL / IMPORTANT
-
-No Ed25519 implementation, key lifecycle implementation or secure-storage implementation was found and therefore none is claimed as working.
+No error code, rate limit, HTTP status or security mechanism is promoted to normative status by this document.
