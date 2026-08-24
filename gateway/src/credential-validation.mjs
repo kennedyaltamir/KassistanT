@@ -24,7 +24,7 @@ function saveState(value) {
 }
 
 export function classifyHttp(status) {
-  if (status === 401 || status === 403) return 'INVALID';
+  if (status === 401 || status === 403 || status === 498) return 'INVALID';
   if (status === 429 || status >= 500) return 'UNAVAILABLE';
   if (status >= 400) return 'ERROR';
   return 'VALID';
@@ -44,6 +44,8 @@ async function request(provider, credential) {
       headers,
       signal: controller.signal,
     });
+    const body = await response.json().catch(() => null);
+    if (provider.provider === 'cohere' && response.ok && body?.valid === false) return 'INVALID';
     return classifyHttp(response.status);
   } catch (error) {
     if (error && typeof error === 'object' && error.name === 'AbortError') return 'UNAVAILABLE';
