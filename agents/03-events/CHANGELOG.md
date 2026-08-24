@@ -14,10 +14,15 @@
 - No application code, contracts, schema, migrations, workflows, package configuration or main branch were modified.
 
 ## 2026-08-24 — EventBus local decision closure
-- Added `HUMAN-EVENTBUS-DECISIONS.md` containing the nine decision gates and explicit local-policy recommendations.
-- Classified the remaining EventBus choices as local runtime policy, deferred/non-blocking, cross-agent dependency or global/external.
-- Proposed isolated subscriber failure handling, aggregate failure reporting, async publication, opaque subscription identity, idempotent unsubscribe, unsubscribe-only cancellation, no V1 timeout, publish-time subscriber snapshots and all-selected-handlers-settled completion.
-- Updated `EVENTBUS-RUNTIME-CONTRACT.md`, `EVENTBUS-TEST-MATRIX.md` and `EVENTBUS-IMPLEMENTATION-GATE.md`.
-- Updated IA-03 memory, learnings, errors, progress, roadmap and handoff.
-- No new global decision was recorded in `DECISIONS.md` because all new choices remain proposals pending human approval.
-- No EventBus runtime or runtime tests were implemented.
+- Added `HUMAN-EVENTBUS-DECISIONS.md` containing the EventBus decision gates and explicit local-policy recommendations.
+- Classified remaining EventBus choices as local runtime policy, deferred/non-blocking, cross-agent dependency or global/external.
+- Prepared the V1 contract without changing protected global contracts.
+
+## 2026-08-24 — EventBus V1 implementation
+- Recorded operator approval for EBUS-DEC-001 through EBUS-DEC-008 as IA-03 local runtime decisions.
+- Implemented `apps/desktop/electron/infrastructure/events/event-bus.ts`.
+- Added `apps/desktop/electron/infrastructure/events/event-bus.test.ts`.
+- Validated 10 deterministic EventBus tests: 10 passed, 0 failed, 0 cancelled, 0 skipped.
+- Preserved non-durable, post-commit, no-ordering-guarantee and no-durable-retry boundaries.
+- Kept Inbox, Outbox, JobQueue, AuditLog, WSS, Device Auth and downstream integrations out of the slice.
+- Updated IA-03 memory, decisions, learnings, errors, progress, roadmap, handoff and runtime documentation.
