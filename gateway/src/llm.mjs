@@ -1,23 +1,37 @@
 import { getAiConfig } from './ai-config.mjs';
 
+const MODEL_UPDATE_TIMEOUT_MS = 300000;
+let updateInProgress = false;
+
 /** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
 
-/** @returns {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number, systemPrompt: string }} */
-export function getLlmStatus() {
-  const value = getAiConfig();
+function normalizeModel(model) {
+  const name = typeof model?.name === 'string' ? model.name.trim() : '';
+  if (!name) return null;
   return {
-    enabled: value.enabled,
-    baseUrl: value.baseUrl,
-    model: value.model,
-    timeoutMs: value.timeoutMs,
-    systemPrompt: value.systemPrompt,
+    name,
+    identifier: name,
+    runtime: 'ollama',
+    status: 'INSTALLED',
+    available: true,
+    sizeBytes: Number.isFinite(Number(model.size)) ? Number(model.size) : null,
+    digest: typeof model.digest === 'string' ? model.digest : null,
+    modifiedAt: typeof model.modified_at === 'string' ? model.modified_at : null,
+    details: model.details && typeof model.details === 'object'
+      ? {
+          format: typeof model.details.format === 'string' ? model.details.format : null,
+          family: typeof model.details.family === 'string' ? model.details.family : null,
+          parameterSize: typeof model.details.parameter_size === 'string' ? model.details.parameter_size : null,
+          quantizationLevel: typeof model.details.quantization_level === 'string' ? model.details.quantization_level : null,
+        }
+      : null,
   };
 }
 
 async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   const value = getAiConfig();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, 30000));
+  const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, MODEL_UPDATE_TIMEOUT_MS));
   try {
     return await fetch(`${value.baseUrl}${path}`, {
       ...options,
@@ -29,77 +43,98 @@ async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   }
 }
 
-export async function getLlmProviderStatus() {
+export function getLlmStatus() {
+  const value = getAiConfig();
+  return {
+    enabled: value.enabled,
+    baseUrl: value.baseUrl,
+    model: value.model,
+    timeoutMs: value.timeoutMs,
+    systemPrompt: value.systemPrompt,
+  };
+}
+
+export async function getLocalModelInventory() {
   try {
     const response = await ollamaRequest('/api/tags');
     const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      return { reachable: false, error: `HTTP ${response.status}`, models: [], selectedModelAvailable: false };
+    if (!response.ok || !Array.isArray(body?.models)) {
+      return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: `HTTP ${response.status}` };
     }
-    const models = Array.isArray(body?.models)
-      ? body.models.map(model => typeof model?.name === 'string' ? model.name : '').filter(Boolean)
-      : [];
-    const value = getAiConfig();
     return {
-      reachable: true,
+      runtime: 'ollama',
+      available: true,
+      status: 'INSTALLED',
+      models: body.models.map(normalizeModel).filter(Boolean),
       error: null,
-      models,
-      selectedModelAvailable: models.includes(value.model),
     };
   } catch (error) {
     return {
-      reachable: false,
-      error: error instanceof Error ? error.message : String(error),
+      runtime: 'ollama',
+      available: false,
+      status: 'UNAVAILABLE',
       models: [],
-      selectedModelAvailable: false,
+      error: error && typeof error === 'object' && error.name === 'AbortError'
+        ? 'Ollama request timed out'
+        : 'Ollama unavailable',
     };
   }
+}
+
+export async function getLlmProviderStatus() {
+  const inventory = await getLocalModelInventory();
+  const names = inventory.models.map(model => model.name);
+  const value = getAiConfig();
+  return {
+    reachable: inventory.available,
+    error: inventory.error,
+    models: names,
+    inventory: inventory.models,
+    selectedModelAvailable: names.includes(value.model),
+  };
 }
 
 export async function updateLocalModel(model) {
   const name = String(model ?? '').trim();
   if (!name) throw new Error('Model name is required');
+  if (updateInProgress) throw new Error('Another model update is already running');
 
-  const response = await ollamaRequest('/api/pull', {
-    method: 'POST',
-    body: JSON.stringify({ model: name, stream: false }),
-  }, 300000);
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    const detail = body && typeof body.error === 'string' ? `: ${body.error}` : '';
-    throw new Error(`Ollama model update failed (${response.status})${detail}`);
+  updateInProgress = true;
+  console.log(`[KassisT LLM] LLM_MODEL_UPDATE_STARTED provider=ollama model=${name}`);
+  try {
+    const response = await ollamaRequest('/api/pull', {
+      method: 'POST',
+      body: JSON.stringify({ model: name, stream: false }),
+    }, MODEL_UPDATE_TIMEOUT_MS);
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
+      throw new Error(`Ollama model update failed (${response.status})`);
+    }
+    console.log(`[KassisT LLM] LLM_MODEL_UPDATE_COMPLETED provider=ollama model=${name}`);
+    return { model: name, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
+  } finally {
+    updateInProgress = false;
   }
-
-  return { model: name, status: body?.status ?? 'updated' };
 }
 
 export async function updateAllLocalModels() {
-  const status = await getLlmProviderStatus();
-  if (!status.reachable) {
-    throw new Error(status.error || 'Ollama indisponível');
-  }
+  if (updateInProgress) throw new Error('Another model update is already running');
+  const inventory = await getLocalModelInventory();
+  if (!inventory.available) throw new Error(inventory.error || 'Ollama unavailable');
 
   const updated = [];
   const failed = [];
-  for (const model of status.models) {
+  for (const item of inventory.models) {
     try {
-      updated.push(await updateLocalModel(model));
-    } catch (error) {
-      failed.push({
-        model,
-        error: error instanceof Error ? error.message : String(error),
-      });
+      updated.push(await updateLocalModel(item.name));
+    } catch {
+      failed.push({ model: item.name, status: 'FAILED', error: 'Model update failed' });
     }
   }
-
   return { updated, failed };
 }
 
-/**
- * @param {ChatMessage[]} messages
- * @param {{ systemPrompt?: string }} [options]
- * @returns {Promise<string>}
- */
 export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
   if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
@@ -113,10 +148,7 @@ export async function generateReply(messages, options = {}) {
       : value.systemPrompt;
     const payload = {
       model: value.model,
-      messages: /** @type {ChatMessage[]} */ ([
-        { role: 'system', content: systemPrompt },
-        ...messages.filter(message => message.role !== 'system'),
-      ]),
+      messages: [{ role: 'system', content: systemPrompt }, ...messages.filter(message => message.role !== 'system')],
       stream: false,
       think: false,
     };
@@ -129,16 +161,9 @@ export async function generateReply(messages, options = {}) {
     });
 
     const body = await response.json().catch(() => null);
-    if (!response.ok) {
-      const detail = body && typeof body.error === 'string' ? `: ${body.error}` : '';
-      throw new Error(`Local LLM request failed (${response.status})${detail}`);
-    }
-
+    if (!response.ok) throw new Error(`Local LLM request failed (${response.status})`);
     const content = body?.message?.content;
-    if (typeof content !== 'string' || !content.trim()) {
-      throw new Error('Local LLM returned an empty response');
-    }
-
+    if (typeof content !== 'string' || !content.trim()) throw new Error('Local LLM returned an empty response');
     return content.trim();
   } finally {
     clearTimeout(timer);
