@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS = {
 };
 
 let persisted = null;
+let observer = null;
 
 export function normalizeLlmSettings(value = {}) {
   return {
@@ -33,6 +34,10 @@ export function getLlmSettings() {
   return normalizeLlmSettings(loadPersisted() ?? DEFAULT_SETTINGS);
 }
 
+export function registerLlmSettingsObserver(callback) {
+  observer = typeof callback === 'function' ? callback : null;
+}
+
 export function updateLlmSettings(patch = {}) {
   const next = normalizeLlmSettings({ ...getLlmSettings(), ...patch });
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
@@ -40,6 +45,7 @@ export function updateLlmSettings(patch = {}) {
   fs.writeFileSync(tempPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
   fs.renameSync(tempPath, CONFIG_PATH);
   persisted = next;
+  observer?.(next);
   return next;
 }
 
