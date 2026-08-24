@@ -2,25 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { getCredentialDefinitions } from './provider-registry.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORE_PATH = path.join(__dirname, '..', 'data', 'credentials.json');
 
-export const CREDENTIAL_DEFINITIONS = [
-  { key: 'NVIDIA_API_KEY', label: 'NVIDIA', secret: true },
-  { key: 'GROQ_API_KEY', label: 'GROQ', secret: true },
-  { key: 'MISTRAL_API_KEY', label: 'MISTRAL', secret: true },
-  { key: 'COHERE_API_KEY', label: 'COHERE', secret: true },
-  { key: 'CEREBRAS_API_KEY', label: 'CEREBRAS', secret: true },
-  { key: 'HUGGINGFACE_API_KEY', label: 'Hugging Face', secret: true },
-  { key: 'PENROUTER_API_KEY', label: 'PenRouter', secret: true },
-  { key: 'MODELSCOPE_API_KEY', label: 'ModelScope', secret: true },
-  { key: 'CLOUDFLARE_API_KEY', label: 'Cloudflare API Key', secret: true },
-  { key: 'CLOUDFLARE_ACCOUNT_ID', label: 'Cloudflare Account ID', secret: false },
-  { key: 'GITHUB_TOKEN', label: 'GitHub Token', secret: true },
-  { key: 'SAMBANOVA_API_KEY', label: 'SambaNova', secret: true },
-];
-
+export const CREDENTIAL_DEFINITIONS = getCredentialDefinitions();
 const ALLOWED_KEYS = new Set(CREDENTIAL_DEFINITIONS.map(item => item.key));
 
 function assertKey(key) {
@@ -69,8 +56,8 @@ function dpapi(mode, base64) {
       windowsHide: true,
       maxBuffer: 1024 * 1024,
     }).trim();
-  } catch (error) {
-    throw new Error(`Windows credential operation failed: ${error instanceof Error ? error.message : String(error)}`);
+  } catch {
+    throw new Error('Windows credential operation failed');
   }
 }
 
@@ -82,6 +69,7 @@ export function setCredential(key, value) {
   const store = readStore();
   store[key] = encrypted;
   writeStore(store);
+  console.log(`[KassisT Credential] configured=${key}`);
   return { key, configured: true };
 }
 
@@ -90,6 +78,7 @@ export function deleteCredential(key) {
   const store = readStore();
   delete store[key];
   writeStore(store);
+  console.log(`[KassisT Credential] removed=${key}`);
   return { key, configured: false };
 }
 
@@ -101,13 +90,19 @@ export function getCredential(key) {
   return Buffer.from(plainBase64, 'base64').toString('utf8');
 }
 
-export function listCredentialStatus() {
+export function listCredentialStatus(validationStatuses = {}) {
   const store = readStore();
-  return CREDENTIAL_DEFINITIONS.map(({ key, label, secret }) => ({
+  return CREDENTIAL_DEFINITIONS.map(({ key, label, provider, secret }) => ({
     key,
     label,
+    provider,
     secret,
     configured: typeof store[key] === 'string' && store[key].length > 0,
+    ...(validationStatuses[key] ?? {
+      validationStatus: 'UNKNOWN',
+      lastValidatedAt: null,
+      error: null,
+    }),
   }));
 }
 
