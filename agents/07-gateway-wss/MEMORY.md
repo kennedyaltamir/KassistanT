@@ -26,14 +26,12 @@ Fatos permanentes confirmados:
 - O validador não implementa handshake, autenticação, replay, resume, resync, heartbeat, backpressure ou persistência.
 - O catálogo público de erros permanece PARTIAL/MISSING; códigos adicionais não devem ser tratados como normativos sem aprovação.
 
-## Session boundary — 2026-08-24
+## Session / integration gate — 2026-08-24
 
-- IA-06 é a autoridade sobre device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation e key rotation.
-- IA-07 é a autoridade sobre WSS connection mechanics e transport framing depois que uma identidade autenticada for fornecida pela fronteira de device-auth.
-- A existência de uma `session identity` é explicitamente mencionada pela documentação de IA-06, mas seus campos, lifecycle, expiration e reconnect/reauthentication semantics ainda não estão fechados; IA-07 não deve inventá-los.
-- IA-03 é a autoridade sobre InboundInbox, deduplicação, durable ACK boundary, replay/recovery e infraestrutura de eventos.
-- IA-07 não deve criar Inbox, Outbox, replay store ou autoridade criptográfica concorrente.
-- Revocation: IA-06 detects/authorizes revocation; IA-07 only applies the transport/session termination effect when the executable interface is defined.
-- Sequence is monotonic per `(store_id, device_id)`, but durable ownership, duplicate/gap semantics and replay persistence remain partial; do not promote them to a local IA-07 contract.
-- IA-08 consumes connection/session state and WSS events for renderer/UI behavior; it does not own authentication, persistence or transport protocol authority.
-- The integration boundary is documented in `WSS-INTEGRATION-BOUNDARY.md` and unresolved questions are tracked in `WSS-SESSION-DECISION-MATRIX.md`.
+- IA-06 is the authority for device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. IA-07 consumes the authenticated outcome and owns generic WSS transport mechanics. 
+- IA-06 must provide an executable/testable authenticated-session boundary before IA-07 can implement a session lifecycle. Minimum required evidence: authoritative `device_id`, authentication result, definitive `session_id` if sessions exist, explicit expiry semantics if applicable, revocation signal and reconnect/reauthentication rule.
+- IA-03 is the authority for InboundInbox, deduplication, durable ACK boundary, replay/recovery and event infrastructure. IA-07 must consume a testable durable-intake result with persisted/duplicate/failure outcomes and explicit ACK authorization.
+- Replay/resume/recovery may be deferred for the first V1 lifecycle slice only if the selected delivery contract explicitly allows that deferral. Sequence ownership and duplicate/gap behavior must still be explicit for any feature implemented.
+- Backpressure must have minimum behavioral semantics before runtime; numeric thresholds are not to be invented locally.
+- IA-07 must not implement competing Inbox, Outbox, replay storage, cryptographic verification or session authority.
+- `WSS-INTEGRATION-GATE.md`, `WSS-IA06-CONTRACT.md`, `WSS-IA03-CONTRACT.md` and `WSS-RUNTIME-V1-REQUIREMENTS.md` are the operational gate package for the next runtime phase.
