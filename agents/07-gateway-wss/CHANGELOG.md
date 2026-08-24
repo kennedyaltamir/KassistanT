@@ -11,3 +11,7 @@
 - Added pure WSS v1 envelope validation in `gateway/src/wss-envelope.mjs`.
 - Added deterministic WSS envelope tests in `gateway/test/wss-envelope.test.mjs`.
 - Preserved existing `/health` and `/ready` implementation and tests.
+- Closed the WSS envelope readiness gate at structural-validation scope only.
+- Recorded remaining lexical envelope gaps and cross-agent runtime dependencies.
+- Proposed WSS connection lifecycle abstraction as the next slice; it remains BLOCKED pending IA-03/IA-06 boundaries and contract closure.
+- No WSS transport, handshake, ACK persistence, replay, resume, resync, heartbeat, backpressure or device authentication was added in the closure phase.
