@@ -16,14 +16,29 @@ const tsTests = [
   path.join(desktop, "electron", "database", "database.test.ts")
 ];
 
-run("node", ["--test", ...jsTests]);
-run("pnpm", ["exec", "tsx", "--test", ...tsTests]);
+run("node", ["--test", ...jsTests], root);
+run("pnpm", ["exec", "tsx", "--test", ...tsTests], desktop);
 
-function run(command, args) {
-  const executable = process.platform === "win32" && command === "pnpm" ? "pnpm.cmd" : command;
-  const result = spawnSync(executable, args, { cwd: root, stdio: "inherit" });
+function run(command, args, cwd) {
+  if (process.platform === "win32") {
+    const commandLine = [command, ...args].map(toCmdArg).join(" ");
+    const result = spawnSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", commandLine], {
+      cwd,
+      stdio: "inherit"
+    });
+    if (result.error) throw result.error;
+    if (result.status !== 0) process.exit(result.status ?? 1);
+    return;
+  }
+
+  const result = spawnSync(command, args, { cwd, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+function toCmdArg(value) {
+  if (/^[A-Za-z0-9_./:=?-]+$/.test(value)) return value;
+  return `"${String(value).replaceAll('"', '\\"')}"`;
 }
 
 function walkFiles(directory) {
