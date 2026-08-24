@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS "order" (
   id TEXT PRIMARY KEY,
   store_id TEXT NOT NULL,
   status TEXT NOT NULL,
-  total_amount_cents INTEGER NOT NULL,
+  total_amount_cents INTEGER NOT NULL CHECK (total_amount_cents >= 0),
   total_currency TEXT NOT NULL
 );
 
@@ -38,3 +38,6 @@ CREATE INDEX IF NOT EXISTS idx_product_store_id ON product(store_id);
 CREATE INDEX IF NOT EXISTS idx_order_store_id ON "order"(store_id);
 CREATE INDEX IF NOT EXISTS idx_order_item_order_id ON order_item(order_id);
 CREATE INDEX IF NOT EXISTS idx_order_item_modifier_order_item_id ON order_item_modifier(order_item_id);
+
+INSERT OR REPLACE INTO _schema_metadata(key, value)
+VALUES ('schema_version', '0002');
