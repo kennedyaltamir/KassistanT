@@ -20,19 +20,19 @@ Decisões locais são apenas locais até integração e aprovação pela governa
 ## Princípios permanentes
 
 1. A main é a autoridade de integração.
-2. O Gateway não executa pricing, estoque, regras de pedido ou regras conversacionais. FACT. fileciteturn56file0L2-L2
+2. O Gateway não executa pricing, estoque, regras de pedido ou regras conversacionais. FACT.
 3. O Desktop inicia a conexão WSS outbound. FACT conforme baseline e contrato WSS.
-4. ACK representa persistência local durável do evento no `InboundInbox`, não conclusão de processamento. FACT. fileciteturn39file0L2-L2
+4. ACK representa persistência local durável do evento no `InboundInbox`, não conclusão de processamento. FACT.
 5. Segurança de dispositivo pertence à fronteira compartilhada com IA-06; `gateway/src/device-auth/**` não pertence a IA-07.
 6. Documentação não é evidência de runtime implementado.
 7. `CONTRACT-001`, `CONTRACT-002` e `GOV-001` não podem ser resolvidos silenciosamente.
 
 ## Status de implementação conhecido
 
-- `gateway/src/http.mjs`: skeleton HTTP que responde `404 not_found` a qualquer requisição. FACT. fileciteturn51file0L2-L2
-- `gateway/src/main.mjs`: inicia o servidor em `127.0.0.1` e identifica-se explicitamente como skeleton. FACT. fileciteturn52file0L2-L2
-- `gateway/src/wss.mjs`: `attachWssTransport()` retorna `status: "not_implemented"`. FACT. fileciteturn53file0L2-L2
-- Contratos HTTP/WSS estão documentados, mas o runtime correspondente não está implementado. FACT. fileciteturn38file0L2-L2 fileciteturn39file0L2-L2
+- `gateway/src/http.mjs`: skeleton HTTP que responde `404 not_found` a qualquer requisição. FACT.
+- `gateway/src/main.mjs`: inicia o servidor em `127.0.0.1` e identifica-se explicitamente como skeleton. FACT.
+- `gateway/src/wss.mjs`: `attachWssTransport()` retorna `status: "not_implemented"`. FACT.
+- Contratos HTTP/WSS estão documentados, mas o runtime correspondente não está implementado. FACT.
 
 ## Dependências
 
