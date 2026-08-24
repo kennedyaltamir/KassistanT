@@ -28,5 +28,8 @@
 - Added `DOMAIN-GLOBAL-DECISIONS.md`.
 - Added `FIRST-DOMAIN-SLICE.md`.
 - Added `DOMAIN-INTEGRATION-GATES.md`.
+- Added `HUMAN-DOMAIN-DECISIONS.md`.
+- Reduced DREQ-001..006 to four decisions required for the proposed first slice.
+- Deferred `DREQ-003` and `DREQ-004` for the first pure in-memory slice.
 - Confirmed no non-trivial first runtime slice is currently READY.
 - Preserved implementation freeze and unresolved global contracts.
