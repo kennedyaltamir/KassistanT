@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { CommerceService, CommerceValidationError } from "./commerce-service.js";
+import { CommerceService, CommerceValidationError, type ProductView } from "./commerce-service.js";
 
 async function context() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "kassist-commerce-"));
@@ -23,7 +23,7 @@ test("Products are created with integer cents and recovered after reopen", async
   const ctx = await context();
   const options = { ...ctx, storeId: "store-test" };
   const first = new CommerceService(options);
-  let created;
+  let created: ProductView;
   try {
     created = await first.createProduct({ name: "Açaí", price_amount_cents: 1290 });
     assert.equal(created.currency, "BRL");
