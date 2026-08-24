@@ -14,6 +14,37 @@ export function getLlmStatus() {
   };
 }
 
+export async function getLlmProviderStatus() {
+  const value = getAiConfig();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), Math.min(value.timeoutMs, 10000));
+  try {
+    const response = await fetch(`${value.baseUrl}/api/tags`, { signal: controller.signal });
+    const body = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { reachable: false, error: `HTTP ${response.status}`, models: [] };
+    }
+    const models = Array.isArray(body?.models)
+      ? body.models.map(model => typeof model?.name === 'string' ? model.name : '').filter(Boolean)
+      : [];
+    return {
+      reachable: true,
+      error: null,
+      models,
+      selectedModelAvailable: models.includes(value.model),
+    };
+  } catch (error) {
+    return {
+      reachable: false,
+      error: error instanceof Error ? error.message : String(error),
+      models: [],
+      selectedModelAvailable: false,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * @param {ChatMessage[]} messages
  * @param {{ systemPrompt?: string }} [options]
