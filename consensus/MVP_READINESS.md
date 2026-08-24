@@ -28,14 +28,22 @@ HISTORICAL_C1_EXECUTION_MODEL
 
 CURRENT_OPERATIONAL_BASELINE
   BRANCH = MVP2
+  SHA = 0bea2a0ca7c52729cfd58bebc8cd568373222230
   STATUS = CURRENT_OPERATIONAL_BASELINE
+
+PREVIOUS_AUDITED_REFERENCE
+  SHA = 636f08a5d377879d80766cf017684f8a6f955376
+  STATUS = HISTORICAL_REFERENCE
 
 CURRENT_INTEGRATION_TARGET
   BRANCH = main
+  SHA = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30
   STATUS = FUTURE_CONTROLLED_INTEGRATION_TARGET
 ```
 
 The designation of `MVP2` as current operational baseline is a governance decision and is not inferred from branch depth, commit count, or implementation volume.
+
+The `MVP2` SHA recorded above is the GitHub-verified HEAD used for this governance reconciliation branch. It is not a permanent truth and must be rechecked at the beginning of future operational cycles.
 
 ## BASE
 
@@ -204,11 +212,17 @@ must demonstrate a real operation equivalent to:
 
 `WhatsApp → conversation → product → order → confirmation → persistence → restart/recovery → real sale`
 
+## INTEGRATION_POLICY
+
+`main` remains the authority of integrated product state. A functional slice that exists on `MVP2` is still branch progress until the normal verification, audit and merge gates are satisfied.
+
+No automatic promotion from MVP2 to main is implied by this document.
+
 ## NEXT_ACTION
 
 1. Confirm the C1 Decision Queue outside this branch.
 2. Select one slice whose contract and authorization are sufficient.
 3. Provide exact VSCode/local commands and expected results.
-4. Implement only that slice.
+4. Implement only that slice from the current MVP2 operational baseline.
 5. Run tests and local validation.
-6. Audit and promote through the normal merge gates.
+6. Audit and promote through the normal merge gates into `main` only when merge authority authorizes it.
