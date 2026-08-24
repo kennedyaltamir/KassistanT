@@ -1,76 +1,50 @@
 # IA-02 — Domain Contract Matrix
 
-## Command matrix
+## Reconciliation status
 
-Only the following commands are explicitly documented. No commands for Product, Customer, Device, Integration or AIExecution were found as canonical executable domain commands.
+**D1 RECONCILED. No new contracts created.**
 
-| Command | Target | Preconditions | Inputs/Outputs | Events | Errors | Idempotency/Auth | Status |
-|---|---|---|---|---|---|---|---|
-| CreateDraftOrder | Order | target customer/context available is implied | order creation data; result schema partial | `order.created` candidate | duplicate/validation semantics partial | duplicate handling partial; actor dependency partial | DOCUMENTED/PARTIAL |
-| AddItem | Order | draft order; product/modifier availability | product + quantity + modifiers | event semantics partial | unavailable product/modifier; invalid quantity | dedupe required; exact key missing | DOCUMENTED/PARTIAL |
-| RemoveItem | Order | draft order; item exists | item identifier | event semantics partial | not-found/invalid operation semantics partial | partial | DOCUMENTED/PARTIAL |
-| ChangeQuantity | Order | item exists; positive quantity | item + quantity | event semantics partial | invalid quantity | partial | DOCUMENTED/PARTIAL |
-| SetDeliveryType | Order | order mutable | delivery type | event semantics partial | invalid delivery rule semantics partial | partial | DOCUMENTED/PARTIAL |
-| SetAddress | Order | delivery requires address | address | event semantics partial | insufficient delivery data | partial | DOCUMENTED/PARTIAL |
-| SetPaymentMethod | Order | supported method | payment method | event semantics partial | invalid/unsupported method | partial | DOCUMENTED/PARTIAL |
-| ApplyEligiblePromotion | Order | promotion exists and is eligible | promotion/context | event semantics partial | promotion violation | partial | DOCUMENTED/PARTIAL |
-| RecalculateOrder | Order | mutable order state | current order context | no canonical event frozen | pricing errors partial | deterministic; idempotency not formalized | DOCUMENTED/PARTIAL |
-| RequestCustomerConfirmation | Order | order complete enough for summary | order summary | possible confirmation event boundary | validation errors partial | partial | DOCUMENTED/PARTIAL |
-| ConfirmOrder | Order | valid draft; final summary; unequivocal confirmation | confirmation data | `order.confirmed` documented; `order.status_changed` ambiguous | invalid transition; duplicate operation | idempotency required, exact semantics partial | DOCUMENTED/PARTIAL / BLOCKED |
-| CancelOrder | Order | allowed current state | cancellation reason/actor semantics partial | `order.cancelled` documented | invalid transition; duplicate operation | partial | DOCUMENTED/PARTIAL |
+## Commands
 
-No normative command contracts were found for `Conversation`, `Message`, `Product`, `Customer`, `Device`, `Integration` or `AIExecution`; product actions do not substitute for domain command contracts.
+The only explicitly documented Order commands are:
 
-## Query matrix
+CreateDraftOrder, AddItem, RemoveItem, ChangeQuantity, SetDeliveryType, SetAddress, SetPaymentMethod, ApplyEligiblePromotion, RecalculateOrder, RequestCustomerConfirmation, ConfirmOrder, CancelOrder.
 
-| Query | Target | Filters | Ordering/Pagination | Projection | Consistency/Auth | Status |
+All are `DOCUMENTED/PARTIAL`. `ConfirmOrder` is `BLOCKED` because event/persistence semantics remain incomplete. No canonical domain commands were found for Product, Customer, Device, Integration or AIExecution.
+
+| Command | Preconditions | Inputs/Outputs | Events | Errors | Idempotency/Auth | Status |
 |---|---|---|---|---|---|---|
-| ProductSearch | Product | search/filter criteria | not specified | product search result | auth/consistency partial | DOCUMENTED/PARTIAL |
-| ProductLookup | Product | product identifier | not applicable | product details | auth partial | DOCUMENTED/PARTIAL |
-| StoreInfo | Store | store context | not applicable | store information | auth partial | DOCUMENTED/PARTIAL |
-| DeliveryRules | Store/Delivery configuration | store/context | not applicable | delivery rules | consistency/auth partial | DOCUMENTED/PARTIAL |
-| PaymentMethods | Store | store/context | not applicable | methods | consistency/auth partial | DOCUMENTED/PARTIAL |
-| CurrentOrder | Order | conversation/customer context | not specified | current order | consistency semantics missing | DOCUMENTED/PARTIAL |
-| CustomerContext | Customer | customer/conversation context | not specified | customer context | auth/consistency partial | DOCUMENTED/PARTIAL |
+| CreateDraftOrder | customer/context implied | partial | `order.created` candidate | validation/duplicate partial | partial | PARTIAL |
+| AddItem | draft, product/modifier available | partial | partial | unavailable/quantity | partial | PARTIAL |
+| RemoveItem | draft, item exists | partial | partial | not-found/invalid operation | partial | PARTIAL |
+| ChangeQuantity | item exists, positive quantity | partial | partial | invalid quantity | partial | PARTIAL |
+| SetDeliveryType | order mutable | partial | partial | delivery-rule validation | partial | PARTIAL |
+| SetAddress | delivery requires address | partial | partial | insufficient delivery data | partial | PARTIAL |
+| SetPaymentMethod | supported method | partial | partial | invalid method | partial | PARTIAL |
+| ApplyEligiblePromotion | promotion exists/eligible | partial | partial | promotion violation | partial | PARTIAL |
+| RecalculateOrder | mutable order | partial | none frozen | pricing errors partial | deterministic; idempotency partial | PARTIAL |
+| RequestCustomerConfirmation | sufficient order summary | partial | boundary unclear | validation partial | partial | PARTIAL |
+| ConfirmOrder | valid draft + final summary + unequivocal confirmation | partial | `order.confirmed`; `order.status_changed` ambiguous | invalid transition/duplicate | partial | BLOCKED |
+| CancelOrder | allowed state | partial | `order.cancelled` | invalid transition/duplicate | partial | PARTIAL |
 
-Pagination, ordering, authorization and consistency are explicitly incomplete in `docs/domain/queries.md`.
+## Queries
 
-## Value object / primitive matrix
+Documented deterministic reads: ProductSearch, ProductLookup, StoreInfo, DeliveryRules, PaymentMethods, CurrentOrder and CustomerContext.
 
-| Type | Representation | Runtime evidence | Status |
-|---|---|---|---|
-| Money | integer cents + BRL | `money.ts` | IMPLEMENTED FOUNDATION |
-| UUIDv7 | UUIDv7 string | `uuidv7.ts` | IMPLEMENTED FOUNDATION |
-| UTC timestamp | ISO-8601 UTC string | `time.ts` | IMPLEMENTED FOUNDATION |
-| Quantity | positive integer | domain invariant | DOCUMENTED |
-| Phone | normalized/E.164 direction | domain/backend docs | PARTIAL |
-| Address | structured delivery address | domain docs | PARTIAL |
-| Idempotency key | string, uniqueness where defined | backend/contracts | PARTIAL |
-| Correlation ID | event/request identifier | event envelope | PARTIAL |
-| Causation ID | event causation identifier | event envelope | PARTIAL |
+Pagination, ordering, authorization and consistency semantics remain partial. No query is READY for implementation as a standalone normative contract.
 
-## Domain error matrix
+## Value objects / primitives
 
-Canonical codes are missing. The documented error semantics are:
+Money = integer cents + BRL; UUIDv7 = UUIDv7 string; UTC timestamp = ISO-8601 UTC string. Quantity is a documented positive-integer rule. Phone, Address, IdempotencyKey, CorrelationId and CausationId remain partial domain semantics.
 
-- invalid order transition;
-- unavailable product/modifier;
-- insufficient delivery data;
-- invalid quantity;
-- promotion violation;
-- duplicate operation.
+## Domain errors
 
-Retryability, stable codes and cross-boundary mappings remain incomplete.
+Conceptual errors only: invalid order transition, unavailable product/modifier, insufficient delivery data, invalid quantity, promotion violation and duplicate operation. Canonical stable codes and mappings are missing.
 
-## Event matrix
+## Events
 
-`packages/contracts/src/events.ts` currently lists:
+Current TypeScript contract lists `order.created`, `order.confirmed`, `order.status_changed`, `order.cancelled`. The event documentation requires richer envelope metadata. `order.status_changed` remains `CONTRACT-002 / OPEN` and is not normalized here.
 
-- `order.created`
-- `order.confirmed`
-- `order.status_changed`
-- `order.cancelled`
+## Readiness conclusion
 
-The event envelope contains `event_id`, `event_type`, `store_id`, `aggregate_id`, `occurred_at_utc` and payload. Domain documentation additionally requires version, producer, correlation, causation and schema metadata. The normative reconciliation is incomplete.
-
-`order.status_changed` is explicitly `CONTRACT-002 / OPEN` and must not be normalized locally.
+The matrix is sufficient for gap tracking, not runtime implementation. The first implementation slice remains BLOCKED until one complete command and its associated aggregate, transition, errors, event semantics and persistence boundary are frozen.
