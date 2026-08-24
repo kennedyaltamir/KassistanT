@@ -3,6 +3,8 @@
 > **Status:** APPROVED FOR OPERATING GOVERNANCE
 >
 > **Authority:** `main` continua sendo a autoridade de integração. Este documento define responsabilidade primária de auditoria, não ownership de código, arquitetura ou merge.
+>
+> **Current operational baseline:** `MVP2` é a baseline operacional atual da fase MVP2 por decisão explícita de governança. Essa classificação não transfere autoridade de integração para `MVP2`; `main` permanece como autoridade/target de integração.
 
 ## 1. Objetivo
 
@@ -94,6 +96,14 @@ O operador continua sendo a autoridade final para decisões de produto, decisõe
 
 `main` continua sendo a autoridade de integração.
 
+`MVP2` é a **current operational baseline** da fase atual. Essa distinção é deliberada:
+
+```text
+Operational Baseline != Integration Authority
+```
+
+A baseline operacional define o ponto de referência para novas implementações da fase MVP2. A autoridade de integração permanece em `main` e qualquer convergência de MVP2 para `main` exige os gates normais de decisão, implementação, verificação, auditoria e merge.
+
 Nenhum auditor possui autoridade para alterar a `main`, fazer merge ou alterar ownership silenciosamente.
 
 ## 9. Regra de consenso
@@ -109,7 +119,30 @@ Nenhum auditor pode unilateralmente:
 
 Nessas situações, a conclusão deve ser explicitamente registrada entre Auditor 1, Auditor 2 e Operador, quando aplicável.
 
-## 10. Divisão operacional
+## 10. Baseline e lineage operacional
+
+A evolução histórica deve permanecer distinguível da baseline operacional atual:
+
+```text
+main @ 86387b02...
+    │
+    ├── historical C1 execution model
+    │       └── MVP
+    │
+    └── subsequent operational evolution
+            └── MVP2
+                @ current MVP2 HEAD
+                │
+                └── current operational baseline
+                        │
+                        └── controlled convergence → main
+```
+
+`MVP` não deve ser reinterpretado automaticamente como `MVP2`. Referências históricas a `MVP`/C1 devem permanecer históricas quando esse for o significado original do documento.
+
+A posição de `MVP2` no histórico Git não constitui, por si só, autoridade normativa. A classificação de `MVP2` como baseline operacional decorre da decisão explícita de governança registrada na fase atual.
+
+## 11. Divisão operacional
 
 ```text
 Auditor 1
