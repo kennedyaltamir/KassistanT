@@ -6,10 +6,10 @@
   "scripts": {
     "lint": "tsc --noEmit --pretty false",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "pnpm exec tsx --test src/foundation.test.ts",
-    "test:unit": "pnpm exec tsx --test src/foundation.test.ts",
-    "test:integration": "pnpm exec tsx --test src/foundation.test.ts",
-    "test:e2e": "pnpm exec tsx --test src/foundation.test.ts",
+    "test": "pnpm exec tsx --test src/foundation.test.ts src/order.test.ts",
+    "test:unit": "pnpm exec tsx --test src/foundation.test.ts src/order.test.ts",
+    "test:integration": "pnpm exec tsx --test src/foundation.test.ts src/order.test.ts",
+    "test:e2e": "pnpm exec tsx --test src/foundation.test.ts src/order.test.ts",
     "build": "tsc --noEmit --pretty false",
     "clean": "rm -rf dist"
   },
