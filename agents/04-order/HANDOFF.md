@@ -10,7 +10,32 @@ The Contract Readiness Audit is complete for the currently available evidence.
 
 Overall Order Engine readiness: **BLOCKED**.
 
-No production Order Engine runtime code was created or modified.
+The first safe implementation slice is the existing canonical Money primitive. IA-04 did not duplicate or relocate that primitive.
+
+## Canonical Money consumption
+
+**Source:** `packages/domain/src/money.ts`
+
+**Public export:** `packages/domain/src/index.ts` through package `@kassist/domain`.
+
+**Import boundary used by IA-04 test:** `../../../../packages/domain/src/index.ts`
+
+**Representation:**
+
+```ts
+interface Money {
+  amount_cents: number;
+  currency: "BRL";
+}
+```
+
+**Public operations currently available:** `createMoney`, `addMoney`, `subtractMoney`, `assertMoneyAmount`, `CURRENCY_BRL`.
+
+**Invariants:** monetary amounts are safe integers in cents; currency is BRL for the current primitive; arithmetic requires matching currencies; results remain deterministic integer values.
+
+**Restrictions:** IA-04 must not invent rounding, floating-point money, multiplication, comparison, formatting, persistence semantics or a second Money primitive unless an approved contract later adds them.
+
+IA-04 added `apps/desktop/electron/order/money-contract.test.ts` to verify consumption of the canonical primitive and supported boundaries. No production adapter was needed because the canonical package already exposes the required arithmetic.
 
 ## What is sufficiently established
 
@@ -40,6 +65,10 @@ No production Order Engine runtime code was created or modified.
 11. `CONTRACT-001` DomainOutbox ownership/scope.
 12. `CONTRACT-002` `order.status_changed` normative status.
 
+## Test state
+
+The Money consumer test exists, but local execution remains `NOT_VERIFIED` because the current environment does not provide a verified project checkout/runtime for running the repository test command. Remote GitHub status currently has no status entries for the latest branch commit, so `REMOTE_CI_STATUS = NOT_VERIFIED`.
+
 ## Current dependencies
 
 - IA-01: canonical persistence schema.
@@ -59,12 +88,6 @@ No production Order Engine runtime code was created or modified.
 - `ORDER-ERROR-MATRIX.md`
 - `ORDER-DEPENDENCIES.md`
 - `IMPLEMENTATION-GATES.md`
-
-## Safe next slice
-
-The only independently READY slice identified is deterministic Money arithmetic around the existing `packages/domain/src/money.ts` primitive. It must still be implemented/owned according to the later phase authorization; this readiness audit itself did not implement it.
-
-All other runtime slices require additional contract closure or may only proceed as narrowly scoped slices that demonstrably avoid the unresolved contracts.
 
 ## Protected boundaries
 
