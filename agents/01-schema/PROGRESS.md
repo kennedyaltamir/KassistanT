@@ -2,69 +2,44 @@
 
 ## Current phase
 
-**Phase 2 — Canonical Schema Specification**
+**Schema Decision Package / Physical Blocker Closure**
 
-## Phase 1 status
+## Phase 1
 
-`DONE WITH BLOCKERS`
+`DONE WITH BLOCKERS` — 28 entities, field/relationship/constraint/index/blocker audit completed.
 
-- 28 canonical entities audited.
-- Field, relationship, constraint, index and blocker matrices completed.
-- M5.1 preserved.
+## Phase 2
 
-## Phase 2 deliverables
+`COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`.
 
-- `CANONICAL-SCHEMA-SPEC.md`
-- `ENTITY-PHYSICAL-MAP.md`
-- `RELATIONSHIP-SPEC.md`
-- `CONSTRAINT-SPEC.md`
-- `INDEX-SPEC.md`
-- `MIGRATION-0002-READINESS.md`
-- `MIGRATION-0002-PROJECTION.md`
+## Decision package
 
-## Current technical reality
+- `SCHEMA-DECISION-MATRIX.md` — decision authority and blocker impact.
+- `SCHEMA-AUTHORITY-MATRIX.md` — semantic authority vs physical ownership.
+- `TABLE-READINESS-MATRIX.md` — per-table readiness reclassification.
+- Updated physical schema, constraint/index, relationship and migration projection artifacts.
 
-| Area | Status |
-|---|---|
-| SQLite lifecycle | FOUNDATION IMPLEMENTED |
-| Migration discovery | IMPLEMENTED |
-| Migration checksum | IMPLEMENTED |
-| Migration idempotency | IMPLEMENTED |
-| Transaction boundary | IMPLEMENTED |
-| Database health | IMPLEMENTED |
-| Canonical business schema | NOT_IMPLEMENTED |
-| Phase 1 audit matrix | COMPLETE WITH BLOCKERS |
-| Phase 2 physical specification | COMPLETE AS EVIDENCE/PROPOSAL; BLOCKED FOR DDL |
-| Migration 0002 | NOT_CREATED |
+## Reclassified readiness
 
-## Phase 2 findings
+- READY_AFTER_LOCAL_DECISION: 3.
+- READY_AFTER_CROSS_AGENT_DECISION: 14.
+- READY_AFTER_GLOBAL_DECISION: 1.
+- READY_AFTER_EXTERNAL_DECISION: 0.
+- BLOCKED: 10.
+- READY_FOR_MIGRATION: 0.
 
-- All 28 physical table names have lower_snake_case proposals, but naming is not approved/frozen.
-- Seven unique constraints are REQUIRED_BY_CONTRACT.
-- 23 relationships are classified; missing child parent keys remain blocked.
-- No FK delete/update action is normatively defined.
-- SQL enum/status storage is not frozen.
-- Several field-level schemas remain incomplete.
+## Contract impact
 
-## Blockers
-
-- `TABLE-NAMING`
-- `FIELD-GAPS`
-- `CHILD-KEY-GAPS`
-- `PHYSICAL-TYPE-GAPS`
-- `NULLABILITY-DEFAULT-GAPS`
-- `FK-ACTION-GAPS`
-- `ENUM-PHYSICAL-GAPS`
-- `CONTRACT-001`
-- `GOV-001` when authority affects schema interpretation
-- `CONTRACT-002` only if final event decision changes schema
+- CONTRACT-001: localized global blocker for DomainOutbox physical design.
+- CONTRACT-002: currently non-blocking for physical schema.
+- GOV-001: deferred unless an actual normative conflict changes schema interpretation.
 
 ## Implementation status
 
 `IMPLEMENTATION_STARTED = FALSE`.
 
-No migration, runtime code or contract was modified.
+No migration was created. `0001_bootstrap.sql`, M5.1 runtime, contracts and global documentation remain unchanged.
 
 ## Next gate
 
-Human/authority review must close schema-critical blockers. Only after the physical specification becomes fully deterministic should `0002` be generated.
+Human/project authority review of local physical proposals and cross-agent semantic decisions. After approval, re-run the readiness matrix and only then consider generating `0002`.
