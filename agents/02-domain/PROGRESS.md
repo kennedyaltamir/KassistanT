@@ -1,21 +1,27 @@
 # IA-02 — Progress
 
-## D1 — Contract Lock and Domain Readiness Audit
+## D1 — Contract Lock, Domain Readiness and Reconciliation
 **Status:** COMPLETE / IMPLEMENTATION_NOT_STARTED / BLOCKED_FOR_D2
 
-### Confirmed
-- `main` and `Agent02-domain-runtime` were aligned at audit start.
-- `packages/domain/**` remains foundation-only.
-- The canonical entity inventory is documented but runtime entities/aggregates are absent.
-- State catalogs exist, but normative transition matrices are incomplete.
-- Order commands and domain invariants are documented, but executable contracts remain partial.
-- Domain query semantics and error taxonomy remain partial.
-- `CONTRACT-001` and `CONTRACT-002` remain active blockers for affected runtime behavior.
-- `GOV-001` remains outside IA-02 authority.
+### Reconciliation result
+- Canonical entity count closed at **28**.
+- The previous D1 statement of 29 was a reporting/counting error, not an additional entity.
+- No baseline, contract or runtime artifact was changed to resolve the count discrepancy.
 
-### Artifacts
+### Confirmed
+- `packages/domain/**` remains foundation-only.
+- No aggregate root is normatively frozen.
+- Order, Conversation and Message lifecycle artifacts remain state catalogs rather than complete transition matrices.
+- The twelve documented Order commands remain partial; `ConfirmOrder` is blocked by unresolved semantics.
+- Domain error taxonomy is conceptual but lacks final stable codes/mappings.
+- `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved.
+- Requested `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md` is absent at the audited ref and is recorded as a documentation gap only.
+
+### Reconciliation artifacts
+- `CANONICAL-ENTITY-INVENTORY.md`
+- `D1-RECONCILIATION.md`
+- `FIRST-DOMAIN-SLICE-READINESS.md`
 - `DOMAIN-READINESS.md`
-- `STATE-TRANSITION-MATRIX.md`
 - `DOMAIN-CONTRACT-MATRIX.md`
 - `READINESS-GAPS.md`
 
@@ -23,4 +29,4 @@
 No product code, contracts, schema, migration or external configuration was changed.
 
 ### Gate
-D2 may start only after the first implementation slice has explicit aggregate, command, transition, error and event semantics and is independent from unresolved blockers.
+D2 may start only after the first implementation slice has explicit aggregate, complete command, normative transition, errors, event semantics, persistence boundary and deterministic tests, without dependency on unresolved blockers.
