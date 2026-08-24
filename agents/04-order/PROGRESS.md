@@ -6,7 +6,7 @@
 
 ## Status
 
-`MONEY SLICE READY_FOR_TEST_HARNESS_INTEGRATION / FULL ENGINE BLOCKED`
+`MONEY SLICE FROZEN / READY_FOR_TEST_HARNESS_INTEGRATION / FULL ENGINE BLOCKED`
 
 ## Repository state
 
@@ -36,6 +36,7 @@ No duplicate Money primitive and no production adapter were created. IA-04 added
 - Official Desktop suite: `NOT_INCLUDED` — `scripts/test-desktop.mjs` does not currently list the Money consumer test.
 - Shared harness change: required but not authorized to IA-04.
 - Remote CI: `NOT_VERIFIED`.
+- Merge readiness for the Money slice: `NOT_READY` until the shared harness integration and verification chain are completed.
 
 ## Shared test harness handoff
 
@@ -46,6 +47,17 @@ Required minimal change: add `apps/desktop/electron/order/money-contract.test.ts
 Expected effect: the Money consumer test becomes part of the official Desktop test path and consequently the existing `pnpm test` CI path.
 
 IA-04 must not modify the shared harness or `.github/workflows/**`.
+
+The handoff is finalized. The next action is external to IA-04 ownership.
+
+## Freeze state
+
+No further production implementation is authorized for this slice.
+
+- `NEXT_PRODUCTION_SLICE = NONE_CONFIRMED`.
+- `NEXT_SAFE_TECHNICAL_ACTION = OWNER_REVIEW_OF_SHARED_TEST_HARNESS`.
+- IA-04 must not create another test to bypass the shared runner gap.
+- IA-04 must not modify shared runner or CI files to manufacture GREEN status.
 
 ## Full Order Engine state
 
