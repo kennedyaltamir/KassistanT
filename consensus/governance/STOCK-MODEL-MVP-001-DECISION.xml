@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<operator_stock_model_decision protocol="KASSIST-OPERATOR-STOCK-MODEL" version="1.0.0" status="APPROVED">
+  <decision_id>STOCK-MODEL-MVP-001</decision_id>
+  <authority>OPERATOR_PROJECT_GOVERNANCE</authority>
+  <repository>kennedyaltamir/KassistanT</repository>
+  <decision>APPROVED_OPTION_A</decision>
+  <selected_option>BINARY_AVAILABILITY</selected_option>
+  <effective_from>2026-08-24T20:09:00-03:00</effective_from>
+
+  <requirement>
+    No quantitative stock ledger is part of the MVP. Product availability is a binary commercial state: available or unavailable.
+  </requirement>
+
+  <rationale>
+    ADR-015 is an explicit mandatory architectural decision stating binary stock in the MVP, while the quantitative-stock statement is classified as post-MVP in section 3.2 of the approved baseline. Selecting binary availability preserves the narrower explicit MVP decision, avoids expanding scope, and removes the need to introduce quantitative Inventory and InventoryMovement semantics that are not otherwise frozen in the canonical entity inventory.
+  </rationale>
+
+  <invariants>
+    <item>Product availability is binary.</item>
+    <item>No quantity_on_hand is authoritative in the MVP.</item>
+    <item>No quantitative InventoryMovement ledger exists in the MVP.</item>
+    <item>Sale does not depend on numeric stock decrement.</item>
+  </invariants>
+
+  <persistence_implications>
+    Product availability remains a product-state concern. A quantitative inventory balance table is not required by this decision. InventoryMovement is outside MVP persistence scope.
+  </persistence_implications>
+
+  <concurrency_implications>
+    Quantitative stock concurrency control and overselling prevention are not MVP stock requirements. Any concurrency required for Order/Sale semantics remains governed by their own contracts.
+  </concurrency_implications>
+
+  <idempotency_implications>
+    No quantitative stock mutation idempotency key is required by this decision. Existing Message, Inbox, Order and DomainOutbox idempotency contracts remain unchanged.
+  </idempotency_implications>
+
+  <sale_implications>
+    A confirmed Sale may rely on the approved product availability state but must not perform a numeric stock decrement. The separate Sale persistence contract remains a distinct schema-closure concern.
+  </sale_implications>
+
+  <explicit_non_scope>
+    quantitative inventory; quantity_on_hand; stock ledger; InventoryMovement quantities; stock reservation quantity; quantitative overselling prevention; quantitative stock concurrency; quantitative stock mutation idempotency.
+  </explicit_non_scope>
+
+  <affected_contracts>
+    Product availability; Inventory scope; InventoryMovement scope; downstream Sale persistence analysis.
+  </affected_contracts>
+
+  <evidence>
+    KassisT_Approved_Technical_Baseline_v1.0.1.md, ADR-015: Estoque binário no MVP — Obrigatória; section 3.2: Estoque quantitativo — Pós-MVP; consensus/governance/IA01-SCHEMA-CLOSURE-REPORT.md; current MVP2 HEAD 0e1897cae007530cbe8aed20b97e04a25340cc87.
+  </evidence>
+
+  <non_decisions>
+    <item>No migration is defined or authorized.</item>
+    <item>No physical column names are defined here.</item>
+    <item>Migration 0002 remains untouched and non-authoritative.</item>
+    <item>Customer, Conversation, Message and DomainOutbox decisions are unchanged.</item>
+    <item>This decision does not authorize runtime implementation or merge.</item>
+  </non_decisions>
+</operator_stock_model_decision>
