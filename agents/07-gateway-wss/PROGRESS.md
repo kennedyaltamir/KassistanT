@@ -70,9 +70,39 @@
 
 The existing validator checks object-ness, protocol version, message type, required identifiers, payload presence, basic optional-field string types, numeric `sequence` type and ACK payload shape. It intentionally does not invent stricter lexical rules, unknown-field policy or version negotiation.
 
-### Runtime readiness gate
+## WSS Session Boundary Audit — 2026-08-24
 
-The next functional WSS transport slice is **BLOCKED**. It requires IA-06 device authentication/session identity, IA-03 Inbox durability and ACK/replay infrastructure, and completion of currently partial recovery/backpressure semantics. No socket, handshake, ACK, replay, resume, resync, heartbeat or backpressure runtime was added in this phase.
+### Ownership conclusions
+
+- IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation.
+- IA-07 owns generic WSS connection/transport mechanics after an authenticated identity is supplied; it does not own cryptographic authority.
+- IA-03 owns InboundInbox, deduplication, durable ACK boundary, replay/recovery and Event Infrastructure.
+- IA-08 consumes connection/session state and WSS events for UI presentation; it does not own authentication or durable transport state.
+
+### Session identity
+
+`session identity` is explicitly part of the IA-06 device-auth boundary, but exact fields, lifecycle states, expiration and reconnect/reauthentication semantics remain unspecified. No IA-07 session contract was invented.
+
+### Revocation
+
+IA-06 is the revocation authority. IA-07 may only apply transport/session termination after receiving an executable revocation signal defined by the device-auth boundary.
+
+### ACK / persistence
+
+The sequence remains: validate envelope → durable `InboundInbox` persistence → ACK → downstream business processing. IA-07 must consume IA-03 durability interfaces and must not create competing persistence or replay stores.
+
+### Sequence / reconnect
+
+Sequence is documented as monotonic per `(store_id, device_id)`, but persistence ownership, duplicate/gap handling and replay storage remain PARTIAL. Reconnect/reauthentication semantics are also not closed by IA-06.
+
+### Artifacts
+
+- `WSS-INTEGRATION-BOUNDARY.md` — cross-agent ownership/interface matrix.
+- `WSS-SESSION-DECISION-MATRIX.md` — unresolved session questions and required approvals.
+
+### Runtime gate
+
+`WSS connection lifecycle abstraction` = `BLOCKED` pending executable IA-06 session identity/authentication boundary and IA-03 durable intake/ACK/replay interfaces. No runtime code was added in this phase.
 
 ## Evidence rule
 
