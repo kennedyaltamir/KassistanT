@@ -11,12 +11,13 @@
 
 ## Contract closure facts
 
-- DR-01..DR-08 are OPEN project decisions, not local decisions.
-- Security is tracked in independent layers: identity, crypto primitive, crypto wire contract, replay, session, authorization, rate limiting, idempotency, rotation, revocation, audit and storage.
-- Ed25519 primitive is defined independently from the cryptographic wire contract.
-- The logical Secure Storage boundary is defined independently from concrete Windows technology selection and runtime validation.
-- The Signature Verification Boundary requires only the minimum DR-02 cryptographic subset and does not implicitly require session, authorization, rate-limit, idempotency or rotation closure.
+- DR-01 and DR-03..DR-08 remain OPEN project decisions.
+- DR-02 is intentionally split into DR-02A (cryptographic verification contract) and DR-02B (operational replay protocol).
+- DR-02A is the only DR-02 subset required by the proposed pure Signature Verification Boundary.
+- DR-02B remains open for challenge uniqueness/freshness, challenge lifecycle/storage, reuse rejection, expiration, replay detection, replay error semantics and persistence/recovery.
+- A DR-02A approval must never be interpreted as approval of DR-02B.
 - No rate-limit numbers, HTTP schemas, authorization matrix, idempotency TTL/replay semantics or rotation lifecycle are invented.
+- Concrete Windows Secure Storage technology is not selected locally.
 - Runtime remains NOT_STARTED.
 
 ## Memory hygiene
