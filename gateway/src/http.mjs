@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
+import { getAutoReplyStatus } from './auto-reply.mjs';
 
 /** @param {import('node:http').ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
@@ -56,6 +57,10 @@ export function createHttpServer() {
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') {
       return json(response, 200, getStatus());
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/status') {
+      return json(response, 200, getAutoReplyStatus());
     }
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/messages') {
