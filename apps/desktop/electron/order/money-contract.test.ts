@@ -6,7 +6,7 @@ import {
   assertMoneyAmount,
   createMoney,
   subtractMoney
-} from "../../../../packages/domain/src/index.ts";
+} from "../../../../packages/domain/src/index";
 
 test("Order Engine reuses the canonical Money representation", () => {
   assert.deepEqual(createMoney(0), { amount_cents: 0, currency: CURRENCY_BRL });
