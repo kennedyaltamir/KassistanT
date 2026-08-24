@@ -40,6 +40,14 @@
 - V1 should not require all future WSS functionality. Unsupported replay/resync/backpressure sophistication may be deferred only when the selected V1 contract explicitly permits it.
 - `WSS connection lifecycle` remains BLOCKED until the required gates pass.
 
+## Dependency acceptance gate — 2026-08-24
+
+- Acceptance can be performed incrementally from a supplied branch/commit and only the gate artifacts; a full architecture audit is not required unless authoritative evidence conflicts.
+- `ACCEPTED` requires every mandatory gate for the selected slice to have repository-verifiable evidence and deterministic tests.
+- `ACCEPTED_WITH_GAPS` is valid only when omitted gaps are explicitly deferred and cannot affect the selected slice.
+- `REJECTED` is for contradictions, ownership violations or missing mandatory safety invariants; `NOT_VERIFIED` is for insufficient evidence.
+- The current first-slice proposal is `connection lifecycle without replay`; it remains BLOCKED until IA-06 session/revocation/reauth evidence and IA-03 durable-intake/ACK evidence pass acceptance.
+
 ## Limites epistemológicos
 
 - Detalhes não comprovados no runtime devem permanecer `NOT_VERIFIED`/`UNKNOWN`.
