@@ -5,7 +5,7 @@
 - Repository: `kennedyaltamir/KassistanT`.
 - Integration authority: `main`.
 - Active branch: `Agent01-schema-canonical-sqlite`.
-- Phase 1, Phase 2 and Decision Execution work remain documentation-only; protected contracts and M5.1 runtime remain untouched.
+- Phase 1, Phase 2 and schema decision work remain documentation-only; protected contracts and M5.1 runtime remain untouched.
 - Canonical schema inventory: 28 entities.
 
 ## M5.1 foundation
@@ -14,24 +14,44 @@ M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 check
 
 `0001_bootstrap.sql` still creates only `_schema_metadata`; canonical business tables are not implemented.
 
-## Schema decision package
+## Latest verified cross-agent evidence
 
-- `SCHEMA-DECISION-MATRIX.md` classifies local, cross-agent, global, deferred and non-blocking decisions and records request state.
-- `SCHEMA-AUTHORITY-MATRIX.md` separates semantic authority from IA-01 physical ownership.
-- `TABLE-READINESS-MATRIX.md` reclassifies the 28 tables by decision authority and request state.
-- `HUMAN-SCHEMA-REVIEW.md` provides closed decision requests for operator/agent review.
-- `CANONICAL-SCHEMA-SPEC.md` consolidates the physical proposal.
-- `MIGRATION-0002-READINESS.md` and `MIGRATION-0002-PROJECTION.md` remain documentary and prohibit migration creation.
+### IA-02
+- DREQ-001: Order aggregate root; OrderItem and OrderItemModifier aggregate-owned; OrderStatusHistory deferred for V1 aggregate boundary.
+- DREQ-002: `DRAFT -> CONFIRMED` via `ConfirmOrder`, event `order.confirmed`.
+- DREQ-005: domain error categories do not define persistence/idempotency/concurrency storage.
+- DREQ-006: authentication outside aggregate; authorization at application/application-service boundary; ActorContext shape not frozen.
 
-## Reclassified readiness
+### IA-03
+- Durable Inbox ACK corresponds to local persistence in `InboundInbox`.
+- DomainOutbox remains blocked under CONTRACT-001.
+- Exact physical field inventory for Inbox/Job/Audit is still incomplete.
 
-- `READY_AFTER_LOCAL_DECISION`: 3 tables.
-- `READY_AFTER_CROSS_AGENT_DECISION`: 14 tables.
-- `READY_AFTER_GLOBAL_DECISION`: 1 table.
-- `BLOCKED`: 10 tables.
-- `READY_FOR_MIGRATION`: 0 tables.
+### IA-04
+- `CONFIRMED` remains the operational sale milestone.
+- Parent-key persistence details for OrderItem/OrderItemModifier and OrderStatusHistory remain unresolved.
 
-No table was promoted in this execution because no new authority response or operator approval was received.
+### IA-05
+- AIExecution requires cross-agent logical closure with IA-01/IA-03.
+- Conversation transition semantics come from IA-02.
+- No complete canonical physical AI field inventory is frozen.
+
+### IA-06
+- Device authentication security boundaries are established, but schema-specific status/field decisions remain open.
+
+### IA-07
+- Gateway remains the external integration boundary.
+- CONTRACT-001 remains ambiguous and is not locally resolved.
+
+## Readiness
+
+- `DETERMINISTIC`: 0.
+- `DETERMINISTIC_AFTER_APPROVAL`: 3 (`store`, `product_image`, `log`).
+- `DETERMINISTIC_AFTER_CROSS_AGENT_DECISION`: 14.
+- `DETERMINISTIC_AFTER_GLOBAL_DECISION`: 1 (`domain_outbox`).
+- `BLOCKED`: 10.
+- `UNKNOWN`: 0.
+- `READY_FOR_DDL`: 0.
 
 ## Local physical proposals awaiting operator confirmation
 
@@ -41,19 +61,19 @@ No table was promoted in this execution because no new authority response or ope
 - booleans as SQLite `INTEGER 0/1` where semantics are frozen.
 - contract-defined JSON payloads as `TEXT` JSON.
 
-These remain proposals, not approved global decisions.
+These remain proposals, not approved decisions.
 
 ## Schema-critical blockers
 
-- `FIELD-GAPS`: incomplete semantic field inventories.
-- `CHILD-KEY-GAPS`: missing parent key definitions for OrderItem, OrderItemModifier and OrderStatusHistory.
-- `NULLABILITY-DEFAULT-GAPS`: semantic required/optional/default rules are incomplete.
-- `FK-ACTION-GAPS`: delete/update actions are not contractually frozen.
-- `ENUM-PHYSICAL-GAPS`: state catalog is known for several entities, but SQL representation is not frozen.
-- `CONTRACT-001`: global blocker only for affected DomainOutbox physical semantics.
-- `CONTRACT-002`: currently non-blocking for schema.
-- `GOV-001`: deferred unless an actual source conflict changes schema interpretation.
+- `FIELD-GAPS`.
+- `CHILD-KEY-GAPS`.
+- `NULLABILITY-DEFAULT-GAPS`.
+- `FK-ACTION-GAPS`.
+- `ENUM-PHYSICAL-GAPS`.
+- `CONTRACT-001` only for affected DomainOutbox physical semantics.
+- `CONTRACT-002` currently non-blocking for schema.
+- `GOV-001` deferred unless a real source conflict changes schema interpretation.
 
 ## Decision protocol
 
-Cross-agent requests are prepared but not answered. No semantic decision is assumed from a recommendation. The readiness matrix may only be promoted after explicit authority evidence is incorporated.
+No field, key, FK action, default, status encoding or persistence model is inferred from assertive language or runtime requirements. Physical readiness changes only after explicit owner evidence and/or operator approval is validated against the exact schema question.
