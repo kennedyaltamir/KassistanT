@@ -43,6 +43,11 @@ async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   }
 }
 
+function safeOllamaError(response, body) {
+  const detail = body && typeof body.error === 'string' ? `: ${body.error}` : '';
+  return `Ollama request failed (${response.status})${detail}`;
+}
+
 export function getLlmStatus() {
   const value = getAiConfig();
   return {
@@ -175,7 +180,7 @@ export async function generateReply(messages, options = {}) {
     });
 
     const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(`Local LLM request failed (${response.status})`);
+    if (!response.ok) throw new Error(`Local LLM request failed (${response.status})${body && typeof body.error === 'string' ? `: ${body.error}` : ''}`);
     const content = body?.message?.content;
     if (typeof content !== 'string' || !content.trim()) throw new Error('Local LLM returned an empty response');
     return content.trim();
