@@ -1,28 +1,16 @@
-const DEFAULT_URL = 'http://127.0.0.1:11434';
-const DEFAULT_MODEL = 'qwen3:14b';
+import { getAiConfig } from './ai-config.mjs';
 
 /** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
 
-function config() {
-  return {
-    enabled: String(process.env.KASSIST_AI_AUTOREPLY ?? 'false').toLowerCase() === 'true',
-    baseUrl: String(process.env.KASSIST_LLM_URL ?? DEFAULT_URL).replace(/\/$/, ''),
-    model: String(process.env.KASSIST_LLM_MODEL ?? DEFAULT_MODEL),
-    timeoutMs: Math.max(1_000, Number(process.env.KASSIST_LLM_TIMEOUT_MS ?? 60_000)),
-    systemPrompt:
-      process.env.KASSIST_LLM_SYSTEM_PROMPT ??
-      'Você é o assistente de atendimento do KassisT. Responda em português do Brasil, de forma curta, clara e educada. Não invente preços, disponibilidade, horários, pedidos ou políticas. Se a informação não estiver disponível no contexto, peça os dados necessários ou diga que precisa verificar. Não confirme ações que o sistema não executou.',
-  };
-}
-
-/** @returns {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number }} */
+/** @returns {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number, systemPrompt: string }} */
 export function getLlmStatus() {
-  const value = config();
+  const value = getAiConfig();
   return {
     enabled: value.enabled,
     baseUrl: value.baseUrl,
     model: value.model,
     timeoutMs: value.timeoutMs,
+    systemPrompt: value.systemPrompt,
   };
 }
 
@@ -31,7 +19,7 @@ export function getLlmStatus() {
  * @returns {Promise<string>}
  */
 export async function generateReply(messages) {
-  const value = config();
+  const value = getAiConfig();
   if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
 
   const controller = new AbortController();
@@ -40,7 +28,10 @@ export async function generateReply(messages) {
   try {
     const payload = {
       model: value.model,
-      messages: [{ role: 'system', content: value.systemPrompt }, ...messages],
+      messages: /** @type {ChatMessage[]} */ ([
+        { role: 'system', content: value.systemPrompt },
+        ...messages,
+      ]),
       stream: false,
       think: false,
     };
@@ -68,5 +59,3 @@ export async function generateReply(messages) {
     clearTimeout(timer);
   }
 }
-
-export { config as getLlmConfig };
