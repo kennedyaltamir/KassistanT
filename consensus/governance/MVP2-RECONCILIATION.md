@@ -2,7 +2,12 @@
 
 Date: 2026-08-24
 Verified branch: `MVP2`
-Verified HEAD: `0bea2a0ca7c52729cfd58bebc8cd568373222230`
+Implementation point verified before documentation reconciliation: `330308ad10f7f27e19c706963d3fad32f9d4464f`
+Post-verification documentation correction commit: `7e4b87194f614bf4557ea0e75e8e1a8653422b0d`
+
+## Repository point
+
+At the implementation point, `MVP2` was 450 commits ahead and 0 behind `main`, with merge-base equal to `main` (`86387b02ed55ef3af3b24f1591b3e0b0ff436a30`). The later documentation correction commit does not alter the implementation point.
 
 ## Artifact classification
 
@@ -10,7 +15,7 @@ Verified HEAD: `0bea2a0ca7c52729cfd58bebc8cd568373222230`
 |---|---|---|---|
 | `docs/domain/entities.md` | Normative candidate / derived baseline | Explicitly calls itself DEFINED / PARTIAL and records uniqueness rules | PARTIALLY NORMATIVE; reconciliation required |
 | `agents/01-schema/DECISIONS.md` | Normative governance record | Explicitly distinguishes approved constraints from proposals/pending decisions | ACTIVE GOVERNANCE |
-| `agents/01-schema/HUMAN-SCHEMA-REVIEW.md` | Decision package | Explicitly marks SD-001..SD-005 as proposals and Operator Pending | PENDING |
+| `agents/01-schema/HUMAN-SCHEMA-REVIEW.md` | Decision package | SD-001..SD-005 are proposals and Operator Pending | PENDING |
 | `agents/01-schema/MIGRATION-0002-PROJECTION.md` | Derived / documentary projection | Explicitly states projection-only and that 0002 is not created | CONTRADICTED BY FACTUAL TREE |
 | `apps/desktop/database/migrations/0002_c1_product_order.sql` | Physical implementation artifact / historical-or-unapproved until authority decides | Factual presence in MVP2 | PENDING CLASSIFICATION; BLOCKER |
 | `agents/02-domain/DOMAIN-GLOBAL-DECISIONS.md` | Decision package | Global requests are explicitly requests, not decisions | PENDING |
@@ -39,6 +44,24 @@ Required action: do not treat the terse entity summary as overriding detailed de
 `agents/01-schema/DECISIONS.md` and `agents/02-domain/DOMAIN-GLOBAL-DECISIONS.md` both keep CONTRACT-001 pending. Any artifact implying definitive ownership is therefore non-authoritative until global closure.
 
 Classification: **GLOBAL CONTRACT PENDING**.
+
+## Current governance state
+
+- `MVP_SCOPE_DECISION`: `PENDING_APPROVAL`
+- `GOV-DRIFT-0002`: `BLOCKER_PENDING_OPERATOR_DECISION`
+- `Customer Identity`: `OPEN_DECISION_PENDING_FORMALIZATION`
+- `Conversation Contract`: `OPEN_DECISION_PENDING_FORMALIZATION`
+- `Message Contract`: `OPEN_UNTIL_FORMALLY_FROZEN`
+- `CONTRACT-001`: `BLOCKER_PENDING_GLOBAL_DECISION`
+- `READY_FOR_IA02`: `false`
+
+No normative option was selected by IA-01.
+
+## Schema reconciliation status
+
+**COMPLETE FOR CURRENT EVIDENCE; NORMATIVE CLOSURE BLOCKED.**
+
+The reconciliation confirms that physical schema state and documentary state cannot currently be treated as one authoritative state. No migration was created, altered, executed or deleted during this cycle. The existing 0002 file remains an unresolved governance artifact until the Operator decides GOV-DRIFT-0002.
 
 ## Historical artifacts
 
