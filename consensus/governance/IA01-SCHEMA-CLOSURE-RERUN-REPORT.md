@@ -8,7 +8,7 @@ Branch: `ia01/schema-closure-20260824`
 ## Entry verification
 
 - `MVP2` factual HEAD: `0e1897cae007530cbe8aed20b97e04a25340cc87`.
-- PR #26 was verified as the prior schema-closure PR and remains separate.
+- PR #26 remains open/draft and contains this rerun.
 - `STOCK-MODEL-MVP-001` is registered as `APPROVED_OPTION_A / BINARY_AVAILABILITY`.
 - Migration 0002 remains physically present and non-authoritative.
 
@@ -16,10 +16,10 @@ Branch: `ia01/schema-closure-20260824`
 
 | Target | Result | Evidence / blocker |
 |---|---|---|
-| SCHEMA-001 Product / Order | PARTIALLY_CLOSED | Canonical logical mappings are reconciled. Historical names are not promoted. Final repository-wide physical naming convention and Order child parent-key semantics remain unresolved. |
-| SCHEMA-002 Nullability / Defaults | PARTIALLY_CLOSED | Product availability is deterministic (`INTEGER NOT NULL`, no SQL default). Remaining Order/support entity field optionality/defaults are incomplete. |
-| SCHEMA-003 Foreign Keys | BLOCKED | Relationship matrix explicitly keeps ON DELETE / ON UPDATE UNKNOWN and several parent keys unresolved. |
-| SCHEMA-004 Sale | CLOSED | No separate Sale persistence entity/table is part of the canonical MVP entity inventory; `Order.CONFIRMED` is the operational sale milestone. |
+| SCHEMA-001 Product / Order | PARTIALLY_CLOSED | Canonical logical mappings reconciled; historical names not promoted. Repository-wide physical naming convention and Order child parent-key semantics remain unresolved. |
+| SCHEMA-002 Nullability / Defaults | PARTIALLY_CLOSED | Product availability is deterministic (`INTEGER NOT NULL`, no SQL default). Remaining Order/support field optionality/defaults are incomplete. |
+| SCHEMA-003 Foreign Keys | BLOCKED | Authoritative relationship matrix keeps ON DELETE / ON UPDATE UNKNOWN and several parent keys unresolved. |
+| SCHEMA-004 Sale | CLOSED | Canonical MVP entity inventory has no Sale entity; `Order.CONFIRMED` is the operational sale milestone. |
 | SCHEMA-005 Binary Availability | CLOSED | `Product.available` is the authoritative binary state; no quantitative Inventory/InventoryMovement is required. |
 | SCHEMA-006 Migration strategy | CLOSED | `PRESERVE + APPEND LATER`, consistent with GOV-DRIFT-0002 Option B. |
 
@@ -31,7 +31,7 @@ The canonical entity inventory contains 28 entities and does not contain `Sale`.
 
 1. FK `ON DELETE` / `ON UPDATE` semantics remain UNKNOWN in the authoritative relationship matrix.
 2. Order child parent-key names remain unresolved (`OrderItem`, `OrderItemModifier`, `OrderStatusHistory`).
-3. Final nullability/default semantics remain incomplete for the unresolved support/child schema.
+3. Final nullability/default semantics remain incomplete for unresolved child/support schema.
 4. Repository-wide physical table/column naming convention remains a proposal that requires governance confirmation before becoming the canonical physical convention.
 
 ## Non-actions
@@ -40,10 +40,10 @@ The canonical entity inventory contains 28 entities and does not contain `Sale`.
 - No migration creation or execution.
 - Migration 0002 untouched.
 - No Customer/Conversation/Message/DomainOutbox decision reopened.
-- No change to PR #25 or PR #26.
+- No separate PR created; rerun is contained in PR #26.
 
 ## Verdict
 
 `SCHEMA_IMPLEMENTATION_READY = FALSE`.
 
-The stock-model blocker is removed. The remaining blockers are physical schema authority issues, not business-model ambiguity.
+The stock-model blocker is removed. The remaining blockers are physical schema-authority issues, not business-model ambiguity.
