@@ -4,7 +4,9 @@
 > **Authority:** `main` remains the integrated-state authority.
 > **Current operational phase:** `MVP2`
 > **Current operational baseline:** `MVP2`
-> **Integration target:** `main`
+> **Current operational baseline SHA:** `0bea2a0ca7c52729cfd58bebc8cd568373222230`
+> **Previous audited MVP2 reference:** `636f08a5d377879d80766cf017684f8a6f955376`
+> **Integration target:** `main @ 86387b02ed55ef3af3b24f1591b3e0b0ff436a30`
 
 ## PURPOSE
 
@@ -29,7 +31,10 @@ The current phase is governed by the following model:
 ```text
 CURRENT_OPERATIONAL_PHASE = MVP2
 CURRENT_OPERATIONAL_BASELINE = MVP2
+CURRENT_OPERATIONAL_BASELINE_SHA = 0bea2a0ca7c52729cfd58bebc8cd568373222230
+PREVIOUS_AUDITED_REFERENCE_SHA = 636f08a5d377879d80766cf017684f8a6f955376
 INTEGRATION_TARGET = main
+INTEGRATION_TARGET_SHA = 86387b02ed55ef3af3b24f1591b3e0b0ff436a30
 ```
 
 `MVP2` is the current operational baseline by explicit governance decision. This status is not inferred from commit count, branch depth or implementation volume.
@@ -49,7 +54,10 @@ main
       │
       └── subsequent operational evolution
               └── MVP2
-                  @ current verified head
+                  @ 0bea2a0c...
+                      │
+                      ├── previous audited reference
+                      │      636f08a5...
                       │
                       └── CURRENT OPERATIONAL BASELINE
                               │
