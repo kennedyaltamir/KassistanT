@@ -33,23 +33,53 @@ Approval of one layer does not implicitly approve another layer.
 
 ## DR-02 Approval Scope
 
+DR-02 is divided into two independent closure scopes:
+
+- **DR-02A — Cryptographic Verification Contract**
+- **DR-02B — Operational Replay / Challenge Runtime**
+
+Approval of DR-02A alone must never be interpreted as approval of DR-02B.
+
+### CRYPTOGRAPHIC_CONTEXT_BINDING_BOUNDARY
+
+Context binding belongs to the cryptographic verification contract only to the extent required to prevent a valid signature over one authenticated context from being accepted as valid in an incompatible context.
+
+For DR-02A, the **logical context** is the set of protocol elements that the signature authenticates. Only elements explicitly approved as part of that context may contribute to the bytes presented to the verifier.
+
+Candidate context elements for review are:
+
+- device identity;
+- protocol/domain separation;
+- authentication purpose or operation identifier;
+- challenge identity;
+- protocol version, if the approved contract requires it.
+
+These are **analysis candidates, not decisions**. An element becomes part of the signed context only when the project authority explicitly approves it for DR-02A.
+
+The final context boundary must satisfy two properties:
+
+1. The signer and verifier can derive the same logical context deterministically.
+2. The approved context is reflected deterministically in the bytes verified by the Ed25519 primitive.
+
+This boundary answers only **what is cryptographically authenticated**. It does not decide whether a challenge is fresh, unique, expired, reusable, persisted or rejected after prior use.
+
 ### CRYPTO_MINIMUM_APPROVAL
 
 The authority is being asked to approve only the contract needed for the pure `Signature Verification Boundary`:
 
 1. Ed25519 verification primitive.
 2. Logical signed-context concept.
-3. The approved rule for the exact bytes presented to the verifier.
-4. Public-key representation.
-5. Signature representation.
-6. Context binding required to prevent incompatible-context signature reuse, where required by the approved protocol.
+3. Explicit set of approved context elements.
+4. Approved rule for deriving the signed bytes from that context.
+5. Public-key representation.
+6. Signature representation.
 7. Deterministic verifier result semantics (`valid` / `invalid`).
 
 This approval is intentionally limited to the cryptographic verification boundary. It must not introduce or imply a numeric freshness window, challenge persistence model, expiration policy, replay store, HTTP behavior or session lifecycle.
 
 ### REPLAY_REMAINS_OPEN
 
-Operational replay/challenge runtime remains **OPEN** after the minimum cryptographic approval. It still requires separate closure for:
+Operational replay/challenge runtime remains **OPEN** after DR-02A approval. It still requires separate closure for:
 
 - challenge uniqueness;
 - challenge freshness policy;
@@ -60,11 +90,11 @@ Operational replay/challenge runtime remains **OPEN** after the minimum cryptogr
 - replay error semantics;
 - persistence and recovery behavior.
 
-These items are not required by the pure verifier unless a future implementation boundary establishes a concrete dependency.
+These items are not approved by the cryptographic context-binding boundary and are not required by the pure verifier unless a future implementation boundary establishes a concrete dependency.
 
 ### NON_APPROVED_RUNTIME_SEMANTICS
 
-The following are explicitly **not** approved by a minimum DR-02 approval:
+The following are explicitly **not** approved by DR-02A:
 
 - challenge TTL or numeric freshness window;
 - challenge storage/recovery;
@@ -99,8 +129,10 @@ For each DR, the authority should return one of:
 
 For DR-02 specifically, an approval must state whether it applies to:
 
-- CRYPTO_MINIMUM_ONLY; or
-- CRYPTO_MINIMUM + REPLAY_RUNTIME.
+- `CRYPTO_MINIMUM_ONLY`; or
+- `CRYPTO_MINIMUM + REPLAY_RUNTIME`.
+
+For the current review, IA-06 requests only `CRYPTO_MINIMUM_ONLY`.
 
 Silence must not be interpreted as approval of replay runtime.
 
