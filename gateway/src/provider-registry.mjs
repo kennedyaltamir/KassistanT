@@ -1,3 +1,6 @@
+/** @typedef {{ provider: string, label: string, credentialKeys: string[], availability: 'AVAILABLE' | 'UNAVAILABLE', validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} ProviderDefinition */
+
+/** @type {ProviderDefinition[]} */
 const PROVIDER_DEFINITIONS = [
   {
     provider: 'nvidia',
@@ -78,6 +81,7 @@ const PROVIDER_DEFINITIONS = [
   },
 ];
 
+/** @type {Map<string, string>} */
 const CREDENTIAL_TO_PROVIDER = new Map();
 for (const provider of PROVIDER_DEFINITIONS) {
   for (const key of provider.credentialKeys) CREDENTIAL_TO_PROVIDER.set(key, provider.provider);
@@ -89,10 +93,12 @@ export const PROVIDER_REGISTRY = Object.freeze(PROVIDER_DEFINITIONS.map(item => 
   validation: Object.freeze({ ...item.validation }),
 })));
 
+/** @param {string} provider @returns {ProviderDefinition | null} */
 export function getProviderDefinition(provider) {
   return PROVIDER_REGISTRY.find(item => item.provider === provider) ?? null;
 }
 
+/** @param {string} key @returns {ProviderDefinition | null} */
 export function getProviderForCredential(key) {
   const provider = CREDENTIAL_TO_PROVIDER.get(key);
   return provider ? getProviderDefinition(provider) : null;
