@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { classifyMigration } from "./migration-policy.js";
 
 export interface MigrationDefinition {
   id: string;
@@ -8,6 +9,7 @@ export interface MigrationDefinition {
   filePath: string;
   sql: string;
   checksum: string;
+  authority: ReturnType<typeof classifyMigration>;
 }
 
 const MIGRATION_PATTERN = /^(\d{4}_[a-z0-9][a-z0-9_-]*)\.sql$/i;
@@ -36,7 +38,8 @@ export async function discoverMigrations(directory: string): Promise<MigrationDe
       fileName: entry.name,
       filePath,
       sql: content.toString("utf8"),
-      checksum: createHash("sha256").update(content).digest("hex")
+      checksum: createHash("sha256").update(content).digest("hex"),
+      authority: classifyMigration(migrationId)
     });
   }
 
