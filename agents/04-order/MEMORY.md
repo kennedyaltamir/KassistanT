@@ -18,7 +18,10 @@ Permanent verified facts only.
 - `CONTRACT-002` `order.status_changed` remains unresolved.
 - `GOV-001` baseline version references contain an acknowledged historical/versioning inconsistency.
 - The current TypeScript domain event contract includes `order.created`, `order.confirmed`, `order.status_changed` and `order.cancelled`.
-- The current Money primitive uses safe integer cents and BRL; it does not implement Order pricing semantics.
+- The canonical Money primitive is implemented at `packages/domain/src/money.ts` and exported from `packages/domain/src/index.ts` as `createMoney`, `addMoney`, `subtractMoney`, `assertMoneyAmount`, `CURRENCY_BRL`, `Money` and `Currency`.
+- Canonical Money represents BRL as safe integer cents and rejects non-safe-integer amounts; arithmetic validates currency equality and preserves deterministic integer arithmetic.
+- IA-04 reuses the canonical Money primitive directly; no duplicate Money implementation or production adapter was created.
+- IA-04 added an Order Engine territory test covering the canonical Money representation and supported arithmetic/validation boundaries.
 - The current SQLite bootstrap migration creates only `_schema_metadata`; canonical business tables are not implemented.
 - IA-04 readiness audit classified complete Order Engine implementation as BLOCKED, while isolated Money arithmetic is the only identified READY slice that does not encode unresolved Order semantics.
 - Readiness documents now exist under `agents/04-order/` and are the current operational audit record for this phase.
