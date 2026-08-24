@@ -1,24 +1,35 @@
 # IA-01 — CHANGELOG
 
-## [0.2.0] — 2026-08-24
+## [0.3.0] — 2026-08-24
 
 ### Added
 
-- Phase 1 Contract-to-Schema Audit completed.
-- Added `CANONICAL_SCHEMA_AUDIT.md` with 28-entity canonical schema matrix.
-- Added relationship, constraint, index, blocker and implementation-readiness matrices.
-- Recorded explicit and partial field-level evidence without inventing schema details.
-- Recorded seven normative unique constraints from baseline §23.1.
-- Recorded schema-critical field gaps and unresolved contract dependencies.
+- Phase 2 canonical physical schema specification.
+- `CANONICAL-SCHEMA-SPEC.md`.
+- `ENTITY-PHYSICAL-MAP.md`.
+- `RELATIONSHIP-SPEC.md`.
+- `CONSTRAINT-SPEC.md`.
+- `INDEX-SPEC.md`.
+- `MIGRATION-0002-READINESS.md`.
+- `MIGRATION-0002-PROJECTION.md`.
+
+### Findings
+
+- All 28 canonical entities have explicit physical-name proposals.
+- Seven unique constraints remain the only contract-required physical indexes.
+- Twenty-three relationships were classified without inventing missing parent keys.
+- Lifecycle/status semantics are known but SQL encoding remains open.
+- Nullability, defaults, FK actions and several physical types remain insufficiently specified.
+- DomainOutbox remains blocked where its physical semantics depend on CONTRACT-001.
 
 ### Preserved
 
-- No change to `0001_bootstrap.sql`.
-- No change to M5.1 SQLite runtime.
-- No change to `packages/domain/**` or `packages/contracts/**`.
-- No change to global documentation.
 - No migration `0002` created.
+- No modification to `0001_bootstrap.sql`.
+- No modification to M5.1 runtime.
+- No modification to contracts or global documentation.
+- No modification outside `agents/01-schema/**`.
 
 ### Outcome
 
-Phase 1 is **COMPLETE WITH BLOCKERS**. The audit artifact is sufficient to define the known/unknown boundary but not sufficient to authorize deterministic canonical migration DDL yet.
+Phase 2 is **COMPLETE AS SPECIFICATION / BLOCKED FOR DDL**. The next valid step is human/authority review of schema-critical blockers, not migration implementation.
