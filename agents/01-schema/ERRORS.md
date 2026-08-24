@@ -1,46 +1,55 @@
 # IA-01 — ERRORS
 
-## Phase 2 schema blockers
+## Schema decision blocker classification
 
 ### E-001 — CONTRACT-001: DomainOutbox ownership/scope
-Status: OPEN / BLOCKING FOR AFFECTED DESIGN. Physical ownership, scope and event persistence semantics remain ambiguous across Core/Gateway.
+Status: GLOBAL / BLOCKING ONLY FOR AFFECTED DESIGN.
+Physical ownership and scope remain ambiguous across Core/Gateway.
 
 ### E-002 — CONTRACT-002: `order.status_changed`
-Status: OPEN / CURRENTLY NON-BLOCKING FOR EXISTING SCHEMA. Becomes blocking only if final event semantics require new physical persistence.
+Status: NON-BLOCKING FOR CURRENT SCHEMA.
+Only becomes blocking if final event semantics add a physical persistence requirement.
 
-### E-003 — GOV-001: documentation authority/history mismatch
-Status: OPEN. Must be escalated if source authority changes interpretation of schema-critical material.
+### E-003 — GOV-001: document authority/history
+Status: DEFERRED.
+Escalate only if an actual normative conflict changes schema interpretation.
 
-### E-004 — Field specification gaps
-Status: OPEN / BLOCKING. Exact fields remain incomplete for Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem.
+### E-004 — FIELD-GAPS
+Status: CROSS-AGENT / BLOCKING.
+Incomplete field models remain for Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential, KnowledgeItem and other partial concepts.
 
-### E-005 — Child parent-key names absent
-Status: OPEN / BLOCKING. OrderItem, OrderItemModifier and OrderStatusHistory cannot receive deterministic FKs without explicit parent-key field names.
+### E-005 — CHILD-KEY-GAPS
+Status: CROSS-AGENT / BLOCKING.
+OrderItem, OrderItemModifier and OrderStatusHistory require explicit parent keys and ownership semantics.
 
-### E-006 — Physical SQL table naming not frozen
-Status: OPEN / BLOCKING. lower_snake_case is only a proposal.
+### E-006 — TABLE-NAMING
+Status: LOCAL DECISION / PROPOSAL.
+`lower_snake_case` is consistent but requires explicit operator confirmation before DDL.
 
-### E-007 — Physical UUID/timestamp encoding not frozen
-Status: OPEN / BLOCKING FOR DDL. Semantic conventions are known; SQLite encoding is not explicitly selected.
+### E-007 — PHYSICAL-TYPE-GAPS
+Status: MIXED.
+IA-01 may decide physical encoding for already-frozen primitives after approval; semantic-sensitive encodings remain cross-agent.
 
-### E-008 — Nullability/defaults not frozen
-Status: OPEN / BLOCKING. Do not add NOT NULL or DEFAULT based on intuition.
+### E-008 — NULLABILITY-DEFAULT-GAPS
+Status: CROSS-AGENT / BLOCKING.
+Semantic owners must close required/optional/default behavior.
 
-### E-009 — FK delete/update behavior not frozen
-Status: OPEN / BLOCKING where explicit actions are required for deterministic DDL.
+### E-009 — FK-ACTION-GAPS
+Status: CROSS-AGENT / BLOCKING.
+No ON DELETE/ON UPDATE behavior may be invented.
 
-### E-010 — SQL state representation not frozen
-Status: OPEN / BLOCKING. Semantic state values are known, physical representation is not.
+### E-010 — ENUM-PHYSICAL-GAPS
+Status: CROSS-AGENT / BLOCKING.
+Semantic state catalogs exist, but physical representation remains open.
 
-### E-011 — Existing migration is foundation-only
-Status: CONFIRMED. `0001_bootstrap.sql` remains unchanged and creates only `_schema_metadata`.
+### E-011 — M5.1 foundation boundary
+Status: CONFIRMED / NON-BLOCKING FOR DOCUMENT WORK.
+`0001_bootstrap.sql` and SQLite runtime remain unchanged and protected.
 
-### E-012 — M5.1 runtime remains outside IA-01 write scope
-Status: CONFIRMED. `apps/desktop/electron/database/**` is protected in this phase.
-
-### E-013 — Performance-only indexes are unapproved
-Status: CONFIRMED. Only seven explicit uniqueness indexes are contract-required.
+### E-012 — Performance-only indexes
+Status: NON-BLOCKING / DEFERRED.
+No performance index is required without explicit query/integrity evidence.
 
 ## Error handling rule
 
-No blocker is removed because a convenient implementation exists. Resolution requires authoritative evidence or explicit project decision.
+A blocker is closed only by authoritative evidence or explicit project decision. A convenient implementation is not closure evidence.
