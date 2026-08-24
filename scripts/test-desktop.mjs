@@ -13,7 +13,9 @@ for (const file of walkFiles(path.join(root, "tests"))) {
 
 const tsTests = [
   path.join(domain, "src", "foundation.test.ts"),
-  path.join(desktop, "electron", "database", "database.test.ts")
+  path.join(domain, "src", "order.test.ts"),
+  path.join(desktop, "electron", "database", "database.test.ts"),
+  path.join(desktop, "electron", "database", "product-order-persistence.test.ts")
 ];
 
 run("node", ["--test", ...jsTests], root);
