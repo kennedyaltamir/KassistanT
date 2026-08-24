@@ -1,80 +1,53 @@
 # IA-01 — HANDOFF
 
-## Purpose
-
-Permitir continuidade do território IA-01 sem depender de memória conversacional.
-
 ## Identity
 
 - Agent: **IA-01 — Schema / Canonical SQLite**
-- Territory: Canonical SQLite Schema e Persistence Schema Foundation
+- Territory: Canonical SQLite Schema / Persistence Schema Foundation
 - Active branch: `Agent01-schema-canonical-sqlite`
 - Integration authority: `main`
 
-## Phase 1 result
+## Phase 2 result
 
-Phase 1 — Contract-to-Schema Audit / Canonical Schema Specification — is **COMPLETE WITH BLOCKERS**.
+Phase 2 — Canonical Schema Specification — is **COMPLETE AS SPECIFICATION / BLOCKED FOR DDL**.
 
-Primary artifact:
+## Primary artifacts
 
-`agents/01-schema/CANONICAL_SCHEMA_AUDIT.md`
+- `CANONICAL-SCHEMA-SPEC.md`
+- `ENTITY-PHYSICAL-MAP.md`
+- `RELATIONSHIP-SPEC.md`
+- `CONSTRAINT-SPEC.md`
+- `INDEX-SPEC.md`
+- `MIGRATION-0002-READINESS.md`
+- `MIGRATION-0002-PROJECTION.md`
 
-The artifact contains:
+## Verified state
 
-- 28 canonical entities;
-- field-level evidence classifications;
-- relationship matrix;
-- constraint matrix;
-- index matrix;
-- blocker matrix;
-- implementation readiness matrix.
+1. Exactly 28 canonical entities are mapped.
+2. Lower_snake_case table names are documented as PROPOSED only.
+3. Seven explicit unique constraints are REQUIRED_BY_CONTRACT.
+4. Twenty-three relationships are classified; missing parent keys are explicitly blocked rather than inferred.
+5. Lifecycle/status semantic values are preserved, but physical SQL enum encoding remains open.
+6. Money is integer cents / BRL and timestamps are UTC semantically.
+7. M5.1 and `0001_bootstrap.sql` remain unchanged.
+8. No `0002` migration exists.
 
-## Verified technical state
+## Schema-critical blockers
 
-1. M5.1 SQLite foundation remains unchanged.
-2. `0001_bootstrap.sql` remains unchanged and creates only `_schema_metadata`.
-3. No canonical business tables are implemented.
-4. No migration `0002` exists from this Phase 1 work.
-5. Protected global contracts and documentation were not modified.
-6. Phase 1 identified seven explicit normative unique constraints, money/BRL, UTC and UUIDv7 conventions, and several field-level gaps.
+- Physical SQL naming convention.
+- Incomplete schemas for Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem.
+- Parent key names for OrderItem, OrderItemModifier and OrderStatusHistory.
+- Physical UUID and timestamp encoding.
+- Nullability/defaults.
+- FK delete/update behavior.
+- SQL lifecycle/status representation.
+- DomainOutbox physical semantics under CONTRACT-001.
+- GOV-001 if authority history changes interpretation.
 
-## Important unresolved schema gaps
+## CONTRACT-002 classification
 
-- `Settings`, `ProductCategory`, `CustomerAddress`, `PaymentMethod`, `Integration`, `IntegrationCredential`, `KnowledgeItem` have materially incomplete field-level definitions.
-- Parent key field names for `OrderItem`, `OrderItemModifier` and `OrderStatusHistory` are not explicitly named.
-- Physical SQL table naming is not frozen by current protected documentation.
-- Nullability/defaults are mostly not normative and remain UNKNOWN.
-- FK delete/update behavior is not specified.
+`order.status_changed` remains ambiguous but is currently **non-blocking for existing schema**. It becomes blocking only if the final event decision requires a new physical schema element or changes an existing persisted contract.
 
-## Open global contracts
+## Migration gate
 
-- `CONTRACT-001` — DomainOutbox ownership/scope.
-- `CONTRACT-002` — `order.status_changed` semantics; only schema-impacting if final decision changes physical schema.
-- `GOV-001` — baseline/document authority/history.
-
-## Downstream dependencies
-
-### IA-02 — Domain Runtime
-Consumes persistence structure; business behavior remains outside IA-01.
-
-### IA-03 — Event Infrastructure
-Depends on `InboundInbox`, `DomainOutbox`, `Job`, `AuditLog`; DomainOutbox remains blocked by CONTRACT-001.
-
-### IA-04 — Order Engine
-Depends on product, promotion, customer, address, order, payment structures and lifecycle representation.
-
-### IA-05 — Conversation + LLM
-Depends on conversation, message, customer and AI persistence structures.
-
-### IA-06 — Device Authentication
-Depends on Store/Device persistence and secure credential references.
-
-### IA-07 — Gateway + WSS
-Cross-boundary semantics must follow protected contracts; Gateway persistence is not owned by IA-01.
-
-### IA-08 — Desktop UI
-Consumes application-level services/contracts; no direct database authority.
-
-## Next gate
-
-Do not create `0002` until Phase 2 closes schema-critical field and contract gaps and the matrix can deterministically generate the migration.
+`0002` must not be created until a reviewer confirms that a second engineer can derive identical SQL from the physical specification without interpretation.
