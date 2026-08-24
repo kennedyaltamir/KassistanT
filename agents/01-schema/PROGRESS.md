@@ -2,24 +2,25 @@
 
 ## Current phase
 
-**Phase 1 — Contract-to-Schema Audit / Canonical Schema Specification**
+**Phase 2 — Canonical Schema Specification**
 
-## Audit status
+## Phase 1 status
 
-- Repository audit: COMPLETE for IA-01 territory.
-- Baseline review: COMPLETE for schema-relevant sections.
-- Domain documentation review: COMPLETE for entities, commands, invariants, events and state machines.
-- Backend persistence review: COMPLETE for database, persistence, inbox/outbox, jobs and audit.
-- Protected protocol/contract review: COMPLETE for schema-relevant contract registry and cross-consistency status.
-- Domain package review: COMPLETE for state types, money, UTC and UUIDv7 primitives.
-- Phase 1 matrix: COMPLETE WITH BLOCKERS.
+`DONE WITH BLOCKERS`
 
-## Deliverables
+- 28 canonical entities audited.
+- Field, relationship, constraint, index and blocker matrices completed.
+- M5.1 preserved.
 
-- `CANONICAL_SCHEMA_AUDIT.md` created under `agents/01-schema/`.
-- Matrix contains the 28 canonical entities.
-- Field-level evidence is classified as EXPLICIT, STRONG_INFERENCE, PARTIAL or UNKNOWN.
-- Relationships, constraints, normative indexes, blockers and implementation readiness are recorded.
+## Phase 2 deliverables
+
+- `CANONICAL-SCHEMA-SPEC.md`
+- `ENTITY-PHYSICAL-MAP.md`
+- `RELATIONSHIP-SPEC.md`
+- `CONSTRAINT-SPEC.md`
+- `INDEX-SPEC.md`
+- `MIGRATION-0002-READINESS.md`
+- `MIGRATION-0002-PROJECTION.md`
 
 ## Current technical reality
 
@@ -32,44 +33,38 @@
 | Transaction boundary | IMPLEMENTED |
 | Database health | IMPLEMENTED |
 | Canonical business schema | NOT_IMPLEMENTED |
-| Phase 1 canonical audit matrix | DOCUMENTED / COMPLETE WITH BLOCKERS |
+| Phase 1 audit matrix | COMPLETE WITH BLOCKERS |
+| Phase 2 physical specification | COMPLETE AS EVIDENCE/PROPOSAL; BLOCKED FOR DDL |
 | Migration 0002 | NOT_CREATED |
 
-## Confirmed schema constraints
+## Phase 2 findings
 
-Normative unique constraints:
-
-- `Customer(store_id, phone_normalized)`
-- `Conversation(store_id, external_thread_id)`
-- `Message(store_id, external_message_id)`
-- `InboundInbox(provider, external_event_id)`
-- `DomainOutbox(idempotency_key)`
-- `Order(store_id, display_number)`
-- `Device(store_id, id)`
-
-Normative data conventions:
-
-- money = integer cents / BRL;
-- persisted timestamps = UTC;
-- UUIDv7 identifier direction;
-- quantity = positive integer where domain invariant applies;
-- known lifecycle sets must be preserved.
+- All 28 physical table names have lower_snake_case proposals, but naming is not approved/frozen.
+- Seven unique constraints are REQUIRED_BY_CONTRACT.
+- 23 relationships are classified; missing child parent keys remain blocked.
+- No FK delete/update action is normatively defined.
+- SQL enum/status storage is not frozen.
+- Several field-level schemas remain incomplete.
 
 ## Blockers
 
-- `CONTRACT-001` for DomainOutbox ownership/scope.
-- `CONTRACT-002` conditionally for event-derived schema semantics.
-- `GOV-001` when source authority affects schema interpretation.
-- Missing field-level specifications for several entities.
-- Missing parent-key field names for `OrderItem`, `OrderItemModifier`, `OrderStatusHistory`.
-- SQL table naming convention not explicitly frozen.
+- `TABLE-NAMING`
+- `FIELD-GAPS`
+- `CHILD-KEY-GAPS`
+- `PHYSICAL-TYPE-GAPS`
+- `NULLABILITY-DEFAULT-GAPS`
+- `FK-ACTION-GAPS`
+- `ENUM-PHYSICAL-GAPS`
+- `CONTRACT-001`
+- `GOV-001` when authority affects schema interpretation
+- `CONTRACT-002` only if final event decision changes schema
 
 ## Implementation status
 
 `IMPLEMENTATION_STARTED = FALSE`.
 
-No migration was created. `0001_bootstrap.sql` and the M5.1 SQLite runtime were not modified.
+No migration, runtime code or contract was modified.
 
-## Next operational gate
+## Next gate
 
-Phase 2 may define a concrete canonical DDL only after schema-critical field-level gaps and any contract blocker affecting physical representation are closed through authoritative evidence or approved decisions.
+Human/authority review must close schema-critical blockers. Only after the physical specification becomes fully deterministic should `0002` be generated.
