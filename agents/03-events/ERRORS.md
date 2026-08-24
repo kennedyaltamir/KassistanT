@@ -3,68 +3,77 @@
 ## ERR-001 — CONTRACT-001: DomainOutbox ambiguity
 **Status:** OPEN / BLOCKING
 
-The baseline/documentation describes DomainOutbox in conflicting ways. Do not finalize ownership, behavior, schema semantics or transaction boundaries until resolved.
+Do not finalize DomainOutbox ownership, behavior, schema semantics or transaction boundaries until resolved.
 
 ## ERR-002 — CONTRACT-002: `order.status_changed` ambiguity
 **Status:** OPEN
 
-The normative event catalogue is internally inconsistent. IA-03 must not assume the event is definitively required or forbidden.
+IA-03 must not assume the event is definitively required or forbidden.
 
 ## ERR-003 — Runtime absence
 **Status:** NOT_IMPLEMENTED
 
-EventBus, InboundInbox, DomainOutbox, JobQueue and AuditLog runtime are not implemented in the audited repository state.
+EventBus, InboundInbox, DomainOutbox, JobQueue and AuditLog runtime are not implemented.
 
 ## ERR-004 — Documentation is not implementation evidence
 **Status:** OPERATIONAL RISK
 
-Contracts and validation notes exist, but completion claims require executable implementation and tests.
+Completion requires executable implementation and tests.
 
 ## ERR-005 — Partial operational policies
 **Status:** PARTIAL
 
-Queue limits, retention, exact job jitter, lease durations, maximum attempts, dead-letter transitions and some idempotency rules remain incomplete. Values must not be invented.
+Queue limits, retention, exact job jitter, lease durations, maximum attempts and dead-letter transitions remain incomplete.
 
 ## ERR-006 — Cross-agent contract drift
 **Status:** OPERATIONAL RISK
 
-IA-03 is consumed by Order, Conversation and transport areas. Shared contract changes require integration authority and cross-agent review.
+IA-03 consumers include Order, Conversation and transport areas. Shared contract changes require integration authority and cross-agent review.
 
 ## ERR-007 — Sensitive data in audit/logging
 **Status:** SECURITY RISK
 
-Customer data, conversations, orders and credentials must not be exposed through logs/audit without explicit policy. Secrets must never be committed.
+Sensitive customer/business data must not be exposed without explicit policy. Secrets must never be committed.
 
 ## ERR-008 — EventBus guarantee inflation
 **Status:** READINESS RISK
 
-EventBus is documented as in-process/post-commit local communication. The repository does not establish exactly-once, global ordering, durable replay or automatic retry. Tests and implementation must not imply these guarantees without a protected contract.
+EventBus is in-process/post-commit. Do not imply exactly-once, durable replay, global ordering or durable retry.
 
 ## ERR-009 — Persistence model duplication
 **Status:** READINESS RISK
 
-IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence. Such duplication would create competing sources of truth.
+Do not create temporary Inbox/Outbox/Job/Audit schema outside IA-01 canonical persistence.
 
 ## ERR-010 — Reliability policy invention
 **Status:** READINESS RISK
 
-Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative. Local guesses would become accidental architecture.
+Do not invent retry counts, job backoff, leases, timeout values, retention or dead-letter transitions.
 
 ## ERR-011 — EventBus runtime gate incomplete
-**Status:** BLOCKING
+**Status:** BLOCKING FOR RUNTIME
 
-Protected sources do not define subscriber scheduling, failure propagation, subscriber isolation, cancellation, timeout, unsubscribe lifecycle, duplicate registration behavior or dispatch-completion semantics. These cannot be inferred from the in-process/post-commit description.
+Protected sources do not define the local subscriber lifecycle/error semantics.
 
 ## ERR-012 — Ordering boundary closed negatively
 **Status:** CLOSED / NEGATIVE GUARANTEE
 
-EventBus is explicitly documented as having no protected ordering guarantee. Do not infer FIFO, global, per-type or per-aggregate ordering from implementation structures.
+EventBus has `NO_ORDERING_GUARANTEE`.
+
+## ERR-013 — Local policy approval pending
+**Status:** BLOCKING FOR IMPLEMENTATION / NON-BLOCKING FOR ARCHITECTURAL PREPARATION
+
+A complete proposal now exists for subscriber failure propagation, isolation, scheduling, cancellation, timeout, unsubscribe lifecycle, multiple-subscriber behavior and dispatch completion. These are local observable runtime policies but have not yet been approved by the operator.
+
+## ERR-014 — Premature implementation compatibility risk
+**Status:** OPEN / READINESS RISK
+
+Implementing before approval would convert proposed handler lifecycle/error behavior into de facto product behavior and could force consumers to depend on semantics that were never intentionally accepted.
 
 ## Recovery traps
 
 - ACK before durable Inbox persistence breaks the contract.
 - Retry without idempotency can create duplicate logical effects.
 - Replay without causation/correlation breaks traceability.
-- Dead-letter state is not a business outcome.
-- Treating WSS reconnect backoff as JobQueue retry policy would cross a transport boundary without authorization.
-- Treating an arbitrary handler scheduling model as normative would create an unapproved EventBus contract.
+- Treating WSS reconnect backoff as JobQueue retry policy crosses a transport boundary.
+- Treating the proposed EventBus lifecycle policy as approved before human review creates an unauthorized contract.
