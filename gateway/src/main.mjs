@@ -1,4 +1,5 @@
 import { createHttpServer, connect } from './http.mjs';
+import { startAutoReply } from './auto-reply.mjs';
 
 const host = process.env.KASSIST_GATEWAY_HOST ?? '127.0.0.1';
 const port = Number(process.env.KASSIST_GATEWAY_PORT ?? 3210);
@@ -6,6 +7,7 @@ const server = createHttpServer();
 
 server.listen(port, host, async () => {
   console.log(`[KassisT WhatsApp Gateway] listening on http://${host}:${port}`);
+  startAutoReply();
   try {
     await connect();
   } catch (error) {
