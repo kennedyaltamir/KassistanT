@@ -43,6 +43,8 @@ The following are audit classifications, not new architecture decisions:
 
 - Complete Order Engine implementation: BLOCKED.
 - Deterministic Money arithmetic as an isolated pure slice: READY.
+- Canonical Money source: `packages/domain/src/money.ts` / `@kassist/domain` export.
+- Money ownership decision: REUSE_EXISTING_CANONICAL_MONEY; IA-04 does not duplicate or move the primitive.
 - Complete pricing engine: BLOCKED.
 - Complete promotion evaluation: BLOCKED.
 - Complete lifecycle implementation: PARTIAL.
