@@ -1,6 +1,6 @@
 # IA-06 Device Crypto and Security Readiness
 
-Status: STRATIFIED CONTRACT REVIEW / IMPLEMENTATION FROZEN.
+Status: STRATIFIED DR-02 REVIEW / IMPLEMENTATION FROZEN.
 
 ## Layer 1 — Cryptographic primitive
 
@@ -12,28 +12,37 @@ Status: STRATIFIED CONTRACT REVIEW / IMPLEMENTATION FROZEN.
 
 This layer does not define HTTP, session, authorization or rate-limit behavior.
 
-## Layer 2 — Cryptographic wire contract
+## Layer 2 — DR-02A Cryptographic Verification Contract
 
 **Status: OPEN / GLOBAL_DECISION_REQUIRED**
 
-The repository does not yet fully define:
+The minimum contract required by the pure Signature Verification Boundary must define:
 
-- exact signed bytes;
-- payload canonicalization/serialization;
-- public-key representation;
-- signature representation;
-- challenge representation;
-- context binding needed to prevent cross-context signature reuse.
+1. the logical signed-context concept;
+2. the exact bytes presented to the verifier;
+3. public-key representation;
+4. signature representation;
+5. context binding required to prevent incompatible-context signature reuse, where required by the approved protocol;
+6. deterministic verification result semantics (`valid` / `invalid`).
 
-These are protocol-contract questions, not reasons to change the Ed25519 primitive.
+The repository does not yet provide these wire-level details completely. They must be approved; they must not be invented locally.
 
-## Layer 3 — Replay security
+## Layer 3 — DR-02B Operational Replay Protocol
 
-**Status: OPEN / GLOBAL_DECISION_REQUIRED**
+**Status: OPEN / REPLAY RUNTIME**
 
-The protocol requires fresh challenge-based proof, but the repository does not fully specify challenge lifecycle, uniqueness, expiration/reuse rejection or replay error semantics.
+Replay/challenge runtime is separate from the pure cryptographic verifier and includes:
 
-Replay prevention must be explicit before challenge runtime is implemented. It must not be inferred from an arbitrary local timestamp or an unapproved TTL.
+- challenge uniqueness;
+- challenge freshness policy;
+- challenge lifecycle/storage;
+- reuse rejection;
+- expiration;
+- replay detection;
+- replay error semantics;
+- persistence and recovery behavior.
+
+A DR-02A approval does not approve DR-02B. No numeric freshness window, TTL or replay-store design is defined here.
 
 ## Layer 4 — Operational security
 
@@ -82,4 +91,4 @@ Revocation results in `DEVICE_REVOKED` and session termination. It does not impl
 
 ## Validation gates
 
-Pure signature verification can be tested after the minimum DR-02 cryptographic wire subset is approved. Replay/session/authorization/rate-limit/rotation/security-storage tests require their respective contracts and should not be conflated with the pure verifier boundary.
+Pure signature verification can be tested after DR-02A is approved. Replay/session/authorization/rate-limit/rotation/secure-storage tests require their respective contracts and must not be conflated with the pure verifier boundary.
