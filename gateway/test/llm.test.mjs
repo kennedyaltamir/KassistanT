@@ -13,7 +13,13 @@ test.afterEach(() => {
 });
 
 test('local LLM status is disabled by default', async () => {
-  const { getLlmStatus } = await import('../src/llm.mjs');
+  process.env.KASSIST_AI_AUTOREPLY = 'false';
+  delete process.env.KASSIST_LLM_URL;
+  delete process.env.KASSIST_LLM_MODEL;
+  delete process.env.KASSIST_LLM_TIMEOUT_MS;
+  delete process.env.KASSIST_LLM_SYSTEM_PROMPT;
+
+  const { getLlmStatus } = await import('../src/llm.mjs?test=default-disabled');
   const status = getLlmStatus();
   assert.equal(status.enabled, false);
   assert.equal(status.baseUrl, 'http://127.0.0.1:11434');
