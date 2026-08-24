@@ -43,22 +43,22 @@ EventBus is documented as in-process/post-commit local communication. The reposi
 ## ERR-009 — Persistence model duplication
 **Status:** READINESS RISK
 
-IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence.
+IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence. Such duplication would create competing sources of truth.
 
 ## ERR-010 — Reliability policy invention
 **Status:** READINESS RISK
 
-Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative.
+Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative. Local guesses would become accidental architecture.
 
-## ERR-011 — Event contract field mismatch
-**Status:** OPEN / NON-BLOCKING FOR READINESS
+## ERR-011 — EventBus runtime gate incomplete
+**Status:** BLOCKING
 
-`docs/domain/events.md` describes a richer envelope than `packages/contracts/src/events.ts` currently materializes. IA-03 must preserve supplied metadata but must not silently expand the protected contract.
+Protected sources do not define subscriber scheduling, failure propagation, subscriber isolation, cancellation, timeout, unsubscribe lifecycle, duplicate registration behavior or dispatch-completion semantics. These cannot be inferred from the in-process/post-commit description.
 
-## ERR-012 — Subscriber semantics incomplete
-**Status:** OPEN / IMPLEMENTATION GATE
+## ERR-012 — Ordering boundary closed negatively
+**Status:** CLOSED / NEGATIVE GUARANTEE
 
-The repository does not yet define deterministic EventBus subscriber failure isolation, scheduling, timeout/cancellation or ordering semantics. These must be closed before production runtime implementation.
+EventBus is explicitly documented as having no protected ordering guarantee. Do not infer FIFO, global, per-type or per-aggregate ordering from implementation structures.
 
 ## Recovery traps
 
@@ -66,4 +66,5 @@ The repository does not yet define deterministic EventBus subscriber failure iso
 - Retry without idempotency can create duplicate logical effects.
 - Replay without causation/correlation breaks traceability.
 - Dead-letter state is not a business outcome.
-- Treating WSS reconnect backoff as JobQueue retry policy crosses a transport boundary without authorization.
+- Treating WSS reconnect backoff as JobQueue retry policy would cross a transport boundary without authorization.
+- Treating an arbitrary handler scheduling model as normative would create an unapproved EventBus contract.
