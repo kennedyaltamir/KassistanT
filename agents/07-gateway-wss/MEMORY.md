@@ -16,10 +16,12 @@ Fatos permanentes confirmados:
 
 ## Memória operacional — 2026-08-24
 
-- A auditoria HTTP confirmou dez operações normativas; somente `/health` está implementado com segurança suficiente para esta fase. `/ready` é funcional, porém as predicates canônicas de readiness permanecem parciais.
+- A auditoria HTTP confirmou dez operações normativas; somente `/health` possui semântica suficientemente estável para implementação imediata. `/ready` é funcional, porém as predicates canônicas de readiness permanecem parciais.
 - Webhooks WhatsApp permanecem externos/parciais e não devem receber parâmetros de verificação Meta inventados.
 - Endpoints de Device Enrollment/Auth/Revoke/Rotate/Status permanecem dependentes da IA-06 e de contratos incompletos.
-- WSS v1 possui envelope estrutural suficiente para validação pura, mas não para ativar o transporte completo.
-- Foi implementado `gateway/src/wss-envelope.mjs` como validador estrutural puro do contrato WSS v1, acompanhado de testes determinísticos.
+- WSS v1 possui definição estrutural suficiente para validação pura, mas não para ativar o transporte completo.
+- `gateway/src/wss-envelope.mjs` implementa validação estrutural alinhada ao envelope explicitamente declarado em `packages/contracts/src/wss.ts` e `docs/protocols/wss-v1.md`.
+- O envelope valida presença e tipo básico dos campos definidos, mas não pode assumir formato específico de IDs, formato ISO estrito de timestamp, limites positivos de `sequence`, política de campos desconhecidos ou negociação de versão, porque essas regras não estão explicitadas no contrato atual.
+- ACK significa somente confirmação de persistência durável no `InboundInbox`; não significa conclusão de processamento de negócio.
 - O validador não implementa handshake, autenticação, replay, resume, resync, heartbeat, backpressure ou persistência.
 - O catálogo público de erros permanece PARTIAL/MISSING; códigos adicionais não devem ser tratados como normativos sem aprovação.
