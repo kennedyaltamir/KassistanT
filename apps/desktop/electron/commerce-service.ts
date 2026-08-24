@@ -29,7 +29,6 @@ export interface OrderView {
   readonly currency: "BRL";
   readonly items: readonly {
     readonly id: string;
-    readonly product_id?: string;
     readonly name: string;
     readonly quantity: number;
     readonly unit_price_cents: number;
@@ -86,19 +85,7 @@ export class CommerceService {
   async listOrders(): Promise<OrderView[]> {
     const repo = new SQLiteOrderRepository(await this.database());
     const orders = await repo.listByStore(this.storeId);
-    return orders.map((order) => ({
-      id: order.id,
-      status: order.status,
-      total_amount_cents: order.total.amount_cents,
-      currency: order.total.currency,
-      items: order.items.map((item) => ({
-        id: item.id,
-        name: item.name,
-        quantity: item.quantity,
-        unit_price_cents: item.unit_price.amount_cents,
-        currency: item.unit_price.currency
-      }))
-    }));
+    return orders.map((order) => this.toView(order));
   }
 
   async createDraftOrder(input: { items: readonly OrderItemInput[] }): Promise<OrderView> {
@@ -112,7 +99,7 @@ export class CommerceService {
     let totalCents = 0;
 
     for (const requested of input.items) {
-      if (!Number.isSafeInteger(requested.quantity) || requested.quantity <= 0) {
+      if (!requested || !Number.isSafeInteger(requested.quantity) || requested.quantity <= 0) {
         throw new CommerceValidationError("INVALID_ORDER_QUANTITY", "Quantidade deve ser um inteiro positivo.");
       }
       const product = productRepo.getById(String(requested.product_id), this.storeId);
@@ -123,22 +110,18 @@ export class CommerceService {
       if (!Number.isSafeInteger(line) || !Number.isSafeInteger(totalCents + line)) {
         throw new CommerceValidationError("ORDER_TOTAL_OVERFLOW", "Total do pedido excede o limite monetário suportado.");
       }
-      const item: OrderItem = {
+      items.push({
         id: generateUuidV7(),
         name: product.name,
         quantity: requested.quantity,
         unit_price: createMoney(product.price.amount_cents),
         modifiers: []
-      };
-      items.push(item);
+      });
       totalCents += line;
     }
 
-    const order = (await import("../../packages/domain/src/order.js")).Order.createDraft(
-      this.storeId,
-      items,
-      createMoney(totalCents)
-    );
+    const { Order } = await import("../../packages/domain/src/order.js");
+    const order = Order.createDraft(this.storeId, items, createMoney(totalCents));
     orderRepo.save(order);
     return this.toView(order);
   }
@@ -156,7 +139,7 @@ export class CommerceService {
       actor_context: Object.freeze({ actor_ref: "desktop-user" })
     });
     if (!result.ok) {
-      throw new CommerceValidationError(result.error.code, result.error.message);
+      throw new CommerceValidationError(result.error.code, confirmationErrorMessage(result.error.code));
     }
 
     repo.update(result.order);
@@ -172,7 +155,7 @@ export class CommerceService {
   private async database(): Promise<SQLiteDatabase> {
     if (!this.databasePromise) {
       const filePath = this.options.databasePath ?? getDefaultDatabasePath();
-      const migrationsPath = this.options.migrationsPath ?? path.join(process.cwd(), "apps", "desktop", "database", "migrations");
+      const migrationsPath = this.options.migrationsPath ?? path.join(__dirname, "..", "database", "migrations");
       this.databasePromise = SQLiteDatabase.open({
         filePath,
         migrationsPath,
@@ -196,5 +179,20 @@ export class CommerceService {
         currency: item.unit_price.currency
       }))
     };
+  }
+}
+
+function confirmationErrorMessage(code: string): string {
+  switch (code) {
+    case "INVALID_ORDER_STATE":
+      return "O pedido não está em um estado confirmável.";
+    case "CONFIRMATION_DATA_INVALID":
+      return "A confirmação exige resumo final e confirmação explícita.";
+    case "DUPLICATE_CONFIRMATION":
+      return "O pedido já foi confirmado.";
+    case "CONCURRENCY_CONFLICT":
+      return "O pedido foi alterado por outra operação. Recarregue e tente novamente.";
+    default:
+      return "Não foi possível confirmar o pedido.";
   }
 }
