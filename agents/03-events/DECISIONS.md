@@ -17,6 +17,13 @@ IA-03 owns event infrastructure under `apps/desktop/electron/infrastructure/**` 
 
 WSS ACK represents durable local persistence of the inbound event in `InboundInbox`; it does not represent completed business processing.
 
+### D03-004 — Readiness sequence
+**Status:** DECISION / IA-03 READINESS BASELINE
+
+The readiness audit establishes the following implementation ordering for IA-03, subject to gate satisfaction: EventBus → InboundInbox → JobQueue/AuditLog → reliability/recovery integrations → DomainOutbox after `CONTRACT-001` resolution. This is an IA-03 execution sequence, not a new global architecture decision.
+
+The first candidate slice is the in-process EventBus because its documented responsibility does not require durable persistence. It remains a candidate until the event contract consumed by the implementation is stable.
+
 ## Open / not approved
 
 ### CONTRACT-001 — DomainOutbox ownership and scope
@@ -36,4 +43,4 @@ The repository records a version-authority inconsistency. IA-03 must not infer a
 
 ## Proposals
 
-None. This file intentionally records project decisions and unresolved decisions only; no new architecture is proposed during configuration.
+None. The readiness audit does not create a new global contract and does not resolve any open item.
