@@ -16,8 +16,8 @@ Status: CONTRACT CLOSURE / IMPLEMENTATION FROZEN.
 |---|---|---|
 | Device identity semantics | PARTIAL | Logical device identity is defined; physical persistence remains IA-01 dependent. |
 | Cryptographic primitive | DEFINED | Ed25519 is the approved primitive/trust boundary. |
-| Cryptographic wire contract | OPEN | Signed bytes, key/signature representation and canonicalization are not fully defined. |
-| Challenge/replay protocol | OPEN | Freshness, challenge lifecycle and replay binding remain to be decided. |
+| Cryptographic wire contract | OPEN / DR-02A | Signed bytes, key/signature representation and context binding are not fully defined. |
+| Operational replay protocol | OPEN / DR-02B | Challenge freshness/lifecycle, reuse rejection, expiration and replay handling remain open. |
 | Session security | OPEN | Session lifecycle is independent from signature verification. |
 | Authorization | OPEN | Authentication does not imply provisioning authority. |
 | Rate limiting | OPEN | Operational security policy, separate from cryptographic correctness. |
@@ -34,27 +34,52 @@ Status: CONTRACT CLOSURE / IMPLEMENTATION FROZEN.
 
 The path is intentionally decomposed. Closure of one layer does not implicitly approve another.
 
+## DR-02 stratification
+
+### DR-02A — Cryptographic Verification Contract
+
+**Status:** OPEN / GLOBAL_DECISION_REQUIRED.
+
+The minimum approval surface for the pure `Signature Verification Boundary` is limited to:
+
+1. Ed25519 verification primitive.
+2. Logical signed-context concept.
+3. Rule defining the exact bytes presented to the verifier.
+4. Public-key representation.
+5. Signature representation.
+6. Context binding required to prevent incompatible-context signature reuse, where required by the approved protocol.
+7. Deterministic verification result semantics (`valid` / `invalid`).
+
+This decision does not define challenge storage, expiration, replay persistence, HTTP behavior or session lifecycle.
+
+### DR-02B — Operational Replay Protocol
+
+**Status:** OPEN / REPLAY RUNTIME.
+
+The following remain separate and unapproved:
+
+- challenge uniqueness;
+- freshness policy;
+- challenge lifecycle/storage;
+- reuse rejection;
+- expiration;
+- replay detection;
+- replay error semantics;
+- persistence and recovery.
+
+A minimum DR-02A approval must not be interpreted as approval of DR-02B.
+
 ## Decision requests
 
 ### DR-01 — Enrollment contract
 
 Approve exact HTTP request/response schemas, success/error mapping, endpoint authentication/authorization, correlation and idempotency for start/complete/cancel. IA-06 proposes no schema.
 
-### DR-02 — Challenge/signature protocol
+### DR-02 — Challenge/signature contract
 
-Approve only the minimum cryptographic wire contract needed by each slice:
+Approve DR-02A only for the first pure verifier slice unless the authority explicitly approves DR-02B as well. No arbitrary TTL, encoding, replay store or HTTP behavior is created by IA-06.
 
-1. Ed25519 verification primitive.
-2. Logical definition of the signed challenge context.
-3. Rule defining the exact bytes presented to the verifier.
-4. Deterministic public-key representation.
-5. Deterministic signature representation.
-6. Freshness/replay binding requirement.
-7. Deterministic verifier result semantics.
-
-A separate later decision may close full transport/session semantics. No arbitrary TTL, encoding or HTTP behavior is created here.
-
-Affected: IA-06, IA-07, IA-01 only where persistence is required.
+Affected: IA-06, IA-07, and IA-01 only where persistence becomes a proven dependency.
 
 ### DR-03 — Session lifecycle
 
@@ -84,7 +109,9 @@ Approve canonical device-auth error identifiers, retryability, client-visible se
 
 The `Signature Verification Boundary` does **not** require closure of DR-01, DR-03, DR-04, DR-05, DR-06 or DR-07 unless an approved implementation boundary later proves otherwise.
 
-It requires only the minimum cryptographic subset of DR-02 plus the already-approved Ed25519 primitive.
+It requires only DR-02A plus the already-approved Ed25519 primitive.
+
+DR-02B remains OPEN and is not part of the first-slice approval request.
 
 ## Non-blocking items
 
