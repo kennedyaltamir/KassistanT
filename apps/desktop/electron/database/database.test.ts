@@ -44,7 +44,7 @@ test("migration application is idempotent and rejects checksum drift", async () 
 test("SQLite transaction boundary rolls back on failure", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "kassist-db-"));
   const databasePath = path.join(directory, "kassist.sqlite");
-  const migrationsPath = path.resolve(import.meta.dirname, "../../database/migrations");
+  const migrationsPath = path.resolve("database", "migrations");
   const database = await SQLiteDatabase.open({
     filePath: databasePath,
     migrationsPath,
