@@ -7,18 +7,29 @@ Status: **SCHEMA_CLOSURE_BLOCKED**
 - Repository: `kennedyaltamir/KassistanT`
 - Branch: `ia01/schema-closure-20260824`
 - Implementation point: `0e1897cae007530cbe8aed20b97e04a25340cc87`
-- Branch HEAD before this handoff write: `fac9e24daad93cf74664235bb0cd509a99d1ee55`
-- `MVP2` was verified at the implementation point and remains untouched by this cycle.
+- Current branch HEAD at handoff: recorded immediately before the final handoff write; this document cannot contain the SHA of its own write.
+- `MVP2` was verified at the implementation point and remains untouched.
+
+## Normative state
+
+- `MVP_SCOPE_DECISION = APPROVED`
+- `GOV-DRIFT-0002 = RESOLVED / OPTION_B`
+- `CUSTOMER-IDENTITY = FORMALLY_FROZEN`
+- `CONVERSATION-CONTRACT = FORMALLY_FROZEN`
+- `MESSAGE-CONTRACT = FORMALLY_FROZEN`
+- `CONTRACT-001 = RESOLVED`
+- `STOCK-MODEL-MVP-001 = APPROVED_OPTION_A / BINARY_AVAILABILITY`
 
 ## Results
 
-- Product/Order: partially closed; historical 0002 names are semantically equivalent in several places but not canonical physical authority.
-- Nullability/defaults: not closed.
-- FK actions: not closed.
-- Inventory: blocked by contradictory approved baseline (`binary MVP` vs `quantitative post-MVP`).
-- InventoryMovement: blocked because movement identity/types/idempotency/concurrency semantics are not frozen.
-- Sale: blocked because a separate Sale persistence contract is not frozen.
-- Migration strategy: preserve historical 0002; append only after deterministic physical contracts exist.
+- Product/Order: partially closed. Canonical logical mapping is reconciled; historical Migration 0002 names remain non-authoritative; physical naming convention and several child-key semantics remain unresolved.
+- Binary availability: closed. `Product.available` is the authoritative MVP stock state as `INTEGER NOT NULL`, allowed values `0/1`, with no SQL default.
+- Inventory: no separate quantitative Inventory table required for the MVP stock decision.
+- InventoryMovement: excluded from MVP because quantitative stock is excluded.
+- Sale: closed physically by absence of a separate Sale persistence entity; `Order.CONFIRMED` is the persisted sale milestone.
+- Nullability/defaults: partially closed; unresolved Order/support field optionality remains.
+- FK semantics: blocked; delete/update behavior remains UNKNOWN and parent keys are unresolved for several Order child entities.
+- Migration strategy: `PRESERVE + APPEND LATER`, consistent with Option B.
 
 ## Migration 0002
 
@@ -28,15 +39,20 @@ Status: **SCHEMA_CLOSURE_BLOCKED**
 
 **FALSE**.
 
-The remaining blockers are authority/contract blockers, not implementation effort. IA-01 must not synthesize DDL for Inventory, InventoryMovement or Sale.
+## Remaining blockers
+
+1. Canonical physical table/column naming convention still requires governance confirmation because the schema authority matrix classifies it as a repository-visible proposal.
+2. `OrderItem`, `OrderItemModifier` and `OrderStatusHistory` parent-key names remain unresolved.
+3. Required FK `ON DELETE` / `ON UPDATE` semantics remain UNKNOWN.
+4. Final field-level nullability/default semantics remain incomplete for unresolved child/support entities.
 
 ## Next owner
 
-`OPERATOR_PROJECT_GOVERNANCE` for the Inventory MVP model conflict and, where required, semantic owners for remaining physical contracts.
+`OPERATOR_PROJECT_GOVERNANCE` and the designated semantic owners for the remaining physical relationships/fields.
 
 ## Next action
 
-Record an explicit normative decision for the conflicting inventory scope/model. After that decision, rerun schema closure. Only then evaluate whether `SCHEMA_IMPLEMENTATION_READY` can become true.
+Close the remaining physical authority points, then rerun IA-01 schema readiness. No IA-02 implementation should infer the missing FK lifecycle or parent-key semantics.
 
 ## Truth rule
 
