@@ -25,8 +25,14 @@ test('credential status never exposes secret values', () => {
   const status = listCredentialStatus();
   for (const item of status) {
     assert.equal(typeof item.key, 'string');
+    assert.equal(typeof item.provider, 'string');
     assert.equal(typeof item.configured, 'boolean');
+    assert.equal(typeof item.secret, 'boolean');
     assert.equal('value' in item, false);
+    assert.equal('apiKey' in item, false);
+    assert.equal('token' in item, false);
     assert.equal('secretValue' in item, false);
+    assert.equal('plaintext' in item, false);
+    assert.equal(JSON.stringify(item).includes('sk-'), false);
   }
 });
