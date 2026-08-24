@@ -16,8 +16,9 @@ Status: CONTRACT CLOSURE / IMPLEMENTATION FROZEN.
 |---|---|---|
 | Device identity semantics | PARTIAL | Logical device identity is defined; physical persistence remains IA-01 dependent. |
 | Cryptographic primitive | DEFINED | Ed25519 is the approved primitive/trust boundary. |
-| Cryptographic wire contract | OPEN / DR-02A | Signed bytes, key/signature representation and context binding are not fully defined. |
-| Operational replay protocol | OPEN / DR-02B | Challenge freshness/lifecycle, reuse rejection, expiration and replay handling remain open. |
+| Cryptographic wire contract | OPEN / DR-02A | Signed bytes, approved context, key/signature representation and deterministic derivation remain to be approved. |
+| Cryptographic context binding | OPEN / DR-02A | Defines which approved logical context elements are authenticated by the signature; does not define replay lifecycle. |
+| Challenge/replay protocol | OPEN / DR-02B | Freshness, challenge lifecycle and replay prevention remain to be decided. |
 | Session security | OPEN | Session lifecycle is independent from signature verification. |
 | Authorization | OPEN | Authentication does not imply provisioning authority. |
 | Rate limiting | OPEN | Operational security policy, separate from cryptographic correctness. |
@@ -34,41 +35,6 @@ Status: CONTRACT CLOSURE / IMPLEMENTATION FROZEN.
 
 The path is intentionally decomposed. Closure of one layer does not implicitly approve another.
 
-## DR-02 stratification
-
-### DR-02A — Cryptographic Verification Contract
-
-**Status:** OPEN / GLOBAL_DECISION_REQUIRED.
-
-The minimum approval surface for the pure `Signature Verification Boundary` is limited to:
-
-1. Ed25519 verification primitive.
-2. Logical signed-context concept.
-3. Rule defining the exact bytes presented to the verifier.
-4. Public-key representation.
-5. Signature representation.
-6. Context binding required to prevent incompatible-context signature reuse, where required by the approved protocol.
-7. Deterministic verification result semantics (`valid` / `invalid`).
-
-This decision does not define challenge storage, expiration, replay persistence, HTTP behavior or session lifecycle.
-
-### DR-02B — Operational Replay Protocol
-
-**Status:** OPEN / REPLAY RUNTIME.
-
-The following remain separate and unapproved:
-
-- challenge uniqueness;
-- freshness policy;
-- challenge lifecycle/storage;
-- reuse rejection;
-- expiration;
-- replay detection;
-- replay error semantics;
-- persistence and recovery.
-
-A minimum DR-02A approval must not be interpreted as approval of DR-02B.
-
 ## Decision requests
 
 ### DR-01 — Enrollment contract
@@ -77,9 +43,59 @@ Approve exact HTTP request/response schemas, success/error mapping, endpoint aut
 
 ### DR-02 — Challenge/signature contract
 
-Approve DR-02A only for the first pure verifier slice unless the authority explicitly approves DR-02B as well. No arbitrary TTL, encoding, replay store or HTTP behavior is created by IA-06.
+DR-02 is divided into two independent decision scopes:
 
-Affected: IA-06, IA-07, and IA-01 only where persistence becomes a proven dependency.
+- **DR-02A — Cryptographic Verification Contract**
+- **DR-02B — Operational Replay / Challenge Runtime**
+
+#### DR-02A — Cryptographic Verification Contract
+
+Approve only the minimum cryptographic contract needed by the `Signature Verification Boundary`:
+
+1. Ed25519 verification primitive.
+2. Logical signed-context concept.
+3. Explicit set of approved logical context elements.
+4. Deterministic rule deriving the exact bytes presented to the verifier from that approved context.
+5. Public-key representation.
+6. Signature representation.
+7. Deterministic verifier result semantics (`valid` / `invalid`).
+
+#### CRYPTOGRAPHIC_CONTEXT_BINDING_BOUNDARY
+
+Context binding belongs to DR-02A only to the extent required to prevent a valid signature over one authenticated context from being accepted as valid in an incompatible context.
+
+The logical context is the set of protocol elements authenticated by the signature. Candidate elements for authority review are:
+
+- device identity;
+- protocol/domain separation;
+- authentication purpose or operation identifier;
+- challenge identity;
+- protocol version, if required by the approved contract.
+
+These are analysis candidates only. An element becomes part of the cryptographic context only after explicit project approval.
+
+The final boundary must satisfy:
+
+1. signer and verifier derive the same logical context deterministically;
+2. approved context elements are represented deterministically in the bytes verified by Ed25519;
+3. no unapproved context element is silently added to or removed from the verified bytes.
+
+This boundary specifies **what is cryptographically authenticated**. It does not specify challenge freshness, uniqueness, expiration, storage, reuse rejection or replay detection.
+
+#### DR-02B — Operational Replay / Challenge Runtime
+
+DR-02B remains **OPEN** and covers:
+
+- challenge uniqueness;
+- challenge freshness policy;
+- challenge lifecycle/storage;
+- reuse rejection;
+- expiration;
+- replay detection;
+- replay error semantics;
+- persistence and recovery behavior.
+
+No numeric TTL, freshness window, replay store or operational detection rule is created by DR-02A.
 
 ### DR-03 — Session lifecycle
 
@@ -109,9 +125,9 @@ Approve canonical device-auth error identifiers, retryability, client-visible se
 
 The `Signature Verification Boundary` does **not** require closure of DR-01, DR-03, DR-04, DR-05, DR-06 or DR-07 unless an approved implementation boundary later proves otherwise.
 
-It requires only DR-02A plus the already-approved Ed25519 primitive.
+It requires only the minimum cryptographic subset of DR-02A.
 
-DR-02B remains OPEN and is not part of the first-slice approval request.
+DR-02B remains independent and OPEN.
 
 ## Non-blocking items
 
@@ -126,4 +142,4 @@ The logical Secure Storage contract is architectural. Concrete Windows technolog
 
 ## Gate
 
-Full runtime remains blocked by its respective layer gates. No DR is implicitly closed by this package.
+Full runtime remains blocked by its respective layer gates. No DR is implicitly closed by this package, and approval of DR-02A does not approve DR-02B or authorize implementation.
