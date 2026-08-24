@@ -7,20 +7,24 @@ import { fileURLToPath } from 'node:url';
 
 /** @typedef {{ id: string, jid: string | null, direction: 'INBOUND' | 'OUTBOUND', fromMe: boolean, text: string | null, timestamp: number, status: string }} MessageSnapshot */
 /** @typedef {{ role: 'user' | 'assistant', content: string }} ContextMessage */
+/** @typedef {{ enabled?: boolean, prompt?: string }} ConversationPolicy */
+/** @typedef {Record<string, ConversationPolicy>} ConversationPolicies */
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POLICY_PATH = path.join(__dirname, '..', 'data', 'ai-conversations.json');
 const inFlight = new Set();
 const lastReplyAt = new Map();
 let started = false;
+/** @type {ConversationPolicies | null} */
 let conversationPolicies = null;
 
+/** @returns {ConversationPolicies} */
 function loadPolicies() {
   if (conversationPolicies) return conversationPolicies;
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    conversationPolicies = parsed && typeof parsed === 'object' ? parsed : {};
+    conversationPolicies = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
   } catch {
     conversationPolicies = {};
   }
@@ -34,12 +38,13 @@ function savePolicies() {
   fs.renameSync(tempPath, POLICY_PATH);
 }
 
-/** @param {string} jid @returns {{ enabled?: boolean, prompt?: string }} */
+/** @param {string} jid @returns {ConversationPolicy} */
 function getConversationPolicy(jid) {
   const value = loadPolicies()[jid];
   return value && typeof value === 'object' ? value : {};
 }
 
+/** @param {string} jid @param {{ enabled?: boolean | null, prompt?: string }} patch */
 export function setConversationPolicy(jid, patch = {}) {
   if (typeof jid !== 'string' || !jid.trim()) throw new Error('Conversation JID is required');
   if (!jid.endsWith('@lid') && !jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@g.us')) {
@@ -72,7 +77,7 @@ export function getConversationPolicyStatus(jid) {
 }
 
 export function listConversationPolicies() {
-  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...(value || {}) }));
+  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...value }));
 }
 
 /** @param {string} jid @returns {ContextMessage[]} */
