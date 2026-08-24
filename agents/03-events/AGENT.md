@@ -63,3 +63,232 @@ IA-03 depends on canonical persistence and stable domain/event contracts. Consum
 ## Completion evidence
 
 Future implementation claims require repository evidence: executable code, relevant tests, CI/review evidence and contract consistency. A configured workflow or documentation-only change is insufficient.
+
+## Baseline and execution-point governance
+
+IA-03 must distinguish the operational baseline, the exact implementation point and the exact audit point. Historical SHA values are context only and must never silently become execution points.
+
+### Operational baseline
+
+```text
+Operational branch: MVP2
+Operational baseline SHA: VERIFY_AT_EXECUTION
+Historical reference SHA: 636f08a5d377879d80766cf017684f8a6f955376
+Integration authority/target: main
+Integration SHA: VERIFY_AT_EXECUTION
+```
+
+The current HEAD of `MVP2` and `main` must be re-read from GitHub at the beginning of each operational cycle. Known SHAs in prompts, handoffs or historical documentation are not permanent truth.
+
+### Verification record
+
+Before implementation, the execution record must contain at minimum:
+
+```text
+repository
+operational_branch
+current_head_sha
+historical_reference_sha
+integration_branch
+integration_head_sha
+merge_base
+ahead_by
+behind_by
+implementation_point_sha
+evidence
+```
+
+The expected evidence level for remote branch state is `GITHUB_VERIFIED`.
+
+### Mandatory pre-implementation gate
+
+Before modifying any file or beginning implementation dependent on repository state, IA-03 must:
+
+1. consult the real GitHub repository;
+2. obtain the current remote HEAD of `MVP2`;
+3. obtain the current remote HEAD of `main`;
+4. calculate the merge-base between `MVP2` and `main`;
+5. calculate ahead/behind between `main` and `MVP2`;
+6. record the factual state before modification;
+7. determine the exact `implementation_point_sha`;
+8. confirm that the implementation point equals the current verified `MVP2` HEAD unless an explicit exception is authorized.
+
+If the remote state cannot be compared reliably, implementation is `NOT_COMPARABLE` and blocked.
+
+### Implementation-point policy
+
+`implementation_point_sha` is always the result of factual repository verification and must never be obtained exclusively from a prompt, handoff, historical documentation or another agent's claim.
+
+When:
+
+```text
+implementation_point_sha == current_head_sha(MVP2)
+```
+
+the implementation is directly based on the verified current operational baseline.
+
+When:
+
+```text
+implementation_point_sha != current_head_sha(MVP2)
+```
+
+the implementation may proceed only with all of the following explicitly recorded:
+
+- justification;
+- compatible authority;
+- supporting evidence;
+- affected scope/impact.
+
+Without those elements, the state is:
+
+```text
+NOT_COMPARABLE / BLOCKED
+```
+
+The `implementation_point_sha` remains immutable during the audited execution unless a new repository verification and explicit new record are produced.
+
+If `MVP2` advances after the implementation point was fixed, the new HEAD must not be treated as equivalent automatically. Evidence remains tied to the original implementation point unless the changed state is explicitly re-evaluated.
+
+A change of `implementation_point_sha` during execution invalidates prior comparability when the change can affect the audited files or behavior.
+
+### Execution-point record
+
+The handoff for every audited implementation must include:
+
+```xml
+<execution_point>
+  <baseline_branch>MVP2</baseline_branch>
+  <baseline_head_sha>...</baseline_head_sha>
+  <implementation_point_sha>...</implementation_point_sha>
+  <implementation_point_relation>SAME_AS_BASELINE|COMPARABLE_BY_EXCEPTION</implementation_point_relation>
+  <verification_timestamp>...</verification_timestamp>
+  <evidence>GITHUB_VERIFIED</evidence>
+</execution_point>
+```
+
+### Audit-point record
+
+The implementation handoff must also reserve an explicit audit point:
+
+```xml
+<audit_point>
+  <audited_sha>...</audited_sha>
+  <audit_point_relation>SAME_AS_IMPLEMENTATION_POINT</audit_point_relation>
+  <audited_by>IA-01</audited_by>
+  <evidence>GITHUB_VERIFIED</evidence>
+</audit_point>
+```
+
+The following semantics are mandatory:
+
+```text
+current_head_sha
+    = estado remoto observado no início da verificação
+
+baseline_head_sha
+    = baseline operacional observada
+
+implementation_point_sha
+    = ponto exato sobre o qual a IA-03 trabalhou
+
+audited_sha
+    = commit efetivamente auditado pela IA-01
+```
+
+The normal flow is:
+
+```text
+GitHub
+  ↓
+current_head_sha
+  ↓
+baseline_head_sha
+  ↓
+implementation_point_sha
+  ↓
+feature branch
+  ↓
+implementation
+  ↓
+tests / CI
+  ↓
+PR
+  ↓
+audited_sha
+  ↓
+IA-01 audit
+  ↓
+operator merge decision
+```
+
+The following states are mandatory:
+
+```text
+implementation_point == baseline HEAD
+    → NORMAL
+
+implementation_point != baseline HEAD
+    → JUSTIFICATION_REQUIRED
+
+implementation_point != baseline HEAD
+    + justification + authority + evidence
+    → COMPARABLE_BY_EXCEPTION
+
+implementation_point != baseline HEAD
+    + missing justification
+    → NOT_COMPARABLE / BLOCKED
+
+audited_sha != implementation_point_sha
+    + no explicit re-audit basis
+    → AUDIT_SCOPE_MISMATCH
+```
+
+### Git branch policy
+
+Implementation branches must be created from the verified current `MVP2` HEAD.
+
+Rules:
+
+- create a dedicated feature/documentation branch for the change;
+- do not require a fixed branch name in the contract;
+- record the effective branch name in the handoff;
+- do not automatically reuse historical branches without checking lineage, state, ancestor relationship and current relation to `MVP2`;
+- do not overwrite an existing branch without explicit inspection and authorization;
+- never force-push;
+- never rewrite shared history.
+
+Every PR must identify:
+
+```text
+head_branch
+base_branch
+base_sha
+implementation_point_sha
+merge_base (when relevant)
+```
+
+Before creating a new PR, verify that no open PR already covers the same feature area or branch.
+
+### Audit scope integrity
+
+`audited_sha` must equal `implementation_point_sha` for the normal audit flow.
+
+If they differ, the handoff must explicitly record why the audit point differs, what changed between the two points and the basis for re-audit. Otherwise the result is `AUDIT_SCOPE_MISMATCH` and cannot be treated as verification of the implementation point.
+
+### Completion status separation
+
+IA-03 must keep these states separate:
+
+```text
+IMPLEMENTATION_STATUS
+TEST_STATUS
+CI_STATUS
+RUNTIME_STATUS
+AUDIT_STATUS
+MERGE_STATUS
+```
+
+Local execution or test success never grants `AUDIT_ACCEPTED`, `MERGE_AUTHORIZED` or `PRODUCTION_READY`.
+
+IA-03 may implement and declare work ready for audit, but IA-01 remains the independent audit authority and the operator remains the merge authority where human approval is required.
