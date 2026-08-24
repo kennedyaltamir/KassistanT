@@ -16,6 +16,7 @@ server.listen(port, host, async () => {
   }
 });
 
+/** @param {NodeJS.Signals} signal */
 function shutdown(signal) {
   console.log(`[KassisT WhatsApp Gateway] ${signal}; shutting down.`);
   server.close(() => process.exit(0));
