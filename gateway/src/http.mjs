@@ -107,7 +107,7 @@ export function createHttpServer() {
     if (request.method === 'POST' && url.pathname === '/api/whatsapp/messages') {
       try {
         const body = await parseBody(request);
-        const message = await sendText(body.to, body.text);
+        const message = await sendText(String(body.to ?? ''), String(body.text ?? ''));
         return json(response, 202, { message });
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
