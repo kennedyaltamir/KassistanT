@@ -3,36 +3,36 @@
 ## Identity
 Agent: IA-03. Responsibility: Event Infrastructure.
 
-## EventBus decision state
+## EventBus V1 state
 
-The EventBus local decision closure is complete as a **proposal package**. Runtime remains frozen pending human approval.
+`IMPLEMENTED_AND_TESTED`
 
-`EVENTBUS_RUNTIME_READINESS = READY_AFTER_HUMAN_APPROVAL`
+The operator explicitly approved EBUS-DEC-001 through EBUS-DEC-008. The EventBus V1 runtime was implemented and deterministic tests were executed with 10/10 passing.
 
-## Evidence-backed semantics
+## Implemented scope
 
-- EventBus is in-process communication.
-- Local consumers are post-commit.
-- EventBus is non-durable.
-- EventBus does not own durable retry.
-- EventBus has `NO_ORDERING_GUARANTEE`.
-- DomainOutbox remains outside this boundary because `CONTRACT-001` is open.
+- in-process EventBus;
+- post-commit usage boundary;
+- opaque subscriptions;
+- idempotent unsubscribe;
+- publish-time subscription snapshot;
+- sequential handler execution;
+- subscriber failure isolation;
+- aggregated failure reporting;
+- no EventBus timeout;
+- unsubscribe-only lifecycle cancellation;
+- all-selected-handlers-settled publish completion;
+- `NO_ORDERING_GUARANTEE`;
+- no persistence or durable retry.
 
-## Proposed local V1 policy
+## Files
 
-- async `publish()` boundary;
-- publish-time subscriber snapshot;
-- distinct opaque subscription identities;
-- idempotent `unsubscribe()`;
-- duplicate registrations remain distinct;
-- subscriber failures are isolated;
-- failures are aggregated and reported after all selected handlers settle;
-- cancellation is unsubscribe-only;
-- no EventBus timeout in V1;
-- `await publish()` means all selected handlers have settled;
-- no public ordering guarantee.
+- `apps/desktop/electron/infrastructure/events/event-bus.ts`
+- `apps/desktop/electron/infrastructure/events/event-bus.test.ts`
 
-These are `PROPOSAL / LOCAL_RUNTIME_POLICY`, not approved decisions.
+## Validation
+
+10 deterministic tests passed in the isolated runtime validation environment. The standard desktop test runner was not modified because its script configuration is outside IA-03 scope; the EventBus test file was executed directly.
 
 ## Global/cross-agent boundaries
 
@@ -45,20 +45,10 @@ These are `PROPOSAL / LOCAL_RUNTIME_POLICY`, not approved decisions.
 
 `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain open and untouched.
 
-## Approval gate
+## Remaining Event Infrastructure
 
-Human approval is required before production EventBus code is written. Approval should explicitly accept or reject the proposed observable runtime behavior in `HUMAN-EVENTBUS-DECISIONS.md`.
+Inbox, Outbox, JobQueue and AuditLog remain unimplemented and blocked by their previously documented persistence/contract gates.
 
-## Runtime slice after approval
+## Integration boundary
 
-Only:
-
-`apps/desktop/electron/infrastructure/events/**`
-
-and directly associated deterministic tests.
-
-Explicit non-goals remain SQLite, Inbox, Outbox, JobQueue, AuditLog, WSS, durable retry, replay/reconciliation/dead-letter, business rules and protected contract changes.
-
-## Evidence discipline
-
-The proposal document is preparation, not implementation evidence. No EventBus runtime exists yet.
+The EventBus V1 slice is intentionally isolated. No downstream consumer integration was introduced in this milestone.
