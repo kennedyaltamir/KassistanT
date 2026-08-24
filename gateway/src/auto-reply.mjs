@@ -46,15 +46,25 @@ export function setConversationPolicy(jid, patch = {}) {
     throw new Error('Unsupported WhatsApp JID');
   }
   const current = getConversationPolicy(jid);
-  const next = {
-    ...current,
-    ...(typeof patch.enabled === 'boolean' ? { enabled: patch.enabled } : {}),
-    ...(typeof patch.prompt === 'string' ? { prompt: patch.prompt.trim() } : {}),
-  };
-  if (!next.prompt) delete next.prompt;
-  loadPolicies()[jid] = next;
+  const next = { ...current };
+  if (typeof patch.enabled === 'boolean') next.enabled = patch.enabled;
+  if (patch.enabled === null) delete next.enabled;
+  if (typeof patch.prompt === 'string') {
+    const prompt = patch.prompt.trim();
+    if (prompt) next.prompt = prompt;
+    else delete next.prompt;
+  }
+  if (Object.keys(next).length === 0) {
+    delete loadPolicies()[jid];
+  } else {
+    loadPolicies()[jid] = next;
+  }
   savePolicies();
   return { jid, ...next };
+}
+
+export function clearConversationPolicy(jid) {
+  return setConversationPolicy(jid, { enabled: null, prompt: '' });
 }
 
 export function getConversationPolicyStatus(jid) {
