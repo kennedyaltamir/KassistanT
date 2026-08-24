@@ -20,25 +20,34 @@ run("node", ["--test", ...jsTests], root);
 run("pnpm", ["exec", "tsx", "--test", ...tsTests], desktop);
 
 function run(command, args, cwd) {
-  if (process.platform === "win32") {
-    const commandLine = [command, ...args].map(toCmdArg).join(" ");
-    const result = spawnSync(process.env.ComSpec ?? "cmd.exe", ["/d", "/s", "/c", commandLine], {
-      cwd,
-      stdio: "inherit"
-    });
-    if (result.error) throw result.error;
-    if (result.status !== 0) process.exit(result.status ?? 1);
-    return;
-  }
+  const resolved = resolveCommand(command);
+  const result = spawnSync(resolved.command, [...resolved.prefixArgs, ...args], {
+    cwd,
+    stdio: "inherit",
+    shell: false
+  });
 
-  const result = spawnSync(command, args, { cwd, stdio: "inherit" });
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-function toCmdArg(value) {
-  if (/^[A-Za-z0-9_./:=?-]+$/.test(value)) return value;
-  return `"${String(value).replaceAll('"', '\\"')}"`;
+function resolveCommand(command) {
+  if (process.platform !== "win32" || command !== "pnpm") {
+    return { command, prefixArgs: [] };
+  }
+
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && /\.(?:cjs|js|mjs)$/i.test(npmExecPath)) {
+    return {
+      command: process.execPath,
+      prefixArgs: [npmExecPath]
+    };
+  }
+
+  throw new Error(
+    "Unable to resolve the pnpm JavaScript entrypoint on Windows. " +
+    "Expected npm_execpath to point to pnpm.cjs/pnpm.js/pnpm.mjs."
+  );
 }
 
 function walkFiles(directory) {
