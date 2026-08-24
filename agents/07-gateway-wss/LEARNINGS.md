@@ -30,7 +30,15 @@
 - Revocation authority is IA-06; the transport reaction (session/connection termination) belongs to IA-07 once an executable revocation signal is defined. FACT/BOUNDARY.
 - `sequence` is documented as monotonic per `(store_id, device_id)`, but persistent ownership and gap/replay semantics remain PARTIAL. FACT.
 - IA-08 consumes connection/session state and events for UI; it does not own authentication, durable persistence or transport authority. FACT.
-- The session boundary is now recorded in `WSS-INTEGRATION-BOUNDARY.md` and unresolved decisions in `WSS-SESSION-DECISION-MATRIX.md`.
+- The session boundary is recorded in `WSS-INTEGRATION-BOUNDARY.md` and unresolved decisions in `WSS-SESSION-DECISION-MATRIX.md`.
+
+## Integration gate package — 2026-08-24
+
+- Vague dependencies were reduced to executable gate requirements. FACT/PROPOSAL boundary: the new gate documents define acceptance criteria, but do not redefine global contracts.
+- IA-06 gate requires an executable authenticated-session interface, revocation signal and reconnect/reauthentication semantics before IA-07 session lifecycle.
+- IA-03 gate requires durable intake, duplicate/failure outcomes, ACK authorization and a defined/deferred recovery boundary before IA-07 receive/ACK/recovery runtime.
+- V1 should not require all future WSS functionality. Unsupported replay/resync/backpressure sophistication may be deferred only when the selected V1 contract explicitly permits it.
+- `WSS connection lifecycle` remains BLOCKED until the required gates pass.
 
 ## Limites epistemológicos
 
