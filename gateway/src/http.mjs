@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
 
+/** @param {import('node:http').ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
   const body = JSON.stringify(payload);
   response.writeHead(statusCode, {
@@ -11,11 +12,12 @@ function json(response, statusCode, payload) {
   response.end(body);
 }
 
+/** @param {import('node:http').IncomingMessage} request @returns {Promise<Record<string, unknown>>} */
 function parseBody(request) {
   return new Promise((resolve, reject) => {
     let raw = '';
     request.setEncoding('utf8');
-    request.on('data', chunk => {
+    request.on('data', (/** @type {string} */ chunk) => {
       raw += chunk;
       if (raw.length > 1_000_000) {
         reject(new Error('Request body too large'));
@@ -25,7 +27,12 @@ function parseBody(request) {
     request.on('end', () => {
       if (!raw) return resolve({});
       try {
-        resolve(JSON.parse(raw));
+        /** @type {unknown} */
+        const parsed = JSON.parse(raw);
+        if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+          return resolve(/** @type {Record<string, unknown>} */ (parsed));
+        }
+        return resolve({});
       } catch {
         reject(new Error('Invalid JSON body'));
       }
@@ -34,6 +41,7 @@ function parseBody(request) {
   });
 }
 
+/** @param {import('node:http').ServerResponse} response @param {{ type: string, [key: string]: unknown }} event */
 function writeSse(response, event) {
   response.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
 }
