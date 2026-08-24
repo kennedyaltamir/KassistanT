@@ -2,7 +2,7 @@
 
 ## Current phase
 
-Event Infrastructure Readiness Audit.
+EventBus Contract Closure / First Slice Preparation.
 
 ## Status
 
@@ -10,39 +10,46 @@ READINESS COMPLETE / PRODUCT IMPLEMENTATION FROZEN.
 
 ## Audited state
 
-- EventBus: NOT_IMPLEMENTED; first candidate slice after event-contract stability.
+- EventBus: READY_WITH_OPEN_NONBLOCKING_ITEMS; no runtime.
 - InboundInbox: NOT_IMPLEMENTED; blocked on canonical persistence and schema.
 - DomainOutbox: NOT_IMPLEMENTED; blocked by `CONTRACT-001`.
 - JobQueue: NOT_IMPLEMENTED; blocked on canonical `Job` persistence and incomplete reliability policy.
 - AuditLog: NOT_IMPLEMENTED; blocked on canonical persistence and sensitive-data policy details.
-- Deduplication: contract principles exist; runtime absent; exact durable keys depend on canonical schema/contracts.
+- Deduplication: contract principles exist; runtime absent.
 - Retry/backoff: required concept; exact local policies remain partial/UNKNOWN.
 - Replay/reconciliation/dead-letter: documented concepts; runtime and exact state semantics absent.
 - Causation/correlation: represented in event/WSS contracts; runtime propagation absent.
 - SQLite: M5.1 foundation only; canonical business schema absent.
-- Event/WSS mapping: PARTIAL; WSS ACK boundary is clear, full runtime absent.
 
-## Readiness outputs
+## EventBus closure
 
-Created in `agents/03-events/`:
+Created:
 
-- `EVENT-INFRASTRUCTURE-READINESS.md`
+- `EVENTBUS-CONTRACT.md`
+- `EVENTBUS-ERROR-MATRIX.md`
+- `EVENTBUS-TEST-MATRIX.md`
+- `EVENTBUS-IMPLEMENTATION-GATE.md`
+
+Updated:
+
 - `EVENTBUS-MATRIX.md`
-- `INBOX-OUTBOX-MATRIX.md`
-- `JOBQUEUE-RELIABILITY-MATRIX.md`
-- `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
-- `IMPLEMENTATION-GATES.md`
-
-Updated operational memory/risk/decision/progress documents.
+- `MEMORY.md`
+- `LEARNINGS.md`
+- `DECISIONS.md`
+- `ERRORS.md`
+- `PROGRESS.md`
+- `ROADMAP.md`
+- `HANDOFF.md`
+- `CHANGELOG.md`
 
 ## Readiness conclusion
 
-The territory is not globally ready for runtime implementation.
+The EventBus scope is sufficiently bounded for implementation preparation as an in-process, post-commit local dispatch mechanism without persistence, durable retry or DomainOutbox coupling.
 
-The first candidate slice is EventBus in-process dispatch because its documented boundary does not require durable persistence. This candidate is conditional on stable event semantics and does not imply any undocumented delivery guarantee.
+The event contract is not globally modified. The current TypeScript `DomainEvent` minimum remains authoritative for materialized fields; broader documented metadata is preserved only when supplied.
 
-InboundInbox, JobQueue and AuditLog require IA-01 canonical persistence. DomainOutbox remains blocked by `CONTRACT-001`. Order-event dispatch/replay/test semantics remain affected by `CONTRACT-002`.
+The remaining implementation-contract gates are subscriber failure propagation/isolation, scheduling, timeout/cancellation and ordering. No undocumented delivery guarantee is claimed.
 
 ## Constraint
 
-No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified by this readiness phase.
+No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified.
