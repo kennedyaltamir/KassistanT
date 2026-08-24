@@ -16,7 +16,7 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 - Confirmar fronteiras Inbox/Outbox/EventBus fornecidas pela IA-03.
 - Confirmar necessidades de persistência sem assumir ownership do schema.
 - Resolver ou obter decisão formal para ambiguidades que bloqueiem implementação.
-- Status: EM ANDAMENTO; auditoria HTTP/WSS, fechamento do envelope estrutural e boundary audit entre IA-06/IA-07/IA-03 concluídos.
+- Status: EM ANDAMENTO; auditoria HTTP/WSS, fechamento do envelope estrutural, boundary audit e integration gate package concluídos.
 
 ## Fase 2 — Runtime HTTP
 
@@ -38,20 +38,30 @@ Este roadmap é exclusivo do território IA-07 e não substitui o ROADMAP global
 - Testes de interoperabilidade com Desktop e demais fronteiras.
 - PR, revisão e aprovação humana.
 
-## Boundary gate — 2026-08-24
+## Integration gate — 2026-08-24
 
-- IA-06: autoridade de device identity/authentication/revocation/key rotation; session identity existe na sua fronteira, mas os detalhes executáveis ainda estão incompletos.
-- IA-07: autoridade de WSS connection/transport mechanics após identidade autenticada ser fornecida.
-- IA-03: autoridade de InboundInbox, durable ACK, deduplication e replay/recovery.
-- IA-08: consumidor de estado/eventos de conexão na camada de UI.
+A primeira implementação funcional do lifecycle WSS está condicionada a gates objetivos:
 
-Artefatos produzidos:
-- `WSS-INTEGRATION-BOUNDARY.md`
-- `WSS-SESSION-DECISION-MATRIX.md`
+1. IA-06 fornece interface executável de authenticated session.
+2. IA-06 fornece sinal executável de revogação.
+3. IA-06 fecha reconnect/reauthentication semantics.
+4. IA-03 fornece durable intake result.
+5. IA-03 fornece ACK authorization boundary.
+6. O escopo V1 de replay/resume é pronto ou explicitamente deferido.
+7. Sequence ownership e duplicate/gap semantics estão fechados para o slice escolhido.
+8. Backpressure possui semântica mínima sem números inventados.
+9. Error-to-connection/session effects são testáveis sem novo catálogo global.
+10. Testes determinísticos do lifecycle podem ser escritos.
+
+Artefatos:
+- `WSS-INTEGRATION-GATE.md`
+- `WSS-IA06-CONTRACT.md`
+- `WSS-IA03-CONTRACT.md`
+- `WSS-RUNTIME-V1-REQUIREMENTS.md`
 
 ## Próximo marco
 
-Obter uma interface executável de IA-06 para sessão/autenticação/reconexão/revogação e interfaces de IA-03 para durable intake/ACK/replay. Só então reavaliar `WSS connection lifecycle abstraction`.
+Aguardar as interfaces executáveis de IA-06 e IA-03 e então reavaliar `WSS connection lifecycle abstraction`. Não implementar runtime enquanto qualquer gate crítico estiver BLOCKED.
 
 ## Bloqueio permanente
 
