@@ -14,21 +14,19 @@
 ## 2026-08-24 — Readiness audit
 
 - **FACT:** EventBus is explicitly in-process and not durable storage. Its documented consumers are post-commit local consumers such as notifications, sounds, badges and dashboard updates.
-- **FACT:** No documented guarantee establishes exactly-once delivery, global ordering or durable EventBus replay. These must remain unspecified until a contract says otherwise.
-- **FACT:** InboundInbox readiness is blocked primarily by the absence of canonical business schema/persistence from IA-01; the ACK invariant itself is already clear.
+- **FACT:** No documented guarantee establishes exactly-once delivery, global ordering or durable EventBus replay. These remain negative/non-guarantees.
+- **FACT:** InboundInbox readiness is blocked primarily by the absence of canonical business schema/persistence from IA-01.
 - **FACT:** `DomainOutbox` remains blocked because the repository uses the concept in conflicting ownership/scope contexts.
 - **FACT:** JobQueue requires idempotency, retry, backoff, attempt state, locking and observability, but exact retry counts, lease durations and algorithms are not fully normative.
 - **FACT:** AuditLog documentation defines actor/action/entity/before-after reference/correlation/timestamp and critical event classes, but runtime persistence is absent.
-- **READINESS DECISION:** The first candidate implementation slice is EventBus in-process dispatch, conditional on stable event contracts and deterministic tests.
-- **READINESS DECISION:** Production Inbox, JobQueue and AuditLog work should follow canonical persistence availability rather than create temporary persistence models inside IA-03.
-- **READINESS DECISION:** Reliability mechanisms should be implemented around finalized durable state, not as free-floating utilities that imply undeclared semantics.
 
-## 2026-08-24 — EventBus runtime gate
+## 2026-08-24 — EventBus local decision closure
 
-- **FACT:** EventBus ordering can be explicitly classified as `NO_ORDERING_GUARANTEE` without changing any protected contract.
-- **FACT:** Durable retry is outside EventBus; the documented JobQueue contract owns retry/backoff/attempt/locking/observability capabilities.
-- **FACT:** The post-commit EventBus boundary is explicit: business transaction commits before local dispatch.
-- **FACT:** Protected sources do not define scheduling, subscriber failure propagation, subscriber isolation, cancellation, timeout, unsubscribe lifecycle, multiple-subscriber execution semantics or dispatch-completion semantics.
-- **READINESS RESULT:** The EventBus runtime remains `BLOCKED`; these undefined semantics cannot be invented locally and converted into implementation guarantees.
+- **FACT:** Ordering can remain `NO_ORDERING_GUARANTEE` without a global architectural decision.
+- **FACT:** Durable retry remains outside EventBus; JobQueue is the documented durable retry boundary.
+- **FACT:** The post-commit boundary is already explicit and does not require a new global decision.
+- **PROPOSAL:** The remaining lifecycle/error semantics can be expressed as local IA-03 runtime policy without changing protected contracts.
+- **PROPOSAL:** Use an asynchronous `publish()` boundary, isolated subscribers, aggregate failure reporting after all selected handlers settle, opaque subscription identity, idempotent unsubscribe, unsubscribe-only cancellation, no V1 timeout, and publish-time subscriber snapshots.
+- **READINESS RESULT:** The first runtime slice is `READY_AFTER_HUMAN_APPROVAL`; implementation remains frozen until the operator accepts the proposed observable behavior.
 
-Unknown or partial policies must remain explicitly marked.
+Unknown or partial policies must remain explicitly marked. Proposals are not project decisions.
