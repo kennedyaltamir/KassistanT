@@ -1,60 +1,29 @@
 # IA-06 Decisions
 
-## Approved / normative decisions
+## Approved / normative
 
-### D-001 — Ed25519 challenge-response
-**Status:** DECISION / APPROVED BY BASELINE
-Device authentication uses Ed25519 challenge-response. Gateway verifies signatures using the registered public key.
+- D-001: Ed25519 challenge-response.
+- D-002: Desktop private key remains in Windows Secure Storage; Gateway stores public key.
+- D-003: Provisioning Service is authority for enrollment authorization, revoke, rotate and status.
+- D-004: Revocation sets `REVOKED`, emits `DEVICE_REVOKED` and terminates the Desktop session.
 
-### D-002 — Private key storage boundary
-**Status:** DECISION / APPROVED BY BASELINE
-Desktop private key remains in Windows Secure Storage; Gateway stores the public key.
+## Contract-closure decision requests
 
-### D-003 — Provisioning authority
-**Status:** DECISION / APPROVED BY BASELINE
-The MVP Provisioning Service is authorized for enrollment authorization, device revocation, key rotation and device-status reads.
+- DR-01: Enrollment HTTP schemas/status/authn/authz/idempotency.
+- DR-02: Challenge/signature wire semantics and replay protection.
+- DR-03: Session identity/lifecycle/renewal/reauthentication.
+- DR-04: Authorization matrix.
+- DR-05: Numeric rate-limit policy.
+- DR-06: Endpoint idempotency semantics.
+- DR-07: Key-rotation lifecycle.
+- DR-08: Device-auth error taxonomy and HTTP mapping.
 
-### D-004 — Revocation behavior
-**Status:** DECISION / APPROVED BY BASELINE
-Revocation sets the device to `REVOKED`, causes `DEVICE_REVOKED` delivery and terminates the Desktop session.
+All eight are OPEN PROJECT DECISIONS, not approved decisions.
 
-## Readiness audit decisions about classification
+## Explicit governance constraints
 
-### D-005 — No local closure of incomplete HTTP contracts
-**Status:** GOVERNANCE RULE / ACTIVE
-IA-06 will classify missing schemas/status/authorization/idempotency as PARTIAL/BLOCKED rather than proposing implementation values.
+IA-06 does not choose missing schemas, status mappings, authorization rules, numeric limits, rotation semantics, replay/TTL behavior or a concrete Windows Secure Storage technology.
 
-### D-006 — No local rate-limit policy
-**Status:** GOVERNANCE RULE / ACTIVE
-No numerical limit, burst, lockout or retry-after value is created by IA-06 while the source contract remains undefined.
+## Global open contracts
 
-### D-007 — No local Secure Storage technology choice
-**Status:** GOVERNANCE RULE / ACTIVE
-The repository defines Windows Secure Storage as the boundary, but not the concrete mechanism. IA-06 will not select one during readiness.
-
-## Open decisions / ambiguities
-
-### CONTRACT-001 — DomainOutbox ownership/scope
-**Status:** OPEN / NOT RESOLVED BY IA-06
-
-### CONTRACT-002 — `order.status_changed`
-**Status:** OPEN / NOT RELEVANT TO DEVICE AUTH CORE; no local resolution permitted.
-
-### GOV-001 — Documentation version authority/history
-**Status:** OPEN / GLOBAL GOVERNANCE; no local resolution permitted.
-
-### D-OPEN-01 — Enrollment endpoint contract closure
-**Status:** OPEN PROJECT DECISION
-Exact request/response, authn/authz, status codes and idempotency semantics remain incomplete.
-
-### D-OPEN-02 — Authentication/session contract closure
-**Status:** OPEN PROJECT DECISION
-Challenge freshness, payload canonicalization, replay handling and session lifecycle remain incomplete.
-
-### D-OPEN-03 — Rotation lifecycle closure
-**Status:** OPEN PROJECT DECISION
-Key overlap, rollback and session continuity remain undefined.
-
-## Rule
-
-No new cross-agent architectural decision is approved by IA-06 through this readiness package. It records evidence and gates only.
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain outside IA-06 authority.
