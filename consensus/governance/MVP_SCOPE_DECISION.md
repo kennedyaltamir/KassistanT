@@ -1,19 +1,16 @@
 # MVP_SCOPE_DECISION — MVP2
 
-Status: **PROPOSED / PENDING_APPROVAL**
+Status: **APPROVED**
 Authority: `OPERATOR_PROJECT_GOVERNANCE`
-Baseline verified: `MVP2` @ `0bea2a0ca7c52729cfd58bebc8cd568373222230`
-Decision state: **NOT APPROVED**
+Effective from: `2026-08-24T19:52:00-03:00`
+Decision record: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`
 
-## Purpose
+## Decision
 
-Formalizar o escopo candidato do MVP2 sem promovê-lo a requisito normativo. Este documento substitui inferência por estado explícito: tudo abaixo permanece proposta até decisão do Operator.
+**APPROVE_TEXT_FIRST_REAL_COMMERCIAL_OPERATION**.
 
-## Requirement
+The normative MVP includes:
 
-Proposta de MVP: **TEXT-FIRST REAL COMMERCIAL OPERATION**.
-
-Candidate in-scope:
 - Customer
 - Conversation
 - Message
@@ -31,63 +28,36 @@ Candidate in-scope:
 - Human Handoff
 - Windows Runtime
 
-Candidate post-MVP:
-- Image
-- Audio
-- PDF Import
-- Campaign
-- Advanced Attribution
-- Advanced KPI
-- Multi-provider LLM
-- Cross-channel identity stitching
-- Complex promotion engine
-- Complex freight integrations
-- SaaS billing
-
-## Contract
-
-Nenhum item acima se torna implementação autorizada, contrato normativo ou critério de release por este documento.
-
-O documento apenas estabelece um pacote de decisão para o Operator.
-
 ## Invariants
 
-1. `Candidate != Normative` até aprovação formal.
-2. Nenhuma decisão de escopo pode retroativamente validar implementação já existente.
-3. Escopo aprovado não implica automaticamente autorização de migration, merge ou produção.
-4. Cada item aprovado deve ser reconciliado com os contratos existentes e com requisitos legados.
+1. Approved scope does not retroactively authorize implementation already present.
+2. Approved scope does not authorize migration execution, schema mutation, merge or production release.
+3. Frozen contracts govern implementation; implementation does not freeze contracts by inference.
+4. Every approved scope item remains subject to its semantic and physical contract.
 
 ## Policies
 
-- Scope decisions are human-authoritative.
+- Operator decisions are authoritative.
 - AI recommendations are non-authoritative.
-- Historical documents remain historical unless explicitly promoted.
-- Implementation must consume frozen contracts; it must not freeze them by inference.
+- Historical artifacts remain historical unless explicitly promoted.
+- IA-01 must reconcile approved scope with existing documentation and schema.
 
 ## Explicit Non-Scope
 
-Fora do primeiro escopo normativo, salvo decisão explícita em contrário, permanecem os itens candidate post-MVP acima.
+Image; Audio; PDF Import; Campaign; Advanced Attribution; Advanced KPI; Multi-provider LLM; cross-channel identity stitching; complex promotion engine; complex freight integrations; SaaS billing; automatic migration authorization; merge; production release.
 
-Também permanecem fora de autorização automática: migration execution, schema change, provider change, merge e production release.
+## Legacy Reconciliation
 
-## Legacy Requirement Reconciliation
-
-`docs/domain/entities.md` registra como “Normative rules” unicidades para Customer, Conversation e Message, porém `agents/01-schema/DECISIONS.md` e `agents/01-schema/HUMAN-SCHEMA-REVIEW.md` preservam decisões físicas e semânticas como propostas/pending. Essa divergência é classificada neste ciclo como **GOVERNANCE_DRIFT** e não é resolvida unilateralmente.
-
-`agents/02-domain/HUMAN-DOMAIN-DECISIONS.md` também demonstra que propostas de Domain Runtime permanecem explicitamente não autorizadas.
+`docs/domain/entities.md` remains a derived/normative candidate and must be reconciled with the now-frozen Customer, Conversation and Message contracts. Existing implementation remains non-authoritative wherever it conflicts with these decisions.
 
 ## Superseded Requirements
 
-Nenhum requisito é marcado como superseded neste ciclo sem evidência explícita de autoridade humana que o substitua.
+No historical requirement is marked superseded solely by this scope approval. Explicit supersession requires evidence of an actual replacement relationship.
 
-## Authority
+## Requirement / Contract Boundary
 
-`OPERATOR_PROJECT_GOVERNANCE`.
-
-## Decision State
-
-`PENDING_APPROVAL`.
+This decision defines **what** belongs to the MVP. It does not itself define all field-level schema details or runtime mechanics. Those remain governed by the approved contracts and IA-01 reconciliation.
 
 ## Release Consequence
 
-`MVP_SCOPE_DECISION != APPROVED` mantém o gate documental fechado. `READY_FOR_IA02` não pode ser emitido com base apenas neste pacote.
+`MVP_SCOPE_DECISION = APPROVED`, but `READY_FOR_IA02` remains false until the remaining contract/schema reconciliation gate is complete.
