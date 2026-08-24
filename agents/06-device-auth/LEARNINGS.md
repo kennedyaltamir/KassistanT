@@ -46,6 +46,14 @@ Revocation outcome is explicit; rotation actor is known but key lifecycle, overl
 **Classification:** FACT / AUDITED
 A subject can be contractually defined and still be NOT_STARTED/BLOCKED for implementation.
 
+### L-012 — Security closure is layered
+**Classification:** FACT / AUDITED
+Cryptographic primitive, wire contract, replay, session, authorization, rate limiting, idempotency, rotation, revocation, audit and storage have independent gates.
+
+### L-013 — Pure verification can be isolated
+**Classification:** INFERENCE / AUDITED
+The Signature Verification Boundary can be a pure deterministic slice once the minimum DR-02 signed-byte/key/signature representation and context-binding rules are approved.
+
 ## Current readiness conclusion
 
-IA-06 is ready to continue contract analysis and cross-agent coordination, but not ready for production implementation. The principal blockers are recorded in `DEVICE-AUTH-READINESS.md` and `IMPLEMENTATION-GATES.md`.
+IA-06 is ready for project-level decision review and first-slice approval, but not authorized for production implementation.
