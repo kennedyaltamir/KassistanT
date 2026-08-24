@@ -1,5 +1,13 @@
 import Database = require("better-sqlite3");
-import { MigrationChecksumMismatchError, MigrationError } from "./errors.js";
+import {
+  MigrationChecksumMismatchError,
+  MigrationError
+} from "./errors.js";
+import {
+  authoritativeMigrations,
+  MIGRATION_HISTORICAL_NON_AUTHORITATIVE,
+  MIGRATION_UNCLASSIFIED
+} from "./migration-policy.js";
 import type { MigrationDefinition } from "./migrations.js";
 
 export interface MigrationMetadata {
@@ -46,8 +54,9 @@ export function applyMigrations(
     readAppliedMigrations(database).map((migration) => [migration.migration_id, migration])
   );
   const now = options.now ?? (() => new Date().toISOString());
+  const authoritative = authoritativeMigrations(migrations);
 
-  for (const migration of migrations) {
+  for (const migration of authoritative) {
     const existing = applied.get(migration.id);
     if (existing) {
       if (existing.checksum !== migration.checksum) {
@@ -86,4 +95,12 @@ export function applyMigrations(
   }
 
   return readAppliedMigrations(database);
+}
+
+export function isHistoricalNonAuthoritative(migration: MigrationDefinition): boolean {
+  return migration.authority === MIGRATION_HISTORICAL_NON_AUTHORITATIVE;
+}
+
+export function isUnclassified(migration: MigrationDefinition): boolean {
+  return migration.authority === MIGRATION_UNCLASSIFIED;
 }
