@@ -2,12 +2,24 @@
 
 No external configuration is executed by IA-06 in contract-closure phase.
 
-| Dependency | Platform | Configuration | Status | Validation |
+## Secure Storage boundary
+
+| Layer | Status | Meaning |
+|---|---|---|
+| Logical security requirement | DEFINED | Private key remains under privileged Desktop control and is not exposed to Renderer/UI or logs. |
+| Technology selection | OPEN / EXTERNAL | Concrete Windows secure-storage mechanism is not selected by IA-06. |
+| Runtime validation | EXTERNAL_CONFIGURATION_REQUIRED | Supported Windows runtime must validate key generation/access/signing/deletion/replacement behavior without exposing key material. |
+| Key lifecycle validation | EXTERNAL + CONTRACT | Rotation/recovery/deletion semantics require both contract closure and runtime validation; no local lifecycle is invented. |
+
+## Other external dependencies
+
+| Dependency | Platform | Boundary | Status | Owner |
 |---|---|---|---|---|
-| Private-key storage | Supported Windows runtime | Concrete secure-storage mechanism | EXTERNAL_CONFIGURATION_REQUIRED | Must be tested on supported Windows versions without exposing key to Renderer/logs. |
-| Gateway TLS/DNS/certificates | Gateway hosting/provider | Public transport configuration | EXTERNAL_CONFIGURATION_REQUIRED | Owned operationally outside IA-06; IA-07 owns transport boundary. |
-| CI/CD signing or secrets | GitHub / release infrastructure | Repository secret/configuration values | NON_BLOCKING for contract closure | No secret values are recorded here. |
+| Gateway TLS/DNS/certificates | Gateway hosting/provider | Public transport configuration | EXTERNAL_CONFIGURATION_REQUIRED | IA-07 / operations |
+| CI/CD signing or secrets | GitHub / release infrastructure | Repository/release configuration | NON_BLOCKING for contract closure | Release/operations |
 
 ## IA-06 rule
 
-The logical contract is normative: private key is privileged, never exposed to Renderer, never logged, and signing authority remains inside privileged Desktop runtime. Concrete Windows technology remains an implementation/external-validation decision.
+External validation must not be confused with architectural approval. The project may approve the logical Secure Storage requirement before selecting a concrete Windows implementation.
+
+No secret value, certificate private key or credential is recorded in this document.
