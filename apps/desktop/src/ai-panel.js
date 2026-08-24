@@ -50,6 +50,7 @@
       #${PANEL_ID} .ai-field.full{grid-column:1/-1}
       #${PANEL_ID} label{font-weight:700;font-size:12px}
       #${PANEL_ID} input,#${PANEL_ID} textarea,#${PANEL_ID} select{width:100%;border:1px solid #cfd5e2;border-radius:8px;padding:9px;background:#fff}
+      #${PANEL_ID} input[readonly]{background:#f7f8fb;color:#687086}
       #${PANEL_ID} textarea{min-height:150px;resize:vertical}
       #${PANEL_ID} .ai-section{border-top:1px solid #e4e7ef;margin-top:16px;padding-top:16px}
       #${PANEL_ID} .ai-row{display:flex;justify-content:space-between;gap:10px;align-items:center}
@@ -76,7 +77,7 @@
 
     panel.innerHTML = `
       <div class="ai-head">
-        <div><div class="ai-title">IA Local</div><div class="ai-sub">Auto-reply operacional • Ollama • Gateway local</div></div>
+        <div><div class="ai-title">IA Local</div><div class="ai-sub">Auto-reply operacional • Ollama local • Gateway</div></div>
         <button class="btn" id="ai-close">Fechar</button>
       </div>
       ${state.error ? `<div class="ai-error">${esc(state.error)}</div>` : ''}
@@ -86,8 +87,8 @@
       </div>
       <div class="ai-grid">
         <div class="ai-field"><label for="ai-enabled">Auto-reply</label><select id="ai-enabled"><option value="false" ${enabled ? '' : 'selected'}>Desativado</option><option value="true" ${enabled ? 'selected' : ''}>Ativado</option></select></div>
-        <div class="ai-field"><label for="ai-model">Modelo</label><input id="ai-model" value="${esc(config?.model || '')}" /></div>
-        <div class="ai-field full"><label for="ai-url">URL do Ollama</label><input id="ai-url" value="${esc(config?.baseUrl || '')}" /></div>
+        <div class="ai-field"><label for="ai-model">Modelo Ollama</label><input id="ai-model" value="${esc(config?.model || '')}" /></div>
+        <div class="ai-field full"><label for="ai-url">Endpoint local</label><input id="ai-url" value="${esc(config?.baseUrl || '')}" readonly /><div class="ai-note">Bloqueado para loopback (`localhost:11434`) nesta fase para evitar envio acidental de contexto para serviços externos.</div></div>
         <div class="ai-field"><label for="ai-timeout">Timeout (ms)</label><input id="ai-timeout" type="number" min="1000" max="300000" value="${Number(config?.timeoutMs || 60000)}" /></div>
         <div class="ai-field"><label for="ai-context">Mensagens de contexto</label><input id="ai-context" type="number" min="1" max="50" value="${Number(config?.contextMessages || 12)}" /></div>
         <div class="ai-field full"><label for="ai-cooldown">Cooldown por conversa (ms)</label><input id="ai-cooldown" type="number" min="0" max="60000" value="${Number(config?.cooldownMs || 1500)}" /></div>
@@ -138,7 +139,6 @@
       state.config = await api('/api/whatsapp/ai/config', { method: 'PUT', body: JSON.stringify({
         enabled: $('#ai-enabled')?.value === 'true',
         model: $('#ai-model')?.value?.trim(),
-        baseUrl: $('#ai-url')?.value?.trim(),
         timeoutMs: Number($('#ai-timeout')?.value || 60000),
         contextMessages: Number($('#ai-context')?.value || 12),
         cooldownMs: Number($('#ai-cooldown')?.value || 1500),
