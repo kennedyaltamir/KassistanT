@@ -1,7 +1,14 @@
 import { createMoney, type Money } from "./money.js";
 import { generateUuidV7, isUuidV7 } from "./uuidv7.js";
 
-export type OrderStatus = "DRAFT" | "CONFIRMED";
+export type OrderStatus =
+  | "DRAFT"
+  | "CONFIRMED"
+  | "IN_PRODUCTION"
+  | "READY"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "CANCELLED";
 
 export interface OrderItemModifier {
   readonly id: string;
@@ -97,8 +104,8 @@ function assertOrderProps(props: OrderProps): void {
   if (props.store_id.trim().length === 0) {
     throw new TypeError("Order store_id is required");
   }
-  if (props.status !== "DRAFT" && props.status !== "CONFIRMED") {
-    throw new TypeError("Unsupported D2 Order status");
+  if (!isOrderStatus(props.status)) {
+    throw new TypeError("Unsupported Order status");
   }
 
   validateItems(props.items);
@@ -107,7 +114,7 @@ function assertOrderProps(props: OrderProps): void {
 
 function validateItems(items: readonly OrderItem[]): void {
   for (const item of items) {
-    if (!isUuidv7(item.id)) {
+    if (!isUuidV7(item.id)) {
       throw new TypeError("OrderItem id must be a UUIDv7");
     }
     if (item.name.trim().length === 0) {
@@ -117,7 +124,7 @@ function validateItems(items: readonly OrderItem[]): void {
     validateTotal(item.unit_price);
 
     for (const modifier of item.modifiers) {
-      if (!isUuidv7(modifier.id)) {
+      if (!isUuidV7(modifier.id)) {
         throw new TypeError("OrderItemModifier id must be a UUIDv7");
       }
       if (modifier.name.trim().length === 0) {
@@ -137,4 +144,16 @@ function assertPositiveInteger(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new RangeError(`${name} must be a positive safe integer`);
   }
+}
+
+function isOrderStatus(value: string): value is OrderStatus {
+  return (
+    value === "DRAFT" ||
+    value === "CONFIRMED" ||
+    value === "IN_PRODUCTION" ||
+    value === "READY" ||
+    value === "OUT_FOR_DELIVERY" ||
+    value === "DELIVERED" ||
+    value === "CANCELLED"
+  );
 }
