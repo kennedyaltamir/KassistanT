@@ -112,7 +112,7 @@ Current: `BLOCKED`.
 
 ### IA-03 gate
 
-Required before WSS receive/ACK/recovery implementation:
+Required before WSS receive/ACK/recovery runtime:
 
 - executable durable-intake result;
 - persisted / duplicate / failure outcomes;
@@ -127,20 +127,14 @@ Current: `BLOCKED`.
 
 The first WSS lifecycle slice does not automatically require full replay, resync or numerical backpressure tuning. Those capabilities may be explicitly deferred only when the selected V1 contract permits the deferral. No semantics are inferred locally.
 
-### Artifacts
+## Dependency Acceptance Gate — 2026-08-24
 
-- `WSS-INTEGRATION-GATE.md`
-- `WSS-IA06-CONTRACT.md`
-- `WSS-IA03-CONTRACT.md`
-- `WSS-RUNTIME-V1-REQUIREMENTS.md`
-- `WSS-INTEGRATION-BOUNDARY.md`
-- `WSS-SESSION-DECISION-MATRIX.md`
-
-### Runtime gate
-
-`WSS connection lifecycle abstraction = BLOCKED`.
-
-No runtime code was added in this phase.
+- `WSS-DEPENDENCY-ACCEPTANCE.md` defines objective results: `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED`, `NOT_VERIFIED`.
+- Future validation should record the supplied dependency branch and commit SHA, read only the gate artifacts, compare them against the criteria, and avoid repeating the global architecture audit unless evidence conflicts with an authoritative source.
+- IA-06 current result: `NOT_VERIFIED`.
+- IA-03 current result: `NOT_VERIFIED`.
+- Current proposed first slice: `connection lifecycle without replay`.
+- Current slice status: `BLOCKED` until IA-06 and IA-03 mandatory gates pass and replay deferral is explicit.
 
 ## Evidence rule
 
