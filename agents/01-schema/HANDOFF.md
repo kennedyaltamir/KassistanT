@@ -7,42 +7,39 @@
 - Active branch: `Agent01-schema-canonical-sqlite`
 - Integration authority: `main`
 
-## Phase 2.5 result
+## Current result
 
-Schema Decision Package is **COMPLETE / REVIEW REQUIRED**.
-
-## Decision artifacts
-
-- `SCHEMA-DECISION-MATRIX.md`
-- `SCHEMA-AUTHORITY-MATRIX.md`
-- `TABLE-READINESS-MATRIX.md`
-- `CANONICAL-SCHEMA-SPEC.md`
-- `MIGRATION-0002-READINESS.md`
-- `MIGRATION-0002-PROJECTION.md`
+Cross-Agent Response Consolidation is **WAITING FOR ACTUAL OWNER / OPERATOR RESPONSES**.
 
 ## Verified state
 
 1. 28 canonical entities remain in scope.
-2. 3 tables can become ready after local IA-01 physical decisions.
+2. 3 tables require only local IA-01 physical approvals.
 3. 14 require semantic decisions from other agents.
-4. DomainOutbox requires global resolution of CONTRACT-001 where physical ownership is affected.
+4. `DomainOutbox` remains the localized global blocker under `CONTRACT-001`.
 5. 10 tables remain directly blocked by incomplete field/relationship contracts.
-6. CONTRACT-002 is currently non-blocking for physical schema.
-7. GOV-001 is deferred unless it changes a schema-critical interpretation.
-8. M5.1 and `0001_bootstrap.sql` remain unchanged.
-9. No `0002` migration exists.
-10. No contracts or protected documentation were modified.
+6. `CONTRACT-002` is currently non-blocking for physical schema.
+7. `GOV-001` remains deferred unless a real source conflict changes schema interpretation.
+8. No owner response was supplied in the current execution input.
+9. No decision was promoted to APPROVED.
+10. No table was promoted to READY.
+11. No migration `0002` exists.
+12. M5.1 and `0001_bootstrap.sql` remain unchanged.
 
-## Required human/agent decisions
+## Response validation rule
 
-- Approve/reject IA-01 local physical proposals.
-- Provide semantic field/nullability/default decisions through IA-02 and relevant domain agents.
-- Provide OrderItem/OrderItemModifier/OrderStatusHistory parent-key decisions through IA-04/IA-02.
-- Provide infrastructure field semantics through IA-03.
-- Provide Conversation/AI and KnowledgeItem semantics through IA-05/IA-02.
-- Provide Device/security persistence semantics through IA-06.
-- Resolve CONTRACT-001 globally for affected DomainOutbox physical scope.
+A response is accepted only when it contains enough evidence to resolve the exact requested decision and does not conflict with another authoritative response. Assertive language such as READY/APPROVED/COMPLETE is not evidence by itself.
+
+## Required next responses
+
+- IA-02: domain nullability/defaults, lifecycle/state semantics, store scoping.
+- IA-03: Inbox, Outbox, Job, Audit, correlation/idempotency semantics.
+- IA-04: OrderItem, OrderItemModifier, OrderStatusHistory and Order persistence semantics.
+- IA-05: Conversation/Message, AIProfile/AIExecution, KnowledgeItem semantics.
+- IA-06: Device/Store identity and lifecycle persistence.
+- IA-07: Gateway/Desktop persistence boundary relevant to `CONTRACT-001`.
+- Operator/project authority: approve/reject SD-001..SD-005 and resolve `CONTRACT-001` where schema is affected.
 
 ## Migration gate
 
-Do not create `0002` until the decision package is approved and the included tables pass deterministic-generation review: a second engineer must be able to produce identical DDL without asking for missing field names, types, nullability, defaults, FK actions, state encoding or ownership semantics.
+Do not create `0002` until actual responses are validated, conflicts are resolved, all schema-critical physical decisions are frozen, and deterministic-generation review confirms that another engineer can produce identical DDL without interpretation.
