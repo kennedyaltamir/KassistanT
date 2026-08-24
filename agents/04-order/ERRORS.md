@@ -42,7 +42,47 @@
 
 ## E-006 — Implementation absent
 
-- Severity: INFORMATIONAL for configuration phase
+- Severity: INFORMATIONAL
 - Status: CONFIRMED
 - Problem: the repository contract registry records Order State as not implemented and M5.1 explicitly excluded the Order Engine.
-- Impact: configuration documents must not claim runtime completion.
+- Impact: readiness documentation must not claim runtime completion.
+
+## E-007 — Lifecycle adjacency incomplete
+
+- Severity: HIGH
+- Status: OPEN
+- Problem: lifecycle states are catalogued and invalid transitions are rejected, but the complete normative transition graph and actor/precondition matrix are absent.
+- Impact: state-machine implementation and deterministic tests.
+- Rule: do not invent transitions.
+
+## E-008 — Pricing algorithm incomplete
+
+- Severity: HIGH
+- Status: OPEN
+- Problem: monetary fields/invariants exist, but complete promotion, delivery-fee and calculation-order semantics are not executable contracts.
+- Impact: authoritative total calculation.
+- Rule: do not invent pricing rules.
+
+## E-009 — Promotion semantics incomplete
+
+- Severity: HIGH
+- Status: OPEN
+- Problem: promotion type/scope/period are documented, but stacking, priority, exclusivity, limits and conflict resolution are not fully defined.
+- Impact: deterministic discount calculation and idempotent application.
+- Rule: keep UNKNOWN/PROPOSAL explicit.
+
+## E-010 — Idempotency/concurrency contract incomplete
+
+- Severity: HIGH
+- Status: OPEN
+- Problem: duplicate processing is required, but operation-specific idempotency keys, scopes, replay/conflict policy and serialization/version behavior are incomplete.
+- Impact: duplicate confirmation, quantity races, cancellation races and retries.
+- Rule: specify before runtime implementation.
+
+## E-011 — Delivery/payment executable semantics incomplete
+
+- Severity: MEDIUM/HIGH
+- Status: OPEN
+- Problem: delivery and payment concepts exist, but complete command/state/error semantics are not fixed.
+- Impact: confirmation preconditions and downstream lifecycle behavior.
+- Rule: do not invent payment gateway behavior or delivery integration.
