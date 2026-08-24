@@ -11,14 +11,14 @@ Do not finalize DomainOutbox ownership, behavior, schema semantics or transactio
 IA-03 must not assume the event is definitively required or forbidden.
 
 ## ERR-003 — Runtime absence
-**Status:** NOT_IMPLEMENTED
+**Status:** CLOSED FOR EVENTBUS V1 / OPEN FOR REMAINING INFRASTRUCTURE
 
-EventBus, InboundInbox, DomainOutbox, JobQueue and AuditLog runtime are not implemented.
+EventBus V1 is implemented and tested. InboundInbox, DomainOutbox, JobQueue and AuditLog runtime remain unimplemented.
 
 ## ERR-004 — Documentation is not implementation evidence
-**Status:** OPERATIONAL RISK
+**Status:** OPERATIONAL RULE
 
-Completion requires executable implementation and tests.
+Completion claims require executable implementation and tests.
 
 ## ERR-005 — Partial operational policies
 **Status:** PARTIAL
@@ -36,24 +36,24 @@ IA-03 consumers include Order, Conversation and transport areas. Shared contract
 Sensitive customer/business data must not be exposed without explicit policy. Secrets must never be committed.
 
 ## ERR-008 — EventBus guarantee inflation
-**Status:** READINESS RISK
+**Status:** CLOSED / V1 BOUNDARY
 
-EventBus is in-process/post-commit. Do not imply exactly-once, durable replay, global ordering or durable retry.
+EventBus V1 is in-process/post-commit, non-durable, has no durable retry and exposes `NO_ORDERING_GUARANTEE`.
 
 ## ERR-009 — Persistence model duplication
-**Status:** READINESS RISK
+**Status:** OPEN / INVARIANT
 
 Do not create temporary Inbox/Outbox/Job/Audit schema outside IA-01 canonical persistence.
 
 ## ERR-010 — Reliability policy invention
-**Status:** READINESS RISK
+**Status:** OPEN / INVARIANT
 
 Do not invent retry counts, job backoff, leases, timeout values, retention or dead-letter transitions.
 
 ## ERR-011 — EventBus runtime gate incomplete
-**Status:** BLOCKING FOR RUNTIME
+**Status:** CLOSED FOR V1
 
-Protected sources do not define the local subscriber lifecycle/error semantics.
+The operator approved the local subscriber lifecycle/error policies and the V1 runtime was implemented accordingly.
 
 ## ERR-012 — Ordering boundary closed negatively
 **Status:** CLOSED / NEGATIVE GUARANTEE
@@ -61,14 +61,19 @@ Protected sources do not define the local subscriber lifecycle/error semantics.
 EventBus has `NO_ORDERING_GUARANTEE`.
 
 ## ERR-013 — Local policy approval pending
-**Status:** BLOCKING FOR IMPLEMENTATION / NON-BLOCKING FOR ARCHITECTURAL PREPARATION
+**Status:** CLOSED
 
-A complete proposal now exists for subscriber failure propagation, isolation, scheduling, cancellation, timeout, unsubscribe lifecycle, multiple-subscriber behavior and dispatch completion. These are local observable runtime policies but have not yet been approved by the operator.
+EBUS-DEC-001 through EBUS-DEC-008 were explicitly approved by the operator and recorded as IA-03 local decisions.
 
 ## ERR-014 — Premature implementation compatibility risk
-**Status:** OPEN / READINESS RISK
+**Status:** CLOSED FOR EVENTBUS V1
 
-Implementing before approval would convert proposed handler lifecycle/error behavior into de facto product behavior and could force consumers to depend on semantics that were never intentionally accepted.
+Implementation began only after explicit policy approval.
+
+## ERR-015 — Test runner scope
+**Status:** OBSERVABILITY / TOOLING LIMITATION
+
+The standard desktop test runner does not enumerate the new EventBus test automatically. Its configuration is outside IA-03 scope, so validation was executed directly against the associated test file without modifying protected scripts.
 
 ## Recovery traps
 
@@ -76,4 +81,4 @@ Implementing before approval would convert proposed handler lifecycle/error beha
 - Retry without idempotency can create duplicate logical effects.
 - Replay without causation/correlation breaks traceability.
 - Treating WSS reconnect backoff as JobQueue retry policy crosses a transport boundary.
-- Treating the proposed EventBus lifecycle policy as approved before human review creates an unauthorized contract.
+- Treating EventBus execution order as a public ordering guarantee is forbidden.
