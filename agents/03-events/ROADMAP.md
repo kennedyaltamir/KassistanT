@@ -4,72 +4,50 @@
 
 Este roadmap é subordinado ao roadmap global do KassisT. Ele descreve somente o território de Event Infrastructure e não cria novas fases globais nem redefine contratos.
 
-## State model
-
-- **DONE** — evidência de implementação e validação suficiente existe no repository.
-- **PARTIAL** — parte da fundação/contrato existe, mas o runtime completo não existe ou há lacunas contratuais.
-- **BLOCKED** — uma decisão ou dependência não resolvida impede implementação segura.
-- **NOT_STARTED** — não há runtime implementado nem avanço específico suficiente para classificação NOT_STARTED.
-- **PLANNED** — definido/documentado para implementação futura, sem runtime.
-- **READY_CANDIDATE** — slice preparado, mas requer gate objetivo antes do código.
-- **READY_AFTER_HUMAN_APPROVAL** — local runtime policy is specified and awaits explicit human approval.
-
 ## Current state
 
 | Area | State | Evidence / boundary |
 |---|---|---|
-| EventBus | READY_AFTER_HUMAN_APPROVAL | Local runtime policy proposed; no code implemented. |
+| EventBus | IMPLEMENTED / TESTED | V1 in-process/post-commit runtime implemented with deterministic tests. |
 | InboundInbox | BLOCKED | Durable intake/ACK contract defined; canonical schema/persistence absent. |
 | DomainOutbox | BLOCKED | Ownership/scope unresolved under `CONTRACT-001`. |
 | JobQueue | BLOCKED | `Job` persistence absent and exact retry/lease policies incomplete. |
 | AuditLog | BLOCKED | Audit contract exists; canonical persistence and sensitive-data policy are incomplete. |
-| Idempotency / deduplication | PARTIAL | Principles exist; runtime mechanisms absent. |
-| Retry | PLANNED | Required by job/event contracts; exact policy remains incomplete. |
+| Idempotency / deduplication | PARTIAL | Principles exist; durable runtime remains future work. |
+| Retry | PLANNED | Durable retry remains a JobQueue concern. |
 | Backoff | PARTIAL | WSS reconnect policy exists; JobQueue policy remains incomplete. |
 | Replay | PLANNED | WSS resume/replay contracted; local runtime absent. |
 | Reconciliation | PLANNED | Required, but algorithm/state model incomplete. |
 | Dead-letter | PLANNED | Concept identified; policy/runtime absent. |
-| Causation | PARTIAL | Contract metadata exists; runtime propagation absent. |
-| Correlation | PARTIAL | Contract metadata exists; runtime propagation absent. |
-| Observability | PARTIAL | Requirements exist; runtime telemetry absent. |
-| Failure recovery | PLANNED | Architectural requirement; future implementation. |
-| Deterministic testing | READY_AFTER_HUMAN_APPROVAL | Test matrix finalized as a proposal for V1; test code remains absent. |
+| Causation | PARTIAL | Contract metadata exists; EventBus preserves supplied event object metadata without expanding the contract. |
+| Correlation | PARTIAL | Contract metadata exists; EventBus preserves supplied event object metadata without expanding the contract. |
+| Observability | PARTIAL | Local subscriber failure reporting exists; broader telemetry schema remains undefined. |
+| Failure recovery | PLANNED | Durable recovery is future work outside the EventBus slice. |
+| Deterministic testing | IMPLEMENTED / TESTED | 10 EventBus tests passed in isolated runtime validation. |
 
-## EventBus decision closure
+## EventBus V1 closure
 
-### Evidence-backed closed semantics
+### Approved local policies
 
-- protected envelope boundary;
-- in-process publication;
-- post-commit dispatch boundary;
-- non-durable delivery;
-- no EventBus-owned durable retry;
-- `NO_ORDERING_GUARANTEE`;
-- no DomainOutbox transaction ownership.
-
-### Proposed local policies awaiting approval
-
-- async `publish()` API;
-- sequential invocation over a publish-time subscriber snapshot;
+- asynchronous `publish()`;
+- publish-time subscriber snapshot;
+- sequential handler execution;
 - subscriber failure isolation;
 - aggregate failure reporting after all selected handlers settle;
 - opaque subscription identity;
 - idempotent unsubscribe;
-- duplicate registrations as distinct subscriptions;
+- duplicate registrations are distinct subscriptions;
 - unsubscribe-only cancellation;
-- no V1 timeout;
-- completion means all selected handlers have settled.
+- no V1 EventBus timeout;
+- completion means all selected handlers have settled;
+- `NO_ORDERING_GUARANTEE`;
+- no persistence;
+- no durable retry;
+- no DomainOutbox coupling.
 
-## Cross-agent dependencies
+### Implementation boundary
 
-### IA-02
-Domain event semantics and payload stability are the immediate compatibility dependency.
-
-### IA-04
-Order event producers/consumers must accept the approved local EventBus lifecycle without relying on undocumented ordering.
-
-### IA-05 / IA-06 / IA-07 / IA-08
-Future consumers/producers must not rely on unsupported ordering, durability or retry semantics.
+Only `apps/desktop/electron/infrastructure/events/**` was implemented. Downstream agent integration remains deferred.
 
 ## Global contracts remain unchanged
 
@@ -77,7 +55,7 @@ Future consumers/producers must not rely on unsupported ordering, durability or 
 
 ## Future implementation sequence
 
-1. **R0 — EventBus**: implement only after human approval of the local decision package; add deterministic tests.
+1. **R0 — EventBus**: DONE / TESTED.
 2. **R1 — InboundInbox**: after IA-01 canonical persistence/schema is available.
 3. **R2 — JobQueue**: after Job persistence and reliability policy are finalized.
 4. **R3 — AuditLog**: after canonical persistence and sensitive-data controls are finalized.
@@ -87,4 +65,4 @@ Future consumers/producers must not rely on unsupported ordering, durability or 
 
 ## Completion rule
 
-Documentation or proposals never constitute runtime completion. DONE requires executable implementation, deterministic tests, contract consistency, CI/review evidence and authorized integration through `main` governance.
+EventBus DONE is limited to executable code and deterministic tests for this slice. It does not imply readiness of the remaining Event Infrastructure components.
