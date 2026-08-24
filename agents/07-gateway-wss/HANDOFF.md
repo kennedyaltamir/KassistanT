@@ -47,9 +47,28 @@ IA-03 continua responsável pela persistência, deduplicação, ACK e replay/rec
 
 IA-07 fornece estado de conexão/sessão e envelopes de eventos; IA-08 apenas apresenta/consome esses resultados no Desktop.
 
+## Dependency acceptance
+
+Use `WSS-DEPENDENCY-ACCEPTANCE.md` when IA-06 or IA-03 delivers a new dependency revision.
+
+Acceptance procedure:
+
+1. Record the exact branch and commit SHA.
+2. Read only the dependency gate artifacts relevant to the supplied revision.
+3. Compare the evidence against each acceptance criterion.
+4. Record one result per gate: `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED` or `NOT_VERIFIED`.
+5. Do not repeat the global project audit unless new evidence conflicts with an authoritative source.
+6. Do not change runtime during dependency acceptance.
+
+Current results:
+- IA-06: `NOT_VERIFIED`.
+- IA-03: `NOT_VERIFIED`.
+
 ## Minimum V1
 
-The first lifecycle slice must not automatically include every future WSS capability. Full resync, advanced replay retention and numerical backpressure tuning may be deferred only when the selected V1 contract explicitly permits it.
+The first lifecycle slice is currently proposed as `connection lifecycle without replay`. It remains BLOCKED until IA-06 session/revocation/reauthentication gates and IA-03 durable-intake/ACK gates pass, and replay deferral is explicit for the selected V1 contract.
+
+Full resync, advanced replay retention and numerical backpressure tuning may remain deferred only when the selected V1 contract explicitly permits it.
 
 ## Artifacts
 
@@ -57,6 +76,7 @@ The first lifecycle slice must not automatically include every future WSS capabi
 - `WSS-IA06-CONTRACT.md`
 - `WSS-IA03-CONTRACT.md`
 - `WSS-RUNTIME-V1-REQUIREMENTS.md`
+- `WSS-DEPENDENCY-ACCEPTANCE.md`
 - `WSS-INTEGRATION-BOUNDARY.md`
 - `WSS-SESSION-DECISION-MATRIX.md`
 
