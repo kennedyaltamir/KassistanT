@@ -1,88 +1,129 @@
 # IA-06 Implementation Gates
 
-Status: READINESS AUDIT; implementation remains frozen.
+Status: STRATIFIED CONTRACT REVIEW; implementation remains frozen.
 
 ## Gate 0 — Repository / territory
 
 - Branch is `Agent06-device-authentication`.
-- Branch currently matches `main` before this readiness commit.
-- Only `agents/06-device-auth/**` may change.
-- No product runtime changes are permitted in this phase.
+- Only `agents/06-device-auth/**` may change in this phase.
+- No product runtime changes are permitted.
 
 Status: READY.
 
-## Gate 1 — Enrollment contract
+## Gate 1 — Device identity semantics
 
-Required: complete request/response schemas, authentication, authorization, success/error status mapping, idempotency and rate-limit policy.
+Logical device identity, Store binding and public-key association must be sufficiently defined for the target slice.
 
-Status: BLOCKED.
+Physical schema/migrations remain IA-01 responsibility.
 
-## Gate 2 — Authentication protocol
+Status: PARTIAL.
 
-Required: challenge freshness, nonce/challenge representation, signed payload/canonicalization, verification result semantics, replay handling and session establishment.
+## Gate 2 — Cryptographic primitive
 
-Status: BLOCKED.
+Ed25519 as the verification primitive and public/private trust boundary are already normative.
 
-## Gate 3 — Cryptographic contract
+Status: READY.
 
-Required: Ed25519 usage is already normative. Remaining protocol representation details must be explicit enough for deterministic implementation and tests.
+## Gate 3 — Minimum cryptographic wire contract
 
-Status: PARTIAL/BLOCKED.
+For the Signature Verification Boundary only, approve:
 
-## Gate 4 — Secure Storage
+- signed bytes;
+- public-key representation;
+- signature representation;
+- challenge/context binding;
+- deterministic valid/invalid verifier result;
+- minimum freshness/replay requirement relevant to the signed input.
 
-Required: approved Desktop secure-storage mechanism/boundary plus supported-Windows validation plan. Renderer access prohibition is already explicit.
+This gate does not require session TTL, authorization, rate limits, endpoint idempotency or rotation closure.
 
-Status: PARTIAL/EXTERNAL.
+Status: BLOCKED pending minimum DR-02 subset.
 
-## Gate 5 — Authorization
+## Gate 4 — Replay security
 
-Required: endpoint-by-endpoint actor/resource/action/condition matrix, including Store scoping and failure semantics.
+Full challenge lifecycle, reuse rejection and operational replay handling.
 
-Status: BLOCKED.
+Status: BLOCKED / DR-02.
 
-## Gate 6 — Idempotency
+## Gate 5 — Session security
 
-Required: operation-specific key strategy, scope, duplicate behavior, conflict behavior, persistence and retention/replay semantics.
+Session identity, expiration/renewal, reconnect/resume, reauthentication and revocation invalidation.
 
-Status: BLOCKED.
+Status: BLOCKED / DR-03.
 
-## Gate 7 — Error model
+## Gate 6 — Authorization
 
-Required: sufficient device-auth error taxonomy, public status mapping, retryability and client-visible behavior.
+Endpoint/action/resource/condition matrix and failure semantics.
 
-Status: BLOCKED.
+Status: BLOCKED / DR-04.
 
-## Gate 8 — Persistence
+## Gate 7 — Rate limiting
 
-Required: canonical Device/Store fields and persistence constraints needed by runtime.
+Applicable operations and approved numeric policy.
 
-Status: PARTIAL/BLOCKED.
+Status: BLOCKED / DR-05.
 
-## Gate 9 — Gateway/WSS boundary
+## Gate 8 — Endpoint idempotency
 
-Required: stable ownership interface and exact device-auth payload/session behavior compatible with WSS v1.
+Operation-specific key/scope, duplicate/conflict behavior, persistence and retention/replay semantics.
 
-Status: PARTIAL/BLOCKED.
+Status: BLOCKED / DR-06.
 
-## Gate 10 — Audit/event semantics
+## Gate 9 — Rotation
 
-Required: defined audit coverage and durable-event boundary for authentication/revocation/key lifecycle. Do not encode CONTRACT-001 assumptions.
+Old/new key lifecycle, overlap, rollback, revocation ordering and session continuity.
 
-Status: PARTIAL/BLOCKED.
+Status: BLOCKED / DR-07.
 
-## Gate 11 — Deterministic tests
+## Gate 10 — Error model
 
-Required before production claim: unit/integration/security/contract tests covering success, failure, replay/revocation and key lifecycle according to the approved contract.
+Device-auth error identifiers, retryability, client-visible semantics and HTTP mapping.
 
-Status: BLOCKED until Gates 1–10 are sufficiently closed.
+Status: BLOCKED / DR-08.
 
-## Gate 12 — Implementation authorization
+## Gate 11 — Secure Storage
 
-Only after the previous gates are satisfied by project authority may IA-06 implement inside its territory. This readiness package itself is not authorization to implement.
+Logical boundary is defined. Concrete Windows mechanism and supported-runtime validation are separate external/implementation gates.
+
+Status: PARTIAL / EXTERNAL.
+
+## Gate 12 — Auditability
+
+Minimum security-event audit contract must be explicit for:
+
+- enrollment attempt/result;
+- authentication success/failure;
+- replay rejection;
+- authorization denial;
+- rate-limit decision;
+- revocation;
+- rotation;
+- session termination.
+
+Private keys, pairing codes and secret material must not be logged.
+
+IA-03 owns durable audit/event infrastructure.
+
+Status: PARTIAL / CROSS_AGENT.
+
+## Gate 13 — Gateway/WSS boundary
+
+Device-auth payload/session behavior and the ownership interface with IA-07 must be stable before transport integration.
+
+Status: PARTIAL / CROSS_AGENT.
+
+## Gate 14 — First slice authorization
+
+The Signature Verification Boundary may be authorized independently once Gate 2 and the minimum Gate 3 subset are approved and the operator explicitly authorizes implementation.
+
+Status: BLOCKED pending approval.
+
+## Gate 15 — Full runtime authorization
+
+Full production implementation requires the applicable gates above to be closed, cross-agent dependencies stable, deterministic tests available and explicit project authorization.
 
 Status: BLOCKED.
 
 ## Global non-gates
 
-`CONTRACT-001`, `CONTRACT-002` and `GOV-001` must not be resolved by IA-06. They are integration/governance dependencies whenever the device-auth implementation would otherwise need to encode them.
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain outside IA-06 authority. They block only implementation paths that would encode assumptions about those contracts.
