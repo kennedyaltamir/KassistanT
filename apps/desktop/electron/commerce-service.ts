@@ -1,5 +1,5 @@
-import { createMoney, generateUuidV7, type OrderItem, type OrderStatus } from "../../packages/domain/src/index.js";
-import { confirmOrder } from "../../packages/domain/src/confirm-order.js";
+import { createMoney, generateUuidV7, type OrderItem, type OrderStatus } from "../../../packages/domain/src/index.js";
+import { confirmOrder } from "../../../packages/domain/src/confirm-order.js";
 import { SQLiteDatabase, getDefaultDatabasePath } from "./database/sqlite-database.js";
 import { SQLiteOrderRepository, SQLiteProductRepository } from "./database/product-order-repository.js";
 import path from "node:path";
@@ -120,7 +120,7 @@ export class CommerceService {
       totalCents += line;
     }
 
-    const { Order } = await import("../../packages/domain/src/order.js");
+    const { Order } = await import("../../../packages/domain/src/order.js");
     const order = Order.createDraft(this.storeId, items, createMoney(totalCents));
     orderRepo.save(order);
     return this.toView(order);
@@ -165,7 +165,7 @@ export class CommerceService {
     return this.databasePromise;
   }
 
-  private toView(order: import("../../packages/domain/src/order.js").Order): OrderView {
+  private toView(order: import("../../../packages/domain/src/order.js").Order): OrderView {
     return {
       id: order.id,
       status: order.status,
