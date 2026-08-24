@@ -1,6 +1,7 @@
 import { createServer } from 'node:http';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
-import { getAutoReplyStatus } from './auto-reply.mjs';
+import { getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
+import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 
 /** @param {import('node:http').ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
@@ -61,6 +62,40 @@ export function createHttpServer() {
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/status') {
       return json(response, 200, getAutoReplyStatus());
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/config') {
+      const config = getAiConfig();
+      return json(response, 200, {
+        ...config,
+        configuredConversations: listConversationPolicies().length,
+      });
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/whatsapp/ai/config') {
+      try {
+        const body = await parseBody(request);
+        const allowed = ['enabled', 'baseUrl', 'model', 'timeoutMs', 'contextMessages', 'cooldownMs', 'systemPrompt'];
+        const patch = Object.fromEntries(Object.entries(body).filter(([key]) => allowed.includes(key)));
+        return json(response, 200, updateAiConfig(patch));
+      } catch (error) {
+        return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
+      }
+    }
+
+    if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/conversations') {
+      const jid = url.searchParams.get('jid');
+      if (jid) return json(response, 200, getConversationPolicyStatus(jid));
+      return json(response, 200, { policies: listConversationPolicies() });
+    }
+
+    if (request.method === 'PUT' && url.pathname === '/api/whatsapp/ai/conversations') {
+      try {
+        const body = await parseBody(request);
+        return json(response, 200, setConversationPolicy(String(body.jid ?? ''), body));
+      } catch (error) {
+        return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
+      }
     }
 
     if (request.method === 'GET' && url.pathname === '/api/whatsapp/messages') {
