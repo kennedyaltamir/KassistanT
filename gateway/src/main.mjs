@@ -10,8 +10,8 @@ const server = createHttpServer();
 const scheduler = createLlmUpdateScheduler({
   getSettings: getLlmSettings,
   updateAllLocalModels,
-  onLog: message => console.log(`[KassisT LLM updater] ${message}`),
-  onError: message => console.error(`[KassisT LLM updater] update failed: ${message}`),
+  onLog: (message) => console.log(`[KassisT LLM updater] ${message}`),
+  onError: (message) => console.error(`[KassisT LLM updater] update failed: ${message}`),
 });
 
 registerLlmSettingsObserver(() => scheduler.schedule());
