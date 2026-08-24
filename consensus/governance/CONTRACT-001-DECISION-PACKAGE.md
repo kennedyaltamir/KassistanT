@@ -1,64 +1,59 @@
 # CONTRACT-001 — DomainOutbox Decision Package
 
-Status: **BLOCKER / PENDING_GLOBAL_DECISION**
+Status: **RESOLVED**
 Authority: `OPERATOR_PROJECT_GOVERNANCE`
-Baseline: `MVP2` @ `0bea2a0ca7c52729cfd58bebc8cd568373222230`
+Effective from: `2026-08-24T19:52:00-03:00`
+Decision record: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`
 
-## Problem
+## Decision
 
-`agents/01-schema/DECISIONS.md` registra `P-011 — CONTRACT-001 DomainOutbox ownership/scope` como decisão global pendente. `agents/02-domain/DOMAIN-GLOBAL-DECISIONS.md` registra o mesmo problema: DomainOutbox está na fronteira entre domínio e efeito externo, e ownership/transaction semantics não estão formalmente fechados.
+**OPTION A — DOMAIN EVENT INTENT + IA-03 DURABLE OUTBOX MECHANICS**.
 
-## Required semantics under evaluation
+Domain owns business event intent. IA-03 owns durable Outbox mechanics and delivery worker. IA-01 owns the physical schema representation only after semantic closure and reconciliation.
 
-business transaction
-+
-outbox intent
--> commit
--> worker
--> provider
+## Normative Semantics
 
-Prohibited pattern under the proposed governance model:
+`business transaction + outbox intent -> database commit -> worker -> provider`
 
-persist business
--> direct provider call
+When business state and outbox intent belong to the same persistent operation, they must be committed atomically in the same transaction boundary.
 
-A semântica acima é tratada como proposta de contrato para decisão; não é declarada aprovada por este documento.
+Provider invocation is prohibited until durable outbox intent exists.
 
-## Real Alternatives
+Delivery must be idempotent or deduplicated according to the delivery contract.
 
-### Option A — Domain event intent + IA-03 durable mechanics
+Recovery must be deterministic and auditable.
 
-Domain owns business event intent; IA-03 owns durable Outbox mechanics and delivery worker, with IA-01 defining physical persistence only after semantic closure.
+Ownership is singular at each semantic layer; hidden bypass paths are prohibited.
 
-### Option B — IA-03 complete Outbox semantics
+## Impact
 
-IA-03 owns event intent, durable representation and delivery mechanics as one integration contract.
+### Requirements
 
-### Option C — Other explicit boundary
+Durable external delivery, atomic intent publication, idempotency, deterministic recovery and auditability.
 
-Operator defines another ownership and transaction model with explicit owner, transaction semantics, idempotency, retry/recovery and provider boundary.
+### Contracts
 
-## Required invariant candidates
+Domain event semantics; DomainOutbox; IA-03 durable delivery worker; provider boundary.
 
-1. Business state and outbox intent are committed atomically when both belong to the same transaction boundary.
-2. Provider invocation occurs only after durable intent exists.
-3. Delivery is idempotent or deduplicated according to an explicit contract.
-4. Recovery must be deterministic and auditable.
-5. Ownership must be singular at each semantic layer; no hidden bypass path.
+### Schema
 
-These are candidate invariants pending final normative closure.
+`domain_outbox` physical structure remains subject to IA-01 schema reconciliation. This decision does not authorize schema mutation or migration execution.
 
-## Decision State
+### Implementation
 
-`PENDING_GLOBAL_DECISION`.
+Future implementation must not use `persist business -> direct provider call` as the delivery pattern when the provider effect is represented by DomainOutbox.
 
-## Release consequence
+## Explicit Non-Scope
 
-Until resolved, `CONTRACT-001` remains a blocker for any implementation that depends on durable DomainOutbox ownership or transaction semantics. It does not authorize implementation or schema changes.
+No schema alteration; no migration execution; no provider integration change; no merge; no production release.
 
-## Authority separation
+## Evidence
 
-IA-01 may package evidence and reconcile physical schema implications.
-IA-02 may provide domain semantics.
-IA-03 may provide integration/runtime semantics.
-The Operator closes the global normative decision.
+- `agents/02-domain/DOMAIN-GLOBAL-DECISIONS.md` DREQ-004.
+- Existing `consensus/governance/CONTRACT-001-DECISION-PACKAGE.md` candidate semantics.
+- Operator mandate requiring business transaction + outbox intent -> commit -> worker -> provider.
+
+## Consequence
+
+`CONTRACT-001 = RESOLVED`.
+IA-01 must reconcile physical schema and documentation to this ownership and transaction boundary.
