@@ -5,7 +5,7 @@
 - Repository: `kennedyaltamir/KassistanT`.
 - Integration authority: `main`.
 - Active branch: `Agent01-schema-canonical-sqlite`.
-- Phase 1 and Phase 2 work are documentation-only; protected contracts and M5.1 runtime remain untouched.
+- Phase 1, Phase 2 and Decision Execution work remain documentation-only; protected contracts and M5.1 runtime remain untouched.
 - Canonical schema inventory: 28 entities.
 
 ## M5.1 foundation
@@ -16,9 +16,10 @@ M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 check
 
 ## Schema decision package
 
-- `SCHEMA-DECISION-MATRIX.md` classifies local, cross-agent, global, deferred and non-blocking decisions.
+- `SCHEMA-DECISION-MATRIX.md` classifies local, cross-agent, global, deferred and non-blocking decisions and records request state.
 - `SCHEMA-AUTHORITY-MATRIX.md` separates semantic authority from IA-01 physical ownership.
-- `TABLE-READINESS-MATRIX.md` reclassifies the 28 tables by decision authority.
+- `TABLE-READINESS-MATRIX.md` reclassifies the 28 tables by decision authority and request state.
+- `HUMAN-SCHEMA-REVIEW.md` provides closed decision requests for operator/agent review.
 - `CANONICAL-SCHEMA-SPEC.md` consolidates the physical proposal.
 - `MIGRATION-0002-READINESS.md` and `MIGRATION-0002-PROJECTION.md` remain documentary and prohibit migration creation.
 
@@ -30,6 +31,8 @@ M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 check
 - `BLOCKED`: 10 tables.
 - `READY_FOR_MIGRATION`: 0 tables.
 
+No table was promoted in this execution because no new authority response or operator approval was received.
+
 ## Local physical proposals awaiting operator confirmation
 
 - `lower_snake_case` physical naming.
@@ -38,7 +41,7 @@ M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 check
 - booleans as SQLite `INTEGER 0/1` where semantics are frozen.
 - contract-defined JSON payloads as `TEXT` JSON.
 
-These are implementation proposals, not global architectural decisions.
+These remain proposals, not approved global decisions.
 
 ## Schema-critical blockers
 
@@ -51,6 +54,6 @@ These are implementation proposals, not global architectural decisions.
 - `CONTRACT-002`: currently non-blocking for schema.
 - `GOV-001`: deferred unless an actual source conflict changes schema interpretation.
 
-## Memory policy
+## Decision protocol
 
-Only verified facts and explicitly approved posture belong here. Proposals remain proposals until operator/project authority approves them.
+Cross-agent requests are prepared but not answered. No semantic decision is assumed from a recommendation. The readiness matrix may only be promoted after explicit authority evidence is incorporated.
