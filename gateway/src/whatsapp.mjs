@@ -65,7 +65,7 @@ export function getStatus() {
   };
 }
 
-/** @param {number} [limit=100] @returns {MessageSnapshot[]} */
+/** @param {number | string | null} [limit=100] @returns {MessageSnapshot[]} */
 export function getMessages(limit = 100) {
   const safeLimit = Math.max(1, Math.min(Number(limit) || 100, 500));
   return state.messages.slice(-safeLimit);
