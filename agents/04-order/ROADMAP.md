@@ -24,7 +24,14 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [x] Audit idempotency and concurrency requirements.
 - [x] Classify independent implementation slices.
 
-## Phase 2 — Order Engine design readiness
+## Phase 2 — Safe independent slices
+
+- [x] Audit canonical Money source.
+- [x] Confirm `REUSE_EXISTING_CANONICAL_MONEY` boundary.
+- [x] Add Order Engine consumption tests without duplicating Money.
+- [ ] Execute and verify the Money consumer test in a valid project runtime.
+
+## Phase 3 — Order Engine design readiness
 
 - [ ] Define executable command boundary from approved complete contracts.
 - [ ] Define aggregate/state-transition boundary without duplicating domain authority.
@@ -34,9 +41,9 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [ ] Define transaction integration with persistence and durable effects.
 - [ ] Define event and audit integration points.
 
-Current result: BLOCKED by incomplete contracts; no runtime design is being frozen as implementation authority yet.
+Current result: BLOCKED by incomplete contracts; no runtime Order Engine design is frozen as implementation authority.
 
-## Phase 3 — Implementation
+## Phase 4 — Implementation
 
 - [ ] Implement only within `apps/desktop/electron/order/**`.
 - [ ] Add deterministic unit tests for command behavior and lifecycle transitions.
@@ -44,7 +51,7 @@ Current result: BLOCKED by incomplete contracts; no runtime design is being froz
 - [ ] Add idempotency/concurrency tests.
 - [ ] Add integration tests against approved persistence/event interfaces.
 
-## Phase 4 — Validation and handoff
+## Phase 5 — Validation and handoff
 
 - [ ] Typecheck/lint/test the authorized scope.
 - [ ] Verify no ownership violations.
