@@ -30,6 +30,7 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [x] Confirm `REUSE_EXISTING_CANONICAL_MONEY` boundary.
 - [x] Add Order Engine consumption tests without duplicating Money.
 - [ ] Execute and verify the Money consumer test in a valid project runtime.
+- [ ] Register `money-contract.test.ts` in the official Desktop test harness through its authorized owner.
 
 ## Phase 3 — Order Engine design readiness
 
