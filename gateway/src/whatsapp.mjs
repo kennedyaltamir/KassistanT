@@ -9,9 +9,18 @@ import makeWASocket, {
 import pino from 'pino';
 import qrcode from 'qrcode-terminal';
 
+/** @typedef {'DISCONNECTED' | 'CONNECTING' | 'PAIRING' | 'CONNECTED' | 'RECONNECTING' | 'ERROR'} ConnectionState */
+/** @typedef {'INBOUND' | 'OUTBOUND'} MessageDirection */
+/** @typedef {'UNKNOWN' | 'RECEIVED'} MessageStatus */
+/** @typedef {{ id: string, jid: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus }} MessageSnapshot */
+/** @typedef {{ connection: ConnectionState, qr: string | null, me: { id: string, name: string | null } | null, lastError: string | null, messageCount: number }} GatewayStatus */
+/** @typedef {{ type: 'connection', status: GatewayStatus } | { type: 'message', message: MessageSnapshot }} GatewayEvent */
+/** @typedef {(event: GatewayEvent) => void} EventListener */
+
 const logger = pino({ level: process.env.KASSIST_WA_LOG_LEVEL ?? 'warn' });
 const authDir = path.resolve(process.env.KASSIST_WA_AUTH_DIR ?? './.data/whatsapp/auth');
 
+/** @type {{ connection: ConnectionState, qr: string | null, me: { id: string, name: string | null } | null, lastError: string | null, messages: MessageSnapshot[], messageIds: Set<string> }} */
 const state = {
   connection: 'DISCONNECTED',
   qr: null,
@@ -21,10 +30,14 @@ const state = {
   messageIds: new Set(),
 };
 
+/** @type {import('@whiskeysockets/baileys').WASocket | null} */
 let socket = null;
+/** @type {Promise<void> | null} */
 let connecting = null;
+/** @type {Set<EventListener>} */
 let eventListeners = new Set();
 
+/** @param {GatewayEvent} event */
 function emit(event) {
   for (const listener of eventListeners) {
     try {
@@ -35,11 +48,13 @@ function emit(event) {
   }
 }
 
+/** @param {EventListener} listener */
 export function subscribe(listener) {
   eventListeners.add(listener);
   return () => eventListeners.delete(listener);
 }
 
+/** @returns {GatewayStatus} */
 export function getStatus() {
   return {
     connection: state.connection,
@@ -50,11 +65,13 @@ export function getStatus() {
   };
 }
 
+/** @param {number} [limit=100] @returns {MessageSnapshot[]} */
 export function getMessages(limit = 100) {
   const safeLimit = Math.max(1, Math.min(Number(limit) || 100, 500));
   return state.messages.slice(-safeLimit);
 }
 
+/** @param {unknown} value @returns {string} */
 function normalizeRecipient(value) {
   const raw = String(value ?? '').trim();
   if (!raw) throw new Error('Recipient is required');
@@ -64,6 +81,7 @@ function normalizeRecipient(value) {
   return `${digits}@s.whatsapp.net`;
 }
 
+/** @param {import('@whiskeysockets/baileys').WAMessage} message @param {MessageDirection} direction @returns {MessageSnapshot} */
 function snapshotMessage(message, direction) {
   const key = message.key ?? {};
   const jid = key.remoteJid ?? null;
@@ -85,6 +103,7 @@ function snapshotMessage(message, direction) {
   };
 }
 
+/** @param {MessageSnapshot} snapshot @returns {boolean} */
 export function recordMessage(snapshot) {
   if (state.messageIds.has(snapshot.id)) return false;
 
