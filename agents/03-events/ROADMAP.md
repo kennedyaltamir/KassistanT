@@ -17,61 +17,78 @@ Este roadmap é subordinado ao roadmap global do KassisT. Ele descreve somente o
 
 | Area | State | Evidence / boundary |
 |---|---|---|
-| EventBus | READY_CANDIDATE | In-process/post-commit local dispatch is documented; runtime absent. Contract closure artifact exists. |
+| EventBus | BLOCKED | In-process/post-commit semantics are established, but subscriber lifecycle/error/scheduling semantics remain undefined. |
 | InboundInbox | BLOCKED | Durable intake/ACK contract defined; canonical schema/persistence absent. |
 | DomainOutbox | BLOCKED | Ownership/scope unresolved under `CONTRACT-001`. |
 | JobQueue | BLOCKED | `Job` persistence absent and exact retry/lease policies incomplete. |
 | AuditLog | BLOCKED | Audit contract exists; canonical persistence and sensitive-data policy are incomplete. |
-| Idempotency / deduplication | PARTIAL | Principles and Inbox uniqueness concept exist; runtime mechanisms are absent. |
+| Idempotency / deduplication | PARTIAL | Principles and Inbox uniqueness concept exist; runtime mechanisms absent. |
 | Retry | PLANNED | Required by job/event contracts; exact policy remains incomplete. |
 | Backoff | PARTIAL | WSS reconnect policy exists with five-minute ceiling; exact jitter is partial and job policy is not defined. |
 | Replay | PLANNED | WSS resume/replay is contracted; local runtime is absent. |
 | Reconciliation | PLANNED | Recovery/reconciliation is required but algorithm/state model is incomplete. |
 | Dead-letter | PLANNED | Operational concept identified; policy/state runtime absent. |
 | Causation | PARTIAL | Event/WSS contracts carry metadata; propagation runtime absent. |
-| Correlation | PARTIAL | Event/WSS/error contracts carry metadata; propagation/runtime absent. |
+| Correlation | PARTIAL | Event/WSS/error contracts carry metadata; propagation/runtime is absent. |
 | Observability | PARTIAL | Requirements exist; event-infrastructure telemetry runtime absent. |
 | Failure recovery | PLANNED | Recovery is architectural requirement; implementation future. |
-| Deterministic testing | PLANNED | EventBus test contract is now specified; executable tests await implementation-gate closure. |
+| Deterministic testing | PLANNED | Runtime tests remain gated by finalized EventBus lifecycle/error semantics. |
 
-## EventBus gate
+## EventBus gate state
 
-### E0 — Contract authority
-**PASS / GOVERNED.**
+### Closed
 
-### E1 — Materialized envelope
-**PASS WITH OPEN METADATA.**
+- protected envelope boundary;
+- post-commit publish boundary;
+- non-durable scope;
+- no durable EventBus retry;
+- no DomainOutbox coupling;
+- `NO_ORDERING_GUARANTEE`.
 
-The current `DomainEvent` fields are known. Broader envelope metadata is documented but not fully materialized in the protected TypeScript type. IA-03 does not expand it.
+### Open / blocking
 
-### E2 — Publish boundary
-**PASS.**
+- subscriber failure propagation;
+- subscriber isolation;
+- scheduling;
+- cancellation;
+- timeout;
+- unsubscribe lifecycle;
+- duplicate registration and multiple-subscriber execution semantics;
+- dispatch completion semantics.
 
-EventBus is in-process and used for post-commit local consumers.
+## Dependency gates
 
-### E3 — Subscriber/error semantics
-**PARTIAL / IMPLEMENTATION GATE.**
+### Gate E0 — Contract authority
+**State:** PASS / GOVERNED.
 
-Failure propagation/isolation, scheduling, timeout/cancellation and handler completion semantics remain to be finalized.
+### Gate E1 — Canonical persistence
+**Dependency:** IA-01.  
+**State:** BLOCKED for Inbox/Outbox/Job/Audit.
 
-### E4 — Ordering
-**OPEN / NON-BLOCKING FOR SCOPE.**
+### Gate E2 — Domain semantics
+**Dependency:** IA-02.  
+**State:** PARTIAL.
 
-No global or per-aggregate EventBus ordering guarantee is documented. The future implementation must not claim one by accident.
+Domain event contracts exist, but `DOMAIN-EVENT-V1` remains ambiguous and `CONTRACT-002` affects the order event catalogue.
 
-### E5 — Retry boundary
-**PASS.**
+### Gate E3 — CONTRACT-001
+**State:** BLOCKED.
 
-EventBus does not own durable retry. JobQueue is the documented retry boundary when durable retry is required.
+DomainOutbox ownership, scope and transaction semantics must be resolved before runtime implementation.
 
-### E6 — Deterministic tests
-**DEFINED / NOT IMPLEMENTED.**
+### Gate E4 — CONTRACT-002
+**State:** OPEN / IMPACTED.
 
-The test matrix is complete for the bounded first slice; executable tests await runtime authorization.
+The normative status of `order.status_changed` affects event dispatch and tests.
+
+### Gate E5 — EventBus lifecycle/error policy
+**State:** BLOCKED.
+
+Scheduling, failure propagation, isolation, cancellation, timeout and dispatch completion are not defined by protected sources.
 
 ## Future implementation sequence
 
-1. **R0 — EventBus**: in-process dispatch abstraction and deterministic tests after E0-E6 are closed.
+1. **R0 — EventBus**: in-process dispatch and deterministic tests after E5 closes; no durable semantics.
 2. **R1 — InboundInbox**: durable intake, deduplication, processing state and ACK boundary after IA-01 schema/persistence is available.
 3. **R2 — JobQueue**: recoverable async jobs with explicit attempts/locking/retry/backoff after policies close.
 4. **R3 — AuditLog**: evidence-oriented durable audit persistence with sensitive-data controls.
@@ -80,20 +97,3 @@ The test matrix is complete for the bounded first slice; executable tests await 
 7. **R6 — Cross-agent integration**: Order, Conversation, Device, Gateway and Desktop consumers/producers.
 
 This order is a territory execution sequence, not a global release schedule.
-
-## Readiness artifacts
-
-- `EVENT-INFRASTRUCTURE-READINESS.md`
-- `EVENTBUS-MATRIX.md`
-- `EVENTBUS-CONTRACT.md`
-- `EVENTBUS-ERROR-MATRIX.md`
-- `EVENTBUS-TEST-MATRIX.md`
-- `EVENTBUS-IMPLEMENTATION-GATE.md`
-- `INBOX-OUTBOX-MATRIX.md`
-- `JOBQUEUE-RELIABILITY-MATRIX.md`
-- `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
-- `IMPLEMENTATION-GATES.md`
-
-## Completion rule
-
-IA-03 must not claim DONE from documentation alone. DONE requires repository evidence of executable implementation, relevant tests, contract consistency, CI/review evidence and authorized integration through `main` governance.
