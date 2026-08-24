@@ -37,28 +37,47 @@ Ainda não fechado:
 - replay/resume/resync e retenção;
 - backpressure quantitativo.
 
-## Dependências críticas
+## Boundary audit — 2026-08-24
 
-- IA-06: identidade/autenticação de dispositivo.
-- IA-03: durabilidade, Inbox/Outbox/Queue/EventBus/Audit.
-- IA-01: persistência/schema quando houver necessidade.
-- IA-02/IA-04/IA-05: consumidores/produtores de capacidades de domínio, pedidos e conversa sem transferência de regras comerciais ao Gateway.
-- IA-08: Desktop/WSS consumer.
+### IA-06 → IA-07
 
-## Próximo slice proposto
+IA-06 owns device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation and key rotation. Session identity exists in the device-auth boundary, but its exact fields, lifecycle, expiration and reconnect/reauthentication semantics are not fully specified.
+
+### IA-03 → IA-07
+
+IA-03 owns InboundInbox, deduplication, durable ACK boundary, replay/recovery and event infrastructure. ACK is legal only after durable Inbox persistence. IA-07 must consume these interfaces and must not create competing durability or replay storage.
+
+### IA-07 → IA-08
+
+IA-07 provides transport-level connection/session state and WSS event delivery; IA-08 presents that state in the renderer/UI. IA-08 does not own authentication, durable persistence or WSS protocol authority.
+
+### Revocation
+
+IA-06 is the authority for revocation. IA-07 only applies connection/session termination after receiving an executable revocation signal defined by the device-auth boundary.
+
+### Sequence
+
+Sequence is documented as monotonic per `(store_id, device_id)`, but persistent ownership and gap/replay semantics are still PARTIAL.
+
+## Artifacts
+
+- `WSS-INTEGRATION-BOUNDARY.md` — ownership and cross-agent interface matrix.
+- `WSS-SESSION-DECISION-MATRIX.md` — unresolved decisions and required approvals.
+
+## Next slice
 
 `PROPOSED_NEXT_SLICE = WSS connection lifecycle abstraction`
 
-Classificação atual: `BLOCKED` para runtime funcional. Pode ser reavaliado como `READY_AFTER_DECISION` quando IA-06 fornecer o boundary de sessão/identidade e IA-03 fornecer as interfaces de durabilidade necessárias, sem necessidade de resolver contratos globais pendentes localmente.
+Classification: `BLOCKED` until IA-06 provides an executable session identity/authentication/reconnect boundary and IA-03 provides durable intake/ACK/replay interfaces.
 
 ## Bloqueios conhecidos
 
 - CONTRACT-001.
-- CONTRACT-002 quando semântica de `order.status_changed` afetar transporte.
-- GOV-001 quando autoridade documental estiver em disputa.
-- Regras endpoint-specific de Idempotency-Key.
-- Catálogo completo de erros.
-- Parâmetros de webhook/provider e limites numéricos de rate/backpressure.
+- CONTRACT-002 when `order.status_changed` semantics affect transport.
+- GOV-001 when document/version authority is relevant.
+- Endpoint-specific `Idempotency-Key` rules.
+- Complete error catalogue.
+- Webhook/provider semantics and numeric rate/backpressure limits.
 
 ## Regra de continuidade
 
