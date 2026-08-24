@@ -23,4 +23,13 @@
 - **READINESS DECISION:** Production Inbox, JobQueue and AuditLog work should follow canonical persistence availability rather than create temporary persistence models inside IA-03.
 - **READINESS DECISION:** Reliability mechanisms should be implemented around finalized durable state, not as free-floating utilities that imply undeclared semantics.
 
+## 2026-08-24 — EventBus contract closure
+
+- **FACT:** The minimum materialized `DomainEvent` envelope is `event_id`, `event_type`, `store_id`, `aggregate_id`, `occurred_at_utc`, and `payload`.
+- **FACT:** Broader event documentation describes version, aggregate type, producer, correlation and causation metadata, but the current TypeScript contract does not expose all of them.
+- **DECISION:** IA-03 will preserve source metadata when supplied but will not silently expand the global event contract.
+- **DECISION:** EventBus is scoped to in-process, post-commit local dispatch and does not own persistence, durable retry or DomainOutbox semantics.
+- **DECISION:** Global ordering and exactly-once delivery are not claimed.
+- **OPEN:** Subscriber failure propagation, scheduling, timeout/cancellation and ordering remain implementation-contract items.
+
 Unknown or partial policies must remain explicitly marked.
