@@ -1,79 +1,69 @@
 # IA-01 — ROADMAP
 
 ## Scope
-
-Este roadmap cobre exclusivamente o território de IA-01: Canonical SQLite Schema e Persistence Schema Foundation.
+Canonical SQLite Schema and Persistence Schema Foundation only.
 
 ## Phase 0 — Territory configuration
-
-**Status:** DONE
+`DONE`
 
 ## Phase 1 — Contract-to-schema audit
-
-**Status:** DONE WITH BLOCKERS
+`DONE WITH BLOCKERS`
 
 Primary artifact: `CANONICAL_SCHEMA_AUDIT.md`.
 
 ## Phase 2 — Canonical schema specification
-
-**Status:** COMPLETE AS SPECIFICATION / BLOCKED FOR DDL
+`COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`
 
 Completed:
 
-- physical table mapping for all 28 entities;
-- semantic field consolidation;
-- scope classification;
-- relationship specification for 23 relationships;
-- constraint specification;
-- index specification;
-- lifecycle/status semantic storage rules;
-- mutability/immutability classification;
-- implementation order proposal;
-- blocker/readiness matrix;
-- documentary projection of future `0002`.
+- physical mapping for 28 entities;
+- 23 relationship classifications;
+- constraint/index specifications;
+- lifecycle/status semantic inventory;
+- scope and mutability analysis;
+- documentary `0002` projection.
+
+## Phase 2.5 — Schema Decision Package
+`COMPLETE / REVIEW REQUIRED`
 
 Artifacts:
 
-- `CANONICAL-SCHEMA-SPEC.md`
-- `ENTITY-PHYSICAL-MAP.md`
-- `RELATIONSHIP-SPEC.md`
-- `CONSTRAINT-SPEC.md`
-- `INDEX-SPEC.md`
-- `MIGRATION-0002-READINESS.md`
-- `MIGRATION-0002-PROJECTION.md`
+- `SCHEMA-DECISION-MATRIX.md`
+- `SCHEMA-AUTHORITY-MATRIX.md`
+- `TABLE-READINESS-MATRIX.md`
+- updated `CANONICAL-SCHEMA-SPEC.md`
+- updated `MIGRATION-0002-READINESS.md`
+- updated `MIGRATION-0002-PROJECTION.md`
 
-Phase 2 conclusion:
+Result:
 
-The repository now has a complete evidence/proposal map of the physical schema, but `0002` is still blocked because the specification is not yet fully authoritative for all physical details.
+- 3 tables require only local physical decisions;
+- 14 require cross-agent semantic decisions;
+- 1 requires global decision (`DomainOutbox` / CONTRACT-001);
+- 10 remain directly blocked by missing field/relationship semantics;
+- `CONTRACT-002` is currently non-blocking for physical schema;
+- `GOV-001` is deferred unless an actual source conflict affects schema interpretation.
 
 ## Phase 3 — Canonical migration implementation
-
-**Status:** BLOCKED / NOT_STARTED
+`BLOCKED / NOT_STARTED`
 
 Preconditions:
 
-- physical table naming approved;
-- seven underspecified entity models closed;
-- child parent-key names closed;
-- UUID/timestamp physical types closed;
-- nullability/defaults closed;
-- FK actions closed;
-- SQL state representation closed;
-- DomainOutbox physical semantics resolved where required;
-- specification passes deterministic-generation review.
+- local physical proposals approved;
+- cross-agent semantic gaps closed;
+- DomainOutbox physical scope resolved where required;
+- every included table is deterministic;
+- deterministic-generation review passes.
 
 ## Phase 4 — Schema validation
-
-**Status:** NOT_STARTED
+`NOT_STARTED`
 
 ## Phase 5 — Cross-agent integration audit
-
-**Status:** NOT_STARTED
+`NOT_STARTED`
 
 ## Phase 6 — Handoff and PR readiness
-
-**Status:** NOT_STARTED
+`NOT_STARTED`
 
 ## Guardrail
 
-No migration may be created merely because a plausible DDL exists. `0002` requires an authoritative, mechanically deterministic physical specification.
+No migration may be created because plausible SQL exists. `0002` requires authoritative deterministic physical specification.
