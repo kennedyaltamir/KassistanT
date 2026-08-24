@@ -2,37 +2,35 @@
 
 ## Status
 
-`READINESS / TESTS NOT IMPLEMENTED`
+`READINESS / TESTS NOT IMPLEMENTED / RUNTIME GATE BLOCKED`
 
 These are deterministic test requirements only. No test code is created in this phase.
 
 | Test | Required assertion | Dependency | Status |
 |---|---|---|---|
-| Subscribe | A registered handler becomes eligible for matching event type | Handler contract | READY TO SPECIFY |
-| Unsubscribe | Removed registration no longer receives subsequent matching events | Subscription lifecycle | READY TO SPECIFY |
-| Publish routing | Only subscribers for the published type are selected | Event type contract | READY TO SPECIFY |
-| Publish after commit | Local dispatch occurs only after the documented commit boundary | Transaction integration | READY TO SPECIFY |
-| Multiple subscribers | Defined dispatch order/isolation is verified once finalized | Subscribe semantics | BLOCKED BY OPEN SEMANTICS |
-| Subscriber failure | Finalized propagation/isolation behavior is deterministic | Error contract | BLOCKED BY OPEN SEMANTICS |
-| Correlation propagation | Existing correlation identifier is unchanged across dispatch | Event envelope | READY |
-| Causation propagation | Existing causation identifier is unchanged across dispatch | Event envelope | READY |
-| Duplicate event | No claim beyond finalized duplicate behavior; test only if a contract specifies it | Idempotency contract | BLOCKED |
-| Ordering | No global/per-aggregate guarantee is asserted unless a contract later defines one | Ordering contract | BLOCKED |
-| Retry | EventBus does not perform automatic retry unless a later contract explicitly assigns it | JobQueue boundary | READY NEGATIVE TEST |
+| Subscribe | Registered handler becomes eligible for matching event type | Handler contract | BLOCKED BY LIFECYCLE SEMANTICS |
+| Unsubscribe | Removed registration no longer receives subsequent matching events | Subscription lifecycle | BLOCKED |
+| Publish routing | Matching event type is routed to eligible subscribers | Event type contract | READY |
+| Publish after commit | Local dispatch occurs only from documented post-commit boundary | Transaction integration | READY |
+| Multiple subscribers | Finalized registration/execution/failure semantics are deterministic | Subscriber contract | BLOCKED |
+| Subscriber failure | Finalized propagation behavior is deterministic | Error contract | BLOCKED |
+| Subscriber isolation | Failure of one handler follows the finalized isolation rule | Error contract | BLOCKED |
+| Dispatch completion | `publish()` completion has one explicit documented meaning | Completion contract | BLOCKED |
+| Scheduling | Handler start/completion timing follows finalized scheduling semantics | Scheduling contract | BLOCKED |
+| Cancellation | Finalized cancellation behavior is deterministic; no implicit support | Lifecycle contract | BLOCKED |
+| Timeout | Finalized timeout behavior is deterministic; no implicit timeout | Lifecycle contract | BLOCKED |
+| Ordering | EventBus asserts `NO_ORDERING_GUARANTEE`; no stronger ordering is inferred | Ordering contract | READY NEGATIVE TEST |
+| Correlation propagation | Existing correlation identifier remains unchanged | Event envelope | READY |
+| Causation propagation | Existing causation identifier remains unchanged | Event envelope | READY |
+| Payload forwarding | Payload arrives unchanged according to approved event contract | Event contract | READY |
+| Duplicate registration | Behavior is tested only after duplicate-registration semantics are explicit | Subscription contract | BLOCKED |
+| Duplicate event | No behavior beyond finalized duplicate semantics is asserted | Idempotency contract | BLOCKED |
+| Retry | EventBus performs no automatic durable retry | JobQueue boundary | READY NEGATIVE TEST |
 | Persistence | EventBus performs no durable persistence | EventBus scope | READY NEGATIVE TEST |
-| DomainOutbox coupling | EventBus can be exercised without DomainOutbox | CONTRACT-001 | READY NEGATIVE TEST |
-| Handler cancellation/timeout | Exact semantics verified only after contract closure | Handler lifecycle | BLOCKED |
+| DomainOutbox coupling | EventBus is usable without DomainOutbox | CONTRACT-001 | READY NEGATIVE TEST |
 
-## Minimum future test suite
+## Minimum future suite
 
-The first runtime slice should have deterministic coverage for publish, subscribe, unsubscribe, post-commit timing, event routing, correlation/causation preservation, explicit failure behavior and the absence of implicit persistence/retry.
+The first runtime slice requires deterministic coverage for publish, subscribe, unsubscribe, post-commit timing, routing, multi-subscriber behavior, handler failure/isolation, lifecycle semantics, correlation/causation preservation, and the explicit absence of durability, automatic retry, and DomainOutbox coupling.
 
-Tests must not encode:
-
-- exactly-once delivery;
-- durable replay;
-- global ordering;
-- automatic retry;
-- DomainOutbox transaction semantics;
-
-unless those behaviors are later approved by protected contracts.
+Tests must not encode exactly-once, durable replay, global ordering, automatic retry, or DomainOutbox transaction semantics unless a later protected contract explicitly defines them.
