@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
 
 let persisted = null;
 
-function normalize(value = {}) {
+export function normalizeLlmSettings(value = {}) {
   return {
     autoUpdateEnabled: Boolean(value.autoUpdateEnabled),
     intervalHours: Math.min(168, Math.max(1, Number(value.intervalHours ?? DEFAULT_SETTINGS.intervalHours))),
@@ -22,7 +22,7 @@ function normalize(value = {}) {
 function loadPersisted() {
   if (persisted) return persisted;
   try {
-    persisted = normalize(JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')));
+    persisted = normalizeLlmSettings(JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')));
   } catch {
     persisted = null;
   }
@@ -30,11 +30,11 @@ function loadPersisted() {
 }
 
 export function getLlmSettings() {
-  return normalize(loadPersisted() ?? DEFAULT_SETTINGS);
+  return normalizeLlmSettings(loadPersisted() ?? DEFAULT_SETTINGS);
 }
 
 export function updateLlmSettings(patch = {}) {
-  const next = normalize({ ...getLlmSettings(), ...patch });
+  const next = normalizeLlmSettings({ ...getLlmSettings(), ...patch });
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });
   const tempPath = `${CONFIG_PATH}.tmp`;
   fs.writeFileSync(tempPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
