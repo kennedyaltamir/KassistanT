@@ -12,23 +12,29 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 
 ## Phase 1 — Contract readiness
 
-- [ ] Consume final canonical schema contract from IA-01.
-- [ ] Consume final domain contracts/primitives from IA-02.
-- [ ] Consume finalized Event Infrastructure interface from IA-03.
-- [ ] Resolve or receive authoritative resolution of `CONTRACT-001`.
-- [ ] Resolve or receive authoritative resolution of `CONTRACT-002`.
-- [ ] Obtain complete order error-code semantics.
-- [ ] Obtain complete actor/authorization rules affecting order commands.
+- [x] Consume current canonical schema contract evidence from IA-01 sources.
+- [x] Consume current domain contracts/primitives from IA-02 sources.
+- [x] Consume current Event Infrastructure contracts from IA-03 sources.
+- [x] Audit `CONTRACT-001` and preserve as unresolved blocker.
+- [x] Audit `CONTRACT-002` and preserve as unresolved blocker.
+- [x] Audit complete order error-code semantics.
+- [x] Audit actor/authorization semantics affecting order commands.
+- [x] Audit lifecycle transition completeness.
+- [x] Audit pricing/promotion/delivery/payment semantics.
+- [x] Audit idempotency and concurrency requirements.
+- [x] Classify independent implementation slices.
 
-## Phase 2 — Order Engine design
+## Phase 2 — Order Engine design readiness
 
-- [ ] Define executable command boundary from approved contracts.
+- [ ] Define executable command boundary from approved complete contracts.
 - [ ] Define aggregate/state-transition boundary without duplicating domain authority.
 - [ ] Define deterministic pricing and promotion evaluation boundary.
 - [ ] Define delivery/payment/confirmation/cancellation semantics from approved contracts.
 - [ ] Define idempotency and concurrency behavior.
 - [ ] Define transaction integration with persistence and durable effects.
 - [ ] Define event and audit integration points.
+
+Current result: BLOCKED by incomplete contracts; no runtime design is being frozen as implementation authority yet.
 
 ## Phase 3 — Implementation
 
@@ -45,5 +51,15 @@ This roadmap is limited to IA-04 territory. It is not a replacement for `docs/RO
 - [ ] Verify no hidden contract assumptions.
 - [ ] Update errors/learnings/progress.
 - [ ] Prepare handoff and PR for human review.
+
+## Readiness documents
+
+- `ORDER-ENGINE-READINESS.md`
+- `ORDER-LIFECYCLE-MATRIX.md`
+- `ORDER-PRICING-MATRIX.md`
+- `ORDER-COMMAND-MATRIX.md`
+- `ORDER-ERROR-MATRIX.md`
+- `ORDER-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
 
 All unchecked implementation items are future work and are not evidence of current implementation.
