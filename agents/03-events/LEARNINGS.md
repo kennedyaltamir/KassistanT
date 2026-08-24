@@ -11,15 +11,6 @@
 - **FACT:** Idempotency, retry, replay, reconciliation and audit are operational requirements.
 - **FACT:** Current SQLite support cannot support a claim that Inbox/Outbox/Queue/Audit runtime already exists.
 
-## 2026-08-24 — Readiness audit
-
-- **FACT:** EventBus is explicitly in-process and not durable storage. Its documented consumers are post-commit local consumers such as notifications, sounds, badges and dashboard updates.
-- **FACT:** No documented guarantee establishes exactly-once delivery, global ordering or durable EventBus replay. These remain negative/non-guarantees.
-- **FACT:** InboundInbox readiness is blocked primarily by the absence of canonical business schema/persistence from IA-01.
-- **FACT:** `DomainOutbox` remains blocked because the repository uses the concept in conflicting ownership/scope contexts.
-- **FACT:** JobQueue requires idempotency, retry, backoff, attempt state, locking and observability, but exact retry counts, lease durations and algorithms are not fully normative.
-- **FACT:** AuditLog documentation defines actor/action/entity/before-after reference/correlation/timestamp and critical event classes, but runtime persistence is absent.
-
 ## 2026-08-24 — EventBus V1 authorization and implementation
 
 - **DECISION:** The operator approved EBUS-DEC-001 through EBUS-DEC-008 as local IA-03 runtime policies.
@@ -29,7 +20,14 @@
 - **FACT:** EventBus V1 aggregates subscriber failures after all selected handlers settle and returns a local `DispatchResult`.
 - **FACT:** V1 has no timeout, no `AbortSignal`, no persistence and no durable retry.
 - **FACT:** V1 exposes `NO_ORDERING_GUARANTEE` and does not couple to DomainOutbox.
-- **TEST EVIDENCE:** 10 deterministic tests passed with 0 failures, 0 cancellations and 0 skips in isolated runtime validation.
-- **TOOLING LIMITATION:** The standard desktop test script was not modified because it is outside IA-03 scope; the EventBus test file was executed directly.
+- **TEST RECORD:** The branch's prior validation record states 10 deterministic tests passed with 0 failures, 0 cancellations and 0 skips.
 
-Unknown or partial policies outside this V1 slice remain explicitly marked.
+## 2026-08-24 — Post-implementation audit / handoff
+
+- **FACT:** `event-bus.ts` matches EBUS-DEC-001 through EBUS-DEC-008; no implementation contradiction was found by source inspection.
+- **FACT:** EventBus handoff is now explicit for IA-04, IA-05, IA-06, IA-07 and IA-08; no new event types were invented.
+- **FACT:** InboundInbox is the next IA-03 runtime milestone and requires canonical persistence evidence from IA-01 plus the transport ACK boundary from IA-07.
+- **FACT:** Inbox V1 should consume only the canonical persistence subset required for durable intake, uniqueness, state and ACK eligibility; a full-business-schema dependency is unnecessary.
+- **VALIDATION LIMITATION:** The current environment does not have `tsx` installed. The requested fresh re-execution could not be completed, so this phase does not claim a new test run. Remote commit status also returned no CI statuses and therefore is `NOT_VERIFIED`.
+
+Unknown or partial policies outside this slice remain explicitly marked.
