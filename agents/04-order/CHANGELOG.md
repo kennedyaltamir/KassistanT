@@ -35,3 +35,14 @@
 - Added `apps/desktop/electron/order/money-contract.test.ts` covering creation, zero/positive/negative values, addition, subtraction, repeated integer-cent arithmetic, safe-integer boundaries and currency mismatch.
 - Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff with the implementation boundary and test limitation.
 - No changes were made to `packages/domain/**`, `packages/contracts/**`, database/schema, global docs or other agent territories.
+
+## 2026-08-24 — Final Money Slice Handoff
+
+- Confirmed Money slice status as `READY_FOR_TEST_HARNESS_INTEGRATION`.
+- Confirmed direct test status remains `NOT_VERIFIED` because no executable project checkout/runtime was available in the session.
+- Confirmed the official Desktop test suite does not currently include `apps/desktop/electron/order/money-contract.test.ts`.
+- Recorded `scripts/test-desktop.mjs` as a shared test-harness responsibility outside IA-04 ownership.
+- Recorded the minimal required harness change: add `apps/desktop/electron/order/money-contract.test.ts` to `tsTests`.
+- Confirmed no `.github/workflows/**` change is required for this fix because CI already executes `pnpm test`.
+- Confirmed IA-04 is not authorized to modify the shared harness or CI.
+- No new production slice was selected; Full Order Engine remains `BLOCKED`.
