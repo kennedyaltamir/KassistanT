@@ -7,91 +7,96 @@ Status: CONTRACT CLOSURE / IMPLEMENTATION FROZEN.
 - FACT: directly stated by approved/current sources.
 - GLOBAL_DECISION_REQUIRED: implementation would otherwise invent externally observable behavior.
 - EXTERNAL_CONFIGURATION_REQUIRED: depends on Windows/provider/environment validation.
-- NON_BLOCKING: useful but not required to start the minimum secure runtime path.
+- NON_BLOCKING: useful but not required for a currently authorized slice.
 - BLOCKED: cannot safely implement before an upstream decision.
+
+## Security layer model
+
+| Layer | Status | Meaning |
+|---|---|---|
+| Device identity semantics | PARTIAL | Logical device identity is defined; physical persistence remains IA-01 dependent. |
+| Cryptographic primitive | DEFINED | Ed25519 is the approved primitive/trust boundary. |
+| Cryptographic wire contract | OPEN | Signed bytes, key/signature representation and canonicalization are not fully defined. |
+| Challenge/replay protocol | OPEN | Freshness, challenge lifecycle and replay binding remain to be decided. |
+| Session security | OPEN | Session lifecycle is independent from signature verification. |
+| Authorization | OPEN | Authentication does not imply provisioning authority. |
+| Rate limiting | OPEN | Operational security policy, separate from cryptographic correctness. |
+| Endpoint idempotency | OPEN | Request/retry safety, separate from signature verification. |
+| Key rotation | BLOCKED | Key lifecycle/overlap/rollback/session continuity unresolved. |
+| Revocation | PARTIAL | `REVOKED`, `DEVICE_REVOKED` and session termination are evidenced. |
+| Auditability | PARTIAL | Minimum security-event evidence identified; IA-03 durability remains dependency. |
+| Secure Storage logical contract | DEFINED AS BOUNDARY | Private key remains privileged and out of Renderer/logs. |
+| Secure Storage technology | EXTERNAL | Concrete Windows mechanism/runtime validation not selected. |
 
 ## Minimum secure path
 
 `Enrollment -> Challenge -> Signature -> Verification -> AUTH_OK/AUTH_FAILED -> Session Identity -> Authorization -> Revoke/Rotate`
 
-## Current closure
-
-| Area | Classification | Required closure |
-|---|---|---|
-| Device identity | PARTIAL | Final field-level schema from IA-01. |
-| Enrollment HTTP contract | GLOBAL_DECISION_REQUIRED | Exact request/response, status and authz semantics. |
-| Challenge | GLOBAL_DECISION_REQUIRED | Freshness, representation, canonical payload and replay semantics. |
-| Ed25519 | FACT + PARTIAL | Keep algorithm/trust boundary; define wire encodings. |
-| Session | GLOBAL_DECISION_REQUIRED | Session identity, expiry, renewal, reconnect and reauth. |
-| Authorization | GLOBAL_DECISION_REQUIRED | Endpoint/action matrix and conditions. |
-| Rate limiting | GLOBAL_DECISION_REQUIRED | Numeric policy for applicable operations. |
-| Idempotency | GLOBAL_DECISION_REQUIRED | Per-operation key/scope/duplicate/replay/retention semantics. |
-| Rotation | BLOCKED | Old/new key lifecycle, overlap, rollback and session continuity. |
-| Revocation | PARTIAL | Normative signal/termination is defined; endpoint semantics remain partial. |
-| Secure Storage | EXTERNAL_CONFIGURATION_REQUIRED | Concrete supported Windows mechanism and runtime validation. |
-| Errors | GLOBAL_DECISION_REQUIRED | Device-auth catalog, mapping and retryability. |
-| Audit | PARTIAL | Broader authentication/security-event coverage requires closure. |
+The path is intentionally decomposed. Closure of one layer does not implicitly approve another.
 
 ## Decision requests
 
 ### DR-01 — Enrollment contract
 
-Approve the exact HTTP request/response schemas, success/error status mapping, authentication/authorization requirements, correlation requirements and endpoint idempotency behavior for start/complete/cancel. No schema is proposed by IA-06.
+Approve exact HTTP request/response schemas, success/error mapping, endpoint authentication/authorization, correlation and idempotency for start/complete/cancel. IA-06 proposes no schema.
 
-Affected: IA-06, IA-07, IA-01.
+### DR-02 — Challenge/signature protocol
 
-### DR-02 — Authentication protocol
+Approve only the minimum cryptographic wire contract needed by each slice:
 
-Approve challenge lifetime/freshness, nonce representation, signed payload canonicalization, public-key/signature wire representation, replay prevention and session establishment semantics. No cryptographic wire format is proposed by IA-06.
+1. Ed25519 verification primitive.
+2. Logical definition of the signed challenge context.
+3. Rule defining the exact bytes presented to the verifier.
+4. Deterministic public-key representation.
+5. Deterministic signature representation.
+6. Freshness/replay binding requirement.
+7. Deterministic verifier result semantics.
 
-Affected: IA-06, IA-07, IA-01.
+A separate later decision may close full transport/session semantics. No arbitrary TTL, encoding or HTTP behavior is created here.
+
+Affected: IA-06, IA-07, IA-01 only where persistence is required.
 
 ### DR-03 — Session lifecycle
 
-Approve session identity, TTL/expiry, renewal, reconnect/resume binding, reauthentication and revocation invalidation. No TTL value is proposed.
-
-Affected: IA-06, IA-07, IA-08.
+Approve session identity, expiry/renewal, reconnect/resume binding, reauthentication and revocation invalidation. No TTL value is proposed.
 
 ### DR-04 — Authorization matrix
 
 Approve actor/action/resource/condition rules for provisioning, enrollment, authentication, revoke, rotate, status and authenticated session use. Authentication must remain distinct from authorization.
 
-Affected: IA-06, IA-07.
-
 ### DR-05 — Rate limits
 
-Approve concrete policy for enrollment, AUTH, reconnect, RESUME and any applicable revoke/rotate/status operations. Required fields: limit, window, burst, lockout/penalty and retry-after semantics. No numeric values are proposed.
-
-Affected: IA-06, IA-07.
+Approve applicable operations and concrete policy. Required policy dimensions: limit, window, burst, lockout/penalty and retry-after. No values are proposed.
 
 ### DR-06 — Endpoint idempotency
 
 Approve key source, scope, persistence, duplicate response, conflict response, replay behavior and retention/TTL for enrollment/start, complete, cancel, revoke and rotate.
 
-Affected: IA-06, IA-07, IA-03.
-
 ### DR-07 — Rotation lifecycle
 
-Approve old/new key state transitions, overlap, atomicity, rollback, revocation ordering, session continuity and required reauthentication.
-
-Affected: IA-06, IA-07, IA-01, IA-03.
+Approve old/new key state transitions, overlap, atomicity, rollback, revocation ordering, session continuity and reauthentication.
 
 ### DR-08 — Error taxonomy
 
-Approve canonical device-auth error identifiers, HTTP mapping, retryability and client-visible behavior. Candidate names in `DEVICE-ERROR-MATRIX.md` are analysis labels only, not normative codes.
+Approve canonical device-auth error identifiers, retryability, client-visible semantics and HTTP mapping. Candidate labels are analysis-only until approved.
 
-Affected: IA-06, IA-07.
+## First-slice gate
+
+The `Signature Verification Boundary` does **not** require closure of DR-01, DR-03, DR-04, DR-05, DR-06 or DR-07 unless an approved implementation boundary later proves otherwise.
+
+It requires only the minimum cryptographic subset of DR-02 plus the already-approved Ed25519 primitive.
 
 ## Non-blocking items
 
 - Final documentation wording.
-- Additional diagnostics detail.
-- Extended test-case inventory after contract lock.
+- Extended diagnostics detail.
+- Broader test-case inventory after contract lock.
+- Full enrollment/session/authorization policy for slices that do not consume those boundaries.
 
-## External configuration request
+## External configuration
 
-Windows Secure Storage must be validated against the supported Windows runtime. The concrete storage technology is intentionally not selected here.
+The logical Secure Storage contract is architectural. Concrete Windows technology selection and supported-Windows runtime validation remain separate implementation/external decisions.
 
 ## Gate
 
-Runtime implementation remains blocked until DR-01 through DR-08 are resolved at the appropriate project authority, except items explicitly marked NON_BLOCKING.
+Full runtime remains blocked by its respective layer gates. No DR is implicitly closed by this package.
