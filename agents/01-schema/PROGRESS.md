@@ -2,21 +2,14 @@
 
 ## Current phase
 
-**Schema Decision Execution / Cross-Agent Closure**
+**Cross-Agent Response Consolidation / Final Schema Gate**
 
 ## Phase status
 
 - Phase 1: `DONE WITH BLOCKERS`.
 - Phase 2: `COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`.
 - Decision package: `COMPLETE / REVIEW REQUIRED`.
-- Decision execution: `REQUESTS PREPARED / AWAITING RESPONSES`.
-
-## Decision package
-
-- `SCHEMA-DECISION-MATRIX.md` — owner, blocker impact, approval and request state.
-- `SCHEMA-AUTHORITY-MATRIX.md` — semantic authority vs physical ownership.
-- `TABLE-READINESS-MATRIX.md` — per-table readiness and request state.
-- `HUMAN-SCHEMA-REVIEW.md` — operator-ready local/global decisions and targeted cross-agent requests.
+- Response consolidation: `NO NEW OWNER RESPONSES / WAITING`.
 
 ## Current readiness
 
@@ -27,7 +20,23 @@
 - READY_AFTER_EXTERNAL_DECISION: 0.
 - BLOCKED: 10.
 
-No table was promoted in this execution because no explicit approval or semantic response was received.
+No table was promoted in this execution because no explicit operator approval or semantic-owner response was supplied.
+
+## Owner response state
+
+- IA-02: 0 responses received / pending.
+- IA-03: 0 responses received / pending.
+- IA-04: 0 responses received / pending.
+- IA-05: 0 responses received / pending.
+- IA-06: 0 responses received / pending.
+- IA-07: 0 responses received / pending.
+- IA-08: no blocking request issued.
+
+No response is inferred from prior recommendations or request documents.
+
+## Local decisions
+
+SD-001..SD-005 remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
 
 ## Requests prepared
 
@@ -37,8 +46,11 @@ No table was promoted in this execution because no explicit approval or semantic
 - IA-05: Conversation/Message and AIProfile/AIExecution/KnowledgeItem persistence semantics.
 - IA-06: Device lifecycle and secure identity persistence boundaries.
 - IA-07: Gateway/Desktop persistence boundary relevant to CONTRACT-001.
-- IA-08: no blocking request required for canonical persistence at this stage.
 - Global authority: CONTRACT-001 and any genuinely architecture-wide decision.
+
+## Validation policy
+
+Every owner response must be validated against its question, evidence, affected schema, conflicts and approval requirement before changing readiness.
 
 ## Contract impact
 
@@ -54,4 +66,4 @@ No migration was created. `0001_bootstrap.sql`, M5.1 runtime, contracts, global 
 
 ## Next gate
 
-Collect explicit responses/approvals, incorporate them into the decision and readiness matrices, and only then evaluate whether a first deterministic migration slice is authorized.
+Receive actual owner/operator responses; validate and map them to decisions; detect conflicts; recalculate readiness; do not create `0002` until the deterministic-generation gate passes.
