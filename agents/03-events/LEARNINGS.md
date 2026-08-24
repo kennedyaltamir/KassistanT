@@ -20,13 +20,16 @@
 - **FACT:** JobQueue requires idempotency, retry, backoff, attempt state, locking and observability, but exact retry counts, lease durations and algorithms are not fully normative.
 - **FACT:** AuditLog documentation defines actor/action/entity/before-after reference/correlation/timestamp and critical event classes, but runtime persistence is absent.
 
-## 2026-08-24 — EventBus local decision closure
+## 2026-08-24 — EventBus V1 authorization and implementation
 
-- **FACT:** Ordering can remain `NO_ORDERING_GUARANTEE` without a global architectural decision.
-- **FACT:** Durable retry remains outside EventBus; JobQueue is the documented durable retry boundary.
-- **FACT:** The post-commit boundary is already explicit and does not require a new global decision.
-- **PROPOSAL:** The remaining lifecycle/error semantics can be expressed as local IA-03 runtime policy without changing protected contracts.
-- **PROPOSAL:** Use an asynchronous `publish()` boundary, isolated subscribers, aggregate failure reporting after all selected handlers settle, opaque subscription identity, idempotent unsubscribe, unsubscribe-only cancellation, no V1 timeout, and publish-time subscriber snapshots.
-- **READINESS RESULT:** The first runtime slice is `READY_AFTER_HUMAN_APPROVAL`; implementation remains frozen until the operator accepts the proposed observable behavior.
+- **DECISION:** The operator approved EBUS-DEC-001 through EBUS-DEC-008 as local IA-03 runtime policies.
+- **FACT:** EventBus V1 uses an opaque subscription identity and idempotent unsubscribe.
+- **FACT:** Publication snapshots eligible subscriptions and invokes each selected subscription at most once per dispatch.
+- **FACT:** Selected handlers execute sequentially; a handler failure does not suppress later selected handlers.
+- **FACT:** EventBus V1 aggregates subscriber failures after all selected handlers settle and returns a local `DispatchResult`.
+- **FACT:** V1 has no timeout, no `AbortSignal`, no persistence and no durable retry.
+- **FACT:** V1 exposes `NO_ORDERING_GUARANTEE` and does not couple to DomainOutbox.
+- **TEST EVIDENCE:** 10 deterministic tests passed with 0 failures, 0 cancellations and 0 skips in isolated runtime validation.
+- **TOOLING LIMITATION:** The standard desktop test script was not modified because it is outside IA-03 scope; the EventBus test file was executed directly.
 
-Unknown or partial policies must remain explicitly marked. Proposals are not project decisions.
+Unknown or partial policies outside this V1 slice remain explicitly marked.
