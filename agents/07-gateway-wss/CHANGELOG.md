@@ -15,3 +15,8 @@
 - Recorded remaining lexical envelope gaps and cross-agent runtime dependencies.
 - Proposed WSS connection lifecycle abstraction as the next slice; it remains BLOCKED pending IA-03/IA-06 boundaries and contract closure.
 - No WSS transport, handshake, ACK persistence, replay, resume, resync, heartbeat, backpressure or device authentication was added in the closure phase.
+- Completed WSS session-boundary audit between IA-06, IA-07 and IA-03.
+- Added `WSS-INTEGRATION-BOUNDARY.md` and `WSS-SESSION-DECISION-MATRIX.md`.
+- Confirmed IA-06 as authority for device identity/authentication/revocation and IA-03 as authority for durable Inbox/ACK/replay infrastructure.
+- Confirmed IA-07 owns generic WSS connection/transport mechanics only after authenticated session identity is supplied.
+- No new global architectural decision was created.
