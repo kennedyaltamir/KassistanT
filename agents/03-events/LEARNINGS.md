@@ -23,13 +23,12 @@
 - **READINESS DECISION:** Production Inbox, JobQueue and AuditLog work should follow canonical persistence availability rather than create temporary persistence models inside IA-03.
 - **READINESS DECISION:** Reliability mechanisms should be implemented around finalized durable state, not as free-floating utilities that imply undeclared semantics.
 
-## 2026-08-24 — EventBus contract closure
+## 2026-08-24 — EventBus runtime gate
 
-- **FACT:** The minimum materialized `DomainEvent` envelope is `event_id`, `event_type`, `store_id`, `aggregate_id`, `occurred_at_utc`, and `payload`.
-- **FACT:** Broader event documentation describes version, aggregate type, producer, correlation and causation metadata, but the current TypeScript contract does not expose all of them.
-- **DECISION:** IA-03 will preserve source metadata when supplied but will not silently expand the global event contract.
-- **DECISION:** EventBus is scoped to in-process, post-commit local dispatch and does not own persistence, durable retry or DomainOutbox semantics.
-- **DECISION:** Global ordering and exactly-once delivery are not claimed.
-- **OPEN:** Subscriber failure propagation, scheduling, timeout/cancellation and ordering remain implementation-contract items.
+- **FACT:** EventBus ordering can be explicitly classified as `NO_ORDERING_GUARANTEE` without changing any protected contract.
+- **FACT:** Durable retry is outside EventBus; the documented JobQueue contract owns retry/backoff/attempt/locking/observability capabilities.
+- **FACT:** The post-commit EventBus boundary is explicit: business transaction commits before local dispatch.
+- **FACT:** Protected sources do not define scheduling, subscriber failure propagation, subscriber isolation, cancellation, timeout, unsubscribe lifecycle, multiple-subscriber execution semantics or dispatch-completion semantics.
+- **READINESS RESULT:** The EventBus runtime remains `BLOCKED`; these undefined semantics cannot be invented locally and converted into implementation guarantees.
 
 Unknown or partial policies must remain explicitly marked.
