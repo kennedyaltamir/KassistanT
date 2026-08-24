@@ -18,6 +18,7 @@ const state = {
   me: null,
   lastError: null,
   messages: [],
+  messageIds: new Set(),
 };
 
 let socket = null;
@@ -82,6 +83,20 @@ function snapshotMessage(message, direction) {
     timestamp: Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)),
     status: direction === 'INBOUND' ? 'RECEIVED' : 'UNKNOWN',
   };
+}
+
+export function recordMessage(snapshot) {
+  if (state.messageIds.has(snapshot.id)) return false;
+
+  state.messageIds.add(snapshot.id);
+  state.messages.push(snapshot);
+  if (state.messages.length > 500) {
+    const removed = state.messages.shift();
+    if (removed) state.messageIds.delete(removed.id);
+  }
+
+  emit({ type: 'message', message: snapshot });
+  return true;
 }
 
 async function clearAuthState() {
@@ -155,9 +170,7 @@ async function startSocket() {
   socket.ev.on('messages.upsert', ({ messages }) => {
     for (const message of messages) {
       const snapshot = snapshotMessage(message, message.key?.fromMe ? 'OUTBOUND' : 'INBOUND');
-      state.messages.push(snapshot);
-      if (state.messages.length > 500) state.messages.shift();
-      emit({ type: 'message', message: snapshot });
+      recordMessage(snapshot);
     }
   });
 }
@@ -218,9 +231,7 @@ export async function sendText(to, text) {
 
   const result = await socket.sendMessage(jid, { text: body });
   const snapshot = snapshotMessage(result, 'OUTBOUND');
-  state.messages.push(snapshot);
-  if (state.messages.length > 500) state.messages.shift();
-  emit({ type: 'message', message: snapshot });
+  recordMessage(snapshot);
   return snapshot;
 }
 
