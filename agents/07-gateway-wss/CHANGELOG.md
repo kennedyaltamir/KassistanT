@@ -24,3 +24,6 @@
 - Replaced vague “await IA-06/IA-03” dependencies with explicit acceptance gates for authenticated session, revocation, reconnect/reauthentication, durable intake, ACK authorization, recovery scope, sequence and minimum backpressure/error behavior.
 - Reduced the first WSS lifecycle slice to explicit V1 requirements and deferred future capabilities where the contract permits.
 - No runtime WSS code was added and no global decision was created.
+- Added `WSS-DEPENDENCY-ACCEPTANCE.md` with deterministic results `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED` and `NOT_VERIFIED`.
+- Established a lightweight revalidation procedure based on dependency branch/commit and gate artifacts, avoiding repeat full-project audits unless evidence conflicts.
+- Current IA-06 and IA-03 dependency results remain `NOT_VERIFIED`; first proposed slice remains `connection lifecycle without replay` and is `BLOCKED`.
