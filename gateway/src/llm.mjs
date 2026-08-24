@@ -16,9 +16,10 @@ export function getLlmStatus() {
 
 /**
  * @param {ChatMessage[]} messages
+ * @param {{ systemPrompt?: string }} [options]
  * @returns {Promise<string>}
  */
-export async function generateReply(messages) {
+export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
   if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
 
@@ -26,11 +27,14 @@ export async function generateReply(messages) {
   const timer = setTimeout(() => controller.abort(), value.timeoutMs);
 
   try {
+    const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
+      ? options.systemPrompt.trim()
+      : value.systemPrompt;
     const payload = {
       model: value.model,
       messages: /** @type {ChatMessage[]} */ ([
-        { role: 'system', content: value.systemPrompt },
-        ...messages,
+        { role: 'system', content: systemPrompt },
+        ...messages.filter(message => message.role !== 'system'),
       ]),
       stream: false,
       think: false,
