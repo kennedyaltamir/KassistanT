@@ -24,7 +24,9 @@ function loadPolicies() {
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    conversationPolicies = parsed && typeof parsed === 'object' ? /** @type {ConversationPolicyMap} */ (parsed) : {};
+    conversationPolicies = parsed && typeof parsed === 'object'
+      ? /** @type {ConversationPolicyMap} */ (parsed)
+      : {};
   } catch {
     conversationPolicies = {};
   }
@@ -44,7 +46,7 @@ function getConversationPolicy(jid) {
   return value && typeof value === 'object' ? value : {};
 }
 
-/** @param {string} jid @param {Partial<ConversationPolicy> & { enabled?: boolean | null }} patch */
+/** @param {string} jid @param {{ enabled?: boolean | null, prompt?: string }} patch */
 export function setConversationPolicy(jid, patch = {}) {
   if (typeof jid !== 'string' || !jid.trim()) throw new Error('Conversation JID is required');
   if (!jid.endsWith('@lid') && !jid.endsWith('@s.whatsapp.net') && !jid.endsWith('@g.us')) {
@@ -68,16 +70,18 @@ export function setConversationPolicy(jid, patch = {}) {
   return { jid, ...next };
 }
 
+/** @param {string} jid */
 export function clearConversationPolicy(jid) {
   return setConversationPolicy(jid, { enabled: null, prompt: '' });
 }
 
+/** @param {string} jid */
 export function getConversationPolicyStatus(jid) {
   return { jid, ...getConversationPolicy(jid) };
 }
 
 export function listConversationPolicies() {
-  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...(value || {}) }));
+  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid: /** @type {string} */ (jid), ...(value || {}) }));
 }
 
 /** @param {string} jid @returns {ContextMessage[]} */
@@ -96,7 +100,7 @@ function conversationContext(jid) {
       };
     });
 
-  return context.filter((message) => message !== null);
+  return context.filter(message => message !== null);
 }
 
 /** @param {string | null} jid */
@@ -131,15 +135,13 @@ async function handleMessage(message) {
   const context = conversationContext(jid);
   if (!context.length) return;
 
-  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : null;
+  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : undefined;
 
   inFlight.add(jid);
   lastReplyAt.set(jid, now);
 
   try {
-    const reply = promptOverride
-      ? await generateReply(context, { systemPrompt: promptOverride })
-      : await generateReply(context);
+    const reply = await generateReply(context, { systemPrompt: promptOverride });
     await sendText(jid, reply);
     console.log(`[KassisT AI] auto-reply sent to ${jid}`);
   } catch (error) {
