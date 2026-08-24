@@ -113,6 +113,13 @@ function conversationContext(jid) {
   return context.slice(-maxContextMessages);
 }
 
+/** @param {string} jid */
+export function shouldAutoReply(jid) {
+  const config = getAiConfig();
+  if (!config.enabled) return false;
+  return getConversationPolicy(jid).enabled !== false;
+}
+
 export function getAutoReplyStatus() {
   return {
     ...getLlmStatus(),
@@ -146,8 +153,7 @@ async function handleInbound(message) {
   /** @type {string} */
   const jid = message.jid;
 
-  const policy = getConversationPolicy(jid);
-  if (policy.enabled === false) return;
+  if (!shouldAutoReply(jid)) return;
   if (inFlight.has(jid)) return;
 
   const config = getAiConfig();
@@ -158,6 +164,7 @@ async function handleInbound(message) {
   const context = conversationContext(jid);
   if (!context.length) return;
 
+  const policy = getConversationPolicy(jid);
   const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim()
     ? policy.prompt.trim()
     : undefined;
