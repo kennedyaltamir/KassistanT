@@ -21,18 +21,16 @@ function saveState(value) {
   fs.mkdirSync(path.dirname(STATUS_PATH), { recursive: true });
   const tempPath = `${STATUS_PATH}.tmp`;
   fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
-  fs.renameSync(tempPath, STATUS_PATH);
 }
 
-function classifyHttp(status) {
+export function classifyHttp(status) {
   if (status === 401 || status === 403) return 'INVALID';
-  if (status === 429) return 'UNAVAILABLE';
-  if (status >= 500) return 'UNAVAILABLE';
+  if (status === 429 || status >= 500) return 'UNAVAILABLE';
   if (status >= 400) return 'ERROR';
   return 'VALID';
 }
 
-async function request(url, credential, provider) {
+async function request(provider, credential) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
@@ -41,7 +39,11 @@ async function request(url, credential, provider) {
       authorization: `Bearer ${credential}`,
     };
     if (provider.provider === 'github') headers['X-GitHub-Api-Version'] = '2022-11-28';
-    const response = await fetch(url, { method: 'GET', headers, signal: controller.signal });
+    const response = await fetch(provider.validation.endpoint, {
+      method: provider.validation.method ?? 'GET',
+      headers,
+      signal: controller.signal,
+    });
     return classifyHttp(response.status);
   } catch (error) {
     if (error && typeof error === 'object' && error.name === 'AbortError') return 'UNAVAILABLE';
@@ -60,7 +62,7 @@ export function getCredentialValidationStatuses() {
   }]));
 }
 
-export async function validateCredential(key) {
+export async function validateCredentialValue(key, credential) {
   const provider = getProviderForCredential(key);
   if (!provider) throw new Error('Unsupported credential');
   if (provider.validation.capability !== 'SUPPORTED') {
@@ -69,23 +71,46 @@ export async function validateCredential(key) {
       provider: provider.provider,
       validationStatus: 'UNAVAILABLE',
       lastValidatedAt: null,
-      error: 'Provider validation is not implemented because a canonical validation endpoint is not registered.',
+      error: 'Provider validation is unavailable because no canonical validation operation is registered.',
+    };
+  }
+  if (!credential) {
+    return {
+      key,
+      provider: provider.provider,
+      validationStatus: 'UNKNOWN',
+      lastValidatedAt: null,
+      error: null,
     };
   }
 
-  const credential = getCredential(key);
-  if (!credential) {
-    return { key, provider: provider.provider, validationStatus: 'NOT_CONFIGURED', lastValidatedAt: null, error: null };
-  }
-
-  const validationStatus = await request(provider.validation.endpoint, credential, provider);
+  const validationStatus = await request(provider, credential);
   const lastValidatedAt = new Date().toISOString();
-  const error = validationStatus === 'VALID' ? null : validationStatus === 'INVALID' ? 'Provider rejected the credential.' : 'Provider validation could not be completed.';
-  const state = loadState();
-  state[key] = { validationStatus, lastValidatedAt, error };
-  saveState(state);
-  console.log(`[KassisT Credential] validation=${validationStatus} provider=${provider.provider}`);
+  const error = validationStatus === 'VALID'
+    ? null
+    : validationStatus === 'INVALID'
+      ? 'Provider rejected the credential.'
+      : validationStatus === 'UNAVAILABLE'
+        ? 'Provider validation is currently unavailable.'
+        : 'Provider validation failed.';
   return { key, provider: provider.provider, validationStatus, lastValidatedAt, error };
+}
+
+export async function validateCredential(key) {
+  const result = await validateCredentialValue(key, getCredential(key));
+  const state = loadState();
+  if (result.validationStatus === 'UNKNOWN' && result.lastValidatedAt === null) {
+    delete state[key];
+  } else {
+    state[key] = {
+      validationStatus: result.validationStatus,
+      lastValidatedAt: result.lastValidatedAt,
+      error: result.error,
+    };
+  }
+  saveState(state);
+  console.log(`[KassisT Credential] validation=${result.validationStatus} provider=${result.provider}`);
+  return result;
 }
 
 export function invalidateCredentialStatus(key) {
