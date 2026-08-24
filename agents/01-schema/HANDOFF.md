@@ -7,47 +7,42 @@
 - Active branch: `Agent01-schema-canonical-sqlite`
 - Integration authority: `main`
 
-## Phase 2 result
+## Phase 2.5 result
 
-Phase 2 — Canonical Schema Specification — is **COMPLETE AS SPECIFICATION / BLOCKED FOR DDL**.
+Schema Decision Package is **COMPLETE / REVIEW REQUIRED**.
 
-## Primary artifacts
+## Decision artifacts
 
+- `SCHEMA-DECISION-MATRIX.md`
+- `SCHEMA-AUTHORITY-MATRIX.md`
+- `TABLE-READINESS-MATRIX.md`
 - `CANONICAL-SCHEMA-SPEC.md`
-- `ENTITY-PHYSICAL-MAP.md`
-- `RELATIONSHIP-SPEC.md`
-- `CONSTRAINT-SPEC.md`
-- `INDEX-SPEC.md`
 - `MIGRATION-0002-READINESS.md`
 - `MIGRATION-0002-PROJECTION.md`
 
 ## Verified state
 
-1. Exactly 28 canonical entities are mapped.
-2. Lower_snake_case table names are documented as PROPOSED only.
-3. Seven explicit unique constraints are REQUIRED_BY_CONTRACT.
-4. Twenty-three relationships are classified; missing parent keys are explicitly blocked rather than inferred.
-5. Lifecycle/status semantic values are preserved, but physical SQL enum encoding remains open.
-6. Money is integer cents / BRL and timestamps are UTC semantically.
-7. M5.1 and `0001_bootstrap.sql` remain unchanged.
-8. No `0002` migration exists.
+1. 28 canonical entities remain in scope.
+2. 3 tables can become ready after local IA-01 physical decisions.
+3. 14 require semantic decisions from other agents.
+4. DomainOutbox requires global resolution of CONTRACT-001 where physical ownership is affected.
+5. 10 tables remain directly blocked by incomplete field/relationship contracts.
+6. CONTRACT-002 is currently non-blocking for physical schema.
+7. GOV-001 is deferred unless it changes a schema-critical interpretation.
+8. M5.1 and `0001_bootstrap.sql` remain unchanged.
+9. No `0002` migration exists.
+10. No contracts or protected documentation were modified.
 
-## Schema-critical blockers
+## Required human/agent decisions
 
-- Physical SQL naming convention.
-- Incomplete schemas for Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem.
-- Parent key names for OrderItem, OrderItemModifier and OrderStatusHistory.
-- Physical UUID and timestamp encoding.
-- Nullability/defaults.
-- FK delete/update behavior.
-- SQL lifecycle/status representation.
-- DomainOutbox physical semantics under CONTRACT-001.
-- GOV-001 if authority history changes interpretation.
-
-## CONTRACT-002 classification
-
-`order.status_changed` remains ambiguous but is currently **non-blocking for existing schema**. It becomes blocking only if the final event decision requires a new physical schema element or changes an existing persisted contract.
+- Approve/reject IA-01 local physical proposals.
+- Provide semantic field/nullability/default decisions through IA-02 and relevant domain agents.
+- Provide OrderItem/OrderItemModifier/OrderStatusHistory parent-key decisions through IA-04/IA-02.
+- Provide infrastructure field semantics through IA-03.
+- Provide Conversation/AI and KnowledgeItem semantics through IA-05/IA-02.
+- Provide Device/security persistence semantics through IA-06.
+- Resolve CONTRACT-001 globally for affected DomainOutbox physical scope.
 
 ## Migration gate
 
-`0002` must not be created until a reviewer confirms that a second engineer can derive identical SQL from the physical specification without interpretation.
+Do not create `0002` until the decision package is approved and the included tables pass deterministic-generation review: a second engineer must be able to produce identical DDL without asking for missing field names, types, nullability, defaults, FK actions, state encoding or ownership semantics.
