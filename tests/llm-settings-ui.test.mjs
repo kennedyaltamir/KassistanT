@@ -8,8 +8,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const indexHtml = readFileSync(path.join(root, "apps", "desktop", "src", "index.html"), "utf8");
 const preload = readFileSync(path.join(root, "apps", "desktop", "electron", "preload.cjs"), "utf8");
 const llmSettings = readFileSync(path.join(root, "apps", "desktop", "src", "llm-settings.js"), "utf8");
+const credentialSource = readFileSync(path.join(root, "gateway", "src", "credentials.mjs"), "utf8");
+const providerRegistry = readFileSync(path.join(root, "gateway", "src", "provider-registry.mjs"), "utf8");
 
-test("Settings navigation exists in the real desktop page", () => {
+ test("Settings navigation exists in the real desktop page", () => {
   assert.match(indexHtml, /data-page=\"settings\"/);
 });
 
@@ -38,4 +40,16 @@ test("LLM settings module uses the existing Gateway contracts", () => {
 test("credential UI does not render a stored secret value", () => {
   assert.doesNotMatch(llmSettings, /item\.(secretValue|value)\b/);
   assert.match(llmSettings, /type=\"password\"/);
+});
+
+test("credential backend persists ciphertext and exposes only status", () => {
+  assert.match(credentialSource, /ProtectedData\]\.Protect/);
+  assert.match(credentialSource, /configured: typeof store\[key\] === 'string'/);
+  assert.doesNotMatch(credentialSource, /return \{[^}]*value:/s);
+});
+
+test("provider registry keeps Cloudflare fields distinct and unsupported providers explicit", () => {
+  assert.match(providerRegistry, /CLOUDFLARE_API_KEY/);
+  assert.match(providerRegistry, /CLOUDFLARE_ACCOUNT_ID/);
+  assert.match(providerRegistry, /provider: 'penrouter',[\s\S]*capability: 'UNAVAILABLE'/);
 });
