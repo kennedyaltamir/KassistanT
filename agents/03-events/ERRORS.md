@@ -13,7 +13,7 @@ IA-03 must not assume the event is definitively required or forbidden.
 ## ERR-003 — Runtime absence
 **Status:** CLOSED FOR EVENTBUS V1 / OPEN FOR REMAINING INFRASTRUCTURE
 
-EventBus V1 is implemented and tested. InboundInbox, DomainOutbox, JobQueue and AuditLog runtime remain unimplemented.
+EventBus V1 is implemented. InboundInbox, DomainOutbox, JobQueue and AuditLog runtime remain unimplemented.
 
 ## ERR-004 — Documentation is not implementation evidence
 **Status:** OPERATIONAL RULE
@@ -63,7 +63,7 @@ EventBus has `NO_ORDERING_GUARANTEE`.
 ## ERR-013 — Local policy approval pending
 **Status:** CLOSED
 
-EBUS-DEC-001 through EBUS-DEC-008 were explicitly approved by the operator and recorded as IA-03 local decisions.
+EBUS-DEC-001 through EBUS-DEC-008 were explicitly approved and recorded as IA-03 local decisions.
 
 ## ERR-014 — Premature implementation compatibility risk
 **Status:** CLOSED FOR EVENTBUS V1
@@ -73,7 +73,17 @@ Implementation began only after explicit policy approval.
 ## ERR-015 — Test runner scope
 **Status:** OBSERVABILITY / TOOLING LIMITATION
 
-The standard desktop test runner does not enumerate the new EventBus test automatically. Its configuration is outside IA-03 scope, so validation was executed directly against the associated test file without modifying protected scripts.
+The standard desktop test runner does not enumerate the EventBus test automatically. Its configuration is outside IA-03 scope.
+
+## ERR-016 — Fresh validation unavailable in current environment
+**Status:** NOT_VERIFIED
+
+The requested fresh EventBus test re-execution could not be completed because the current environment does not have `tsx` installed. An `npx` attempt could not complete without network/package availability. No new test result is claimed for this session.
+
+## ERR-017 — Remote CI status unavailable
+**Status:** NOT_VERIFIED
+
+The remote status lookup for the current branch head returned zero statuses. This is not evidence of CI success.
 
 ## Recovery traps
 
