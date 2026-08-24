@@ -4,10 +4,10 @@
 `packages/domain/**`
 
 ## Current phase
-D1 Decision Package / First Slice Preparation
+D1 Human Decision Review Package
 
 ## Current result
-Runtime implementation remains frozen. Decision package is complete, but D2 is blocked.
+Runtime implementation remains frozen. Human decision package is complete, but D2 is blocked.
 
 ## Canonical inventory closure
 - Canonical entity count: **28**.
@@ -17,8 +17,22 @@ Runtime implementation remains frozen. Decision package is complete, but D2 is b
 ## Decision package
 - `DOMAIN-DECISION-PACKAGE.md`
 - `DOMAIN-GLOBAL-DECISIONS.md`
+- `HUMAN-DOMAIN-DECISIONS.md`
 - `FIRST-DOMAIN-SLICE.md`
 - `DOMAIN-INTEGRATION-GATES.md`
+
+## Human decision gate
+Required for the proposed first slice:
+1. DREQ-001 — aggregate boundary.
+2. DREQ-002 — `DRAFT -> CONFIRMED` transition.
+3. DREQ-005 — minimum domain error semantics.
+4. DREQ-006 — actor/authorization boundary.
+
+Deferred for this slice:
+- DREQ-003 — `order.status_changed`.
+- DREQ-004 — DomainOutbox ownership.
+
+No DREQ has been approved automatically.
 
 ## Critical findings
 - No aggregate root is normatively frozen.
@@ -31,7 +45,7 @@ Runtime implementation remains frozen. Decision package is complete, but D2 is b
 - `GOV-001` remains a governance decision outside IA-02 authority.
 
 ## First-slice conclusion
-No non-trivial first Domain Runtime slice is currently `READY`. The proposed first slice is an Order-oriented pure domain slice, candidate `ConfirmOrder` with `DRAFT -> CONFIRMED`, but it is `BLOCKED` pending the minimum decision set.
+No non-trivial first Domain Runtime slice is currently `READY`. The proposed first slice is an Order-oriented pure domain slice, candidate `ConfirmOrder` with `DRAFT -> CONFIRMED`, and remains `BLOCKED` pending the four minimum decisions above.
 
 ## Consumers/dependencies
 - IA-01: canonical schema/persistence boundary when persistence is required.
@@ -41,4 +55,4 @@ No non-trivial first Domain Runtime slice is currently `READY`. The proposed fir
 - IA-06/07/08: authentication, transport and UI boundaries remain external to domain authority.
 
 ## D2 gate
-Do not implement until aggregate boundary, one normative transition, one complete command/error contract, stable event semantics and deterministic test strategy are explicit and free of unresolved architectural assumptions.
+Do not implement until the four required human decisions are approved and the selected slice is re-audited against aggregate, command, transition, invariant, error, event, persistence and deterministic test criteria.
