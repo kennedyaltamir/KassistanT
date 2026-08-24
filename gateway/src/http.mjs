@@ -142,7 +142,7 @@ export function createHttpServer({ readinessChecks = {} } = {}) {
         try {
           const body = await parseBody(request);
           const result = await validateCredential(String(body.key ?? ''));
-          return json(response, result.validationStatus === 'VALID' ? 200 : 422, result);
+          return json(response, 200, result);
         } catch (error) {
           return json(response, 400, { error: sanitizedError(error) });
         }
