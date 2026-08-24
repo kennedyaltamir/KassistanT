@@ -69,4 +69,10 @@
 - Status: BLOCKER / CROSS-AGENT
 - IA-06 lacks an executable authenticated-session/revocation/reconnect interface for IA-07 consumption.
 - IA-03 lacks executable durable-intake/ACK/replay interfaces for IA-07 consumption.
-- Impacto: WSS V1 connection lifecycle remains blocked until explicit acceptance criteria in `WSS-INTEGRATION-GATE.md` are satisfied.
+- Impacto: WSS V1 connection lifecycle remains blocked until explicit acceptance criteria in `WSS-INTEGRATION-GATE.md` and `WSS-DEPENDENCY-ACCEPTANCE.md` are satisfied.
+
+## E-013 — Dependency acceptance state is not yet verified
+
+- Status: OPEN / ACCEPTANCE GAP
+- Current IA-06 and IA-03 dependency results are `NOT_VERIFIED` because the required executable evidence packets have not been delivered.
+- Impacto: IA-07 must not infer acceptance from documentation-only progress or branch configuration.
