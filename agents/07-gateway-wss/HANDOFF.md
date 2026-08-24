@@ -15,6 +15,28 @@ O Gateway possui `/health` e `/ready` implementados; webhooks e endpoints de dis
 
 Foi acrescentado um validador estrutural puro em `gateway/src/wss-envelope.mjs` para o envelope WSS v1. Ele não substitui o runtime WSS.
 
+## Fechamento do envelope WSS
+
+O envelope está suficientemente estável para validação estrutural, não para transporte funcional.
+
+Explicitamente suportado:
+- `protocol_version = 1.0`.
+- enumeração atual de `message_type`.
+- presença/tipo básico de `message_id`, `device_id`, `timestamp_utc` e `payload`.
+- campos opcionais `event_id`, `correlation_id`, `causation_id` quando presentes.
+- `sequence` como número quando presente.
+- `ACK.payload.event_id`.
+
+Ainda não fechado:
+- formato lexical exato de IDs;
+- gramática estrita de timestamp;
+- limites de `sequence`;
+- política para campos desconhecidos;
+- negociação/compatibilidade de versões;
+- schemas específicos de payloads;
+- replay/resume/resync e retenção;
+- backpressure quantitativo.
+
 ## Dependências críticas
 
 - IA-06: identidade/autenticação de dispositivo.
@@ -23,17 +45,11 @@ Foi acrescentado um validador estrutural puro em `gateway/src/wss-envelope.mjs` 
 - IA-02/IA-04/IA-05: consumidores/produtores de capacidades de domínio, pedidos e conversa sem transferência de regras comerciais ao Gateway.
 - IA-08: Desktop/WSS consumer.
 
-## Auditoria contratual
+## Próximo slice proposto
 
-HTTP:
-- `/health`: runtime presente.
-- `/ready`: runtime presente, readiness predicates ainda parciais.
-- WhatsApp webhooks: EXTERNAL/PARTIAL; não inventar verificação Meta.
-- Device endpoints: PARTIAL/BLOCKED; dependem de IA-06 e contratos incompletos.
+`PROPOSED_NEXT_SLICE = WSS connection lifecycle abstraction`
 
-WSS:
-- envelope/version/message types: validação estrutural disponível.
-- ACK/Inbox, AUTH/device identity, sequence/replay/resume/resync, heartbeat, backpressure e revocation: aguardam dependências/semântica suficiente.
+Classificação atual: `BLOCKED` para runtime funcional. Pode ser reavaliado como `READY_AFTER_DECISION` quando IA-06 fornecer o boundary de sessão/identidade e IA-03 fornecer as interfaces de durabilidade necessárias, sem necessidade de resolver contratos globais pendentes localmente.
 
 ## Bloqueios conhecidos
 
