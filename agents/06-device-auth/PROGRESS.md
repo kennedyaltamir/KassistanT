@@ -2,37 +2,62 @@
 
 ## Current phase
 
-**Agent Configuration / Territory Audit**
+**Device Authentication Contract Readiness Audit**
 
 ## Status
 
-`AUDIT_COMPLETE / DOCUMENTATION_CONFIGURED / IMPLEMENTATION_FROZEN`
+`READINESS_COMPLETE / CONTRACTS_PARTIAL / IMPLEMENTATION_FROZEN`
 
 ## Confirmed
 
 - Agent identity: IA-06 — Device Authentication.
-- Ownership boundaries documented.
-- Device enrollment contract audited.
-- Device authentication contract audited.
-- Backend authentication/authorization documentation audited.
-- Approved baseline device-enrollment/authentication sections audited.
-- Current repository evidence indicates device-auth runtime is not implemented.
-- Dependencies on canonical schema, domain conventions, event/audit infrastructure, Gateway/WSS and UI have been identified.
-- Known contract gaps and global ambiguities have been recorded.
+- Branch is `Agent06-device-authentication`.
+- The branch was aligned with `main` before this readiness commit.
+- Device enrollment/authentication contracts were re-audited against repository sources.
+- OpenAPI and WSS projections were reviewed.
+- Domain, backend authentication/authorization, idempotency, audit and error documents were reviewed.
+- Runtime device-auth code remains not implemented.
+- Readiness package created entirely under `agents/06-device-auth/**`.
+- No global contract was changed.
 
-## Not started
+## Readiness result
+
+### READY
+
+- Ed25519 as the approved algorithm/direction.
+- Public/private key separation boundary.
+- Provisioning Service as named management authority.
+- `DEVICE_REVOKED` revocation outcome and session termination requirement.
+- Basic ownership boundaries and cross-agent dependencies.
+
+### PARTIAL
+
+- Device identity field model.
+- Enrollment endpoints.
+- Authentication flow.
+- Secure Storage boundary.
+- Revoke/status/audit/error semantics.
+- Gateway/WSS/desktop interfaces.
+
+### BLOCKED
 
 - Production enrollment implementation.
-- Production Ed25519 key management implementation.
-- Challenge-response runtime.
-- Secure Storage runtime.
-- Device revocation/rotation runtime.
-- Device-auth runtime tests.
+- Production authentication/session implementation.
+- Authorization middleware/policy.
+- Numerical rate limiting.
+- Endpoint-specific idempotency.
+- Rotation lifecycle.
+- Final device error catalog.
+- Deterministic implementation tests dependent on missing protocol details.
 
-## Evidence rule
+### EXTERNAL
 
-Progress must never be advanced from documentation-only status to implementation-complete status without executable evidence and approved integration.
+- Supported Windows Secure Storage runtime validation.
+
+## Implementation status
+
+No production code created. No migration created. No contracts changed. No Gateway implementation changed.
 
 ## Next phase
 
-Wait for an explicit implementation instruction after the Agent Configuration / Territory Audit is accepted.
+Wait for project-level contract closure and explicit implementation authorization.

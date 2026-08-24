@@ -1,77 +1,58 @@
 # IA-06 Roadmap — Device Authentication
 
-This roadmap covers only the IA-06 territory. It does not redefine the global KassisT roadmap.
+This roadmap covers only the IA-06 territory and records readiness, not delivery dates.
 
 ## Phase A — Territory Definition
-
 **Status:** DONE
 
-- Establish agent identity and mission.
-- Define scope and boundaries.
-- Define future ownership paths.
-- Record permanent facts.
-- Record audit learnings, decisions, errors and current progress.
+Identity, scope, ownership, memory, learnings, decisions, errors, progress, roadmap and handoff are established.
 
-## Phase B — Contract Closure
+## Phase B — Contract Readiness Audit
+**Status:** DONE
 
-**Status:** BLOCKED / DEPENDENT ON PROJECT AUTHORITY
+Audited device identity, enrollment, provisioning, authentication, challenge-response, Ed25519 boundary, Secure Storage, session identity, revoke, rotate, status, authorization, rate limiting, idempotency, errors, audit, events and cross-agent integration.
 
-Required before production implementation:
+## Phase C — Contract Closure
+**Status:** BLOCKED / PROJECT AUTHORITY
 
-- Complete enrollment request/response schemas.
-- Complete endpoint status-code semantics.
-- Complete enrollment authorization matrix.
-- Complete endpoint idempotency semantics.
-- Define numerical rate-limit policies.
-- Define any missing key-rotation and session-lifecycle details without contradicting the baseline.
+Required:
 
-IA-06 must not silently close these gaps.
+- complete enrollment request/response schemas;
+- endpoint authn/authz and status matrix;
+- endpoint idempotency semantics;
+- numerical rate-limit policies;
+- complete authentication/session semantics;
+- complete rotation lifecycle;
+- sufficient device error taxonomy;
+- sufficient audit/event semantics.
 
-## Phase C — Cross-agent Interface Agreement
-
+## Phase D — Cross-agent Interface Agreement
 **Status:** NOT_STARTED
 
-Dependencies to stabilize:
+Stabilize interfaces with IA-01, IA-02, IA-03, IA-07 and IA-08, without crossing ownership.
 
-- IA-01: canonical Device/Store persistence schema.
-- IA-02: domain validation and identity conventions.
-- IA-03: audit/event semantics that intersect authentication.
-- IA-07: HTTP/WSS integration boundary, transport identity and revocation signaling.
-- IA-08: UI requirements for enrollment/status without exposing secrets.
+## Phase E — Runtime Implementation
+**Status:** BLOCKED
 
-## Phase D — Runtime Implementation
+Future scope: secure key lifecycle, enrollment, Ed25519 proof-of-possession, challenge-response, session identity, revocation, rotation, authorization enforcement, rate limiting, audit integration and tests.
 
+## Phase F — Validation and Integration
 **Status:** NOT_STARTED
 
-Future scope, only after authorization:
+Future gates: unit/integration/security/contract tests, CI on actual PR HEAD, cross-agent validation, human review, approved merge and post-merge audit.
 
-- secure key lifecycle;
-- enrollment flow;
-- Ed25519 proof-of-possession;
-- challenge-response authentication;
-- session identity;
-- revocation;
-- rotation;
-- authorization enforcement at the device boundary;
-- rate limiting;
-- audit integration;
-- automated security and contract tests.
+## Current readiness artifacts
 
-## Phase E — Validation and Integration
+- `DEVICE-AUTH-READINESS.md`
+- `DEVICE-ENROLLMENT-MATRIX.md`
+- `DEVICE-AUTH-MATRIX.md`
+- `DEVICE-LIFECYCLE-MATRIX.md`
+- `DEVICE-AUTHORIZATION-MATRIX.md`
+- `DEVICE-ERROR-MATRIX.md`
+- `DEVICE-CRYPTO-SECURITY.md`
+- `DEVICE-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
 
-**Status:** NOT_STARTED
+## External dependency
 
-Future gates:
-
-- unit and integration tests;
-- negative/security tests;
-- contract validation;
-- actual CI validation on PR HEAD;
-- cross-agent integration validation;
-- human review;
-- approved merge;
-- post-merge verification.
-
-## External dependencies
-
-Windows Secure Storage behavior must be validated against the supported Windows environment when runtime implementation begins. No external configuration is executed during this phase.
+Windows Secure Storage behavior must be validated on the supported Windows environment when runtime implementation begins. No external configuration is executed by IA-06 in this phase.

@@ -3,43 +3,49 @@
 ## Audit-derived learnings
 
 ### L-001 — Contract exists without runtime
-
 **Classification:** FACT / AUDITED
+The repository contains dedicated device enrollment/authentication contracts while runtime is not implemented.
 
-The repository contains dedicated device enrollment and authentication contract documents, while the runtime is explicitly `NOT_IMPLEMENTED`. Documentation cannot be used as evidence that enrollment or authentication already works.
-
-### L-002 — Device private key has a hard storage boundary
-
+### L-002 — Private key has a hard boundary
 **Classification:** FACT / AUDITED
+The baseline places the device private key in Windows Secure Storage and public key in the Gateway-side identity store.
 
-The baseline places the device private key in Windows Secure Storage and the public key in the Gateway's PostgreSQL persistence. This creates a deliberate trust boundary between local secret material and server-side identity material.
-
-### L-003 — Pairing code is not a cryptographic private key
-
+### L-003 — Pairing code is not key material
 **Classification:** FACT / AUDITED
-
-The enrollment contract states that pairing codes are one-time/short-lived, contain no private key and must not appear in logs.
+Pairing codes are one-time/short-lived and must not appear in logs.
 
 ### L-004 — Provisioning authority is separate from business logic
-
 **Classification:** FACT / AUDITED
+Provisioning Service is the named authority for enrollment authorization, revoke, rotate and device-status reads.
 
-The MVP uses a Provisioning Service authenticated in the Gateway for enrollment authorization, device revocation, key rotation and device-status reads. This does not make the Gateway a business-rule authority.
-
-### L-005 — Local clock cannot be the sole authentication authority
-
+### L-005 — Local clock is not sole authentication authority
 **Classification:** FACT / AUDITED
-
-The authentication contract explicitly rejects exclusive dependence on the Desktop local clock; challenge and validity are controlled by the Gateway.
+Challenge validity is Gateway-controlled; Desktop local time cannot be the only authentication authority.
 
 ### L-006 — Numeric rate-limit policy remains unspecified
-
 **Classification:** FACT / AUDITED
+Enrollment, AUTH, RESUME and reconnect limits are conceptually required but numbers are absent.
 
-The contract names enrollment, AUTH, RESUME and reconnect rate limits but does not define their numerical values. IA-06 must not invent those values as approved policy.
-
-### L-007 — IA-06 crosses a code-ownership boundary with IA-07
-
+### L-007 — IA-06 crosses a Gateway ownership boundary
 **Classification:** FACT / REGISTRY
+IA-06 owns `gateway/src/device-auth/**`; IA-07 owns the remainder of Gateway.
 
-IA-06 owns `gateway/src/device-auth/**`; IA-07 owns the rest of `gateway/**`. Device authentication therefore requires explicit interface discipline at the Gateway boundary.
+### L-008 — Enrollment API projection is intentionally conservative
+**Classification:** FACT / AUDITED
+OpenAPI lists enrollment/revoke/rotate/status routes but marks schemas and exact status/authorization mappings partial. Undefined request/response structures are not to be inferred.
+
+### L-009 — Generic error/idempotency infrastructure is not endpoint-complete
+**Classification:** FACT / AUDITED
+Generic correlated errors exist; endpoint-specific device-auth error mappings and `Idempotency-Key` replay/TTL semantics remain missing.
+
+### L-010 — Rotation is more underspecified than revocation
+**Classification:** FACT / AUDITED
+Revocation outcome is explicit; rotation actor is known but key lifecycle, overlap, rollback and session continuity are not defined.
+
+### L-011 — Readiness must separate protocol availability from runtime availability
+**Classification:** FACT / AUDITED
+A subject can be contractually defined and still be NOT_STARTED/BLOCKED for implementation.
+
+## Current readiness conclusion
+
+IA-06 is ready to continue contract analysis and cross-agent coordination, but not ready for production implementation. The principal blockers are recorded in `DEVICE-AUTH-READINESS.md` and `IMPLEMENTATION-GATES.md`.

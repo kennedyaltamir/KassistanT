@@ -2,43 +2,46 @@
 
 ## Purpose
 
-This document is the minimum continuity context for a future IA-06 operator.
+Continuity package for the Device Authentication territory after the Contract Readiness Audit.
 
 ## Current state
 
-IA-06 is configured for Device Authentication, but product implementation is frozen in the current phase. The audited repository state contains contractual documentation and no verified production device-auth runtime.
+IA-06 is activated on `Agent06-device-authentication`. Production implementation remains frozen. The readiness audit produced a complete classification package without modifying product code or global contracts.
 
-## Authoritative facts
+## Key verified facts
 
-- Ed25519 challenge-response is the approved authentication model.
-- Desktop private key belongs in Windows Secure Storage.
-- Gateway stores the device public key.
-- Enrollment uses a one-time, short-lived pairing code and explicit Store/Device/public-key association.
-- Provisioning Service is the MVP authority for enrollment authorization, revoke, rotate and device status.
-- Revocation results in `DEVICE_REVOKED` and session termination.
-- Local clock must not be the sole authentication authority.
+- Ed25519 challenge-response is normative.
+- Desktop private key belongs in Windows Secure Storage; Gateway retains public key.
+- Enrollment has defined routes and lifecycle states, but endpoint schemas/status/authz/idempotency remain incomplete.
+- Provisioning Service is the named authority for enrollment authorization, revoke, rotate and device status.
+- Revocation yields `DEVICE_REVOKED` and session termination.
+- WSS defines AUTH-related message types and envelope, but exact auth/session payloads remain partial.
 
-## Contract gaps that must be resolved before implementation encodes them
+## Contract gaps before implementation
 
-- Enrollment exact request/response schemas.
-- Status codes.
-- Authorization matrix.
-- Endpoint idempotency.
-- Numerical rate limits.
-- Any unspecified key-rotation/session details required by runtime.
+1. Enrollment schemas and status/error matrix.
+2. Authentication payload and session semantics.
+3. Challenge freshness/replay semantics.
+4. Authorization matrix.
+5. Numeric rate-limit policy.
+6. Endpoint idempotency semantics.
+7. Device-specific error catalog.
+8. Rotation lifecycle.
+9. Canonical Device persistence details.
+10. Complete audit/event semantics.
 
 ## Cross-agent dependencies
 
-- IA-01: persistence schema.
-- IA-02: domain conventions.
-- IA-03: audit/event infrastructure.
-- IA-07: Gateway/WSS transport boundary.
-- IA-08: UI exposure of device state.
+IA-01 persistence, IA-02 domain conventions, IA-03 audit/event durability, IA-07 Gateway/WSS boundary, IA-08 UI consumption, plus external Windows Secure Storage validation.
 
 ## Safety rules
 
-Do not expose the private key to the Renderer. Do not log pairing codes or private material. Do not invent cryptographic protocol fields, authorization rules or rate limits. Do not alter protected contracts without explicit authority.
+Do not expose private key material to Renderer. Do not log pairing codes/private material. Do not invent protocol fields, authorization rules, rate limits, rotation semantics or storage technology. Do not alter protected contracts without project authority.
 
 ## Handoff status
 
-Prepared for future continuation after configuration-phase acceptance and explicit implementation authorization.
+**READY FOR CONTRACT REVIEW / BLOCKED FOR IMPLEMENTATION.**
+
+## Next action
+
+Resolve the implementation gates in `IMPLEMENTATION-GATES.md`; only then authorize runtime work.
