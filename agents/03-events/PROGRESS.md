@@ -2,59 +2,50 @@
 
 ## Current phase
 
-EventBus Runtime Gate Closure.
+EventBus Local Decision Closure / First Runtime Authorization.
 
 ## Status
 
-`BLOCKED / RUNTIME IMPLEMENTATION FROZEN`
+`READY_AFTER_HUMAN_APPROVAL / RUNTIME IMPLEMENTATION FROZEN`
 
-## Audited state
+## Current EventBus state
 
-- EventBus: NOT_IMPLEMENTED; runtime gate remains BLOCKED.
+- Envelope boundary: CLOSED.
+- Publish boundary: CLOSED — in-process/post-commit.
+- Delivery: CLOSED — non-durable.
+- Ordering: CLOSED — `NO_ORDERING_GUARANTEE`.
+- Durable retry: CLOSED — outside EventBus; JobQueue owns that boundary.
+- DomainOutbox coupling: CLOSED OUTSIDE SCOPE — `CONTRACT-001` remains external.
+
+## Proposed local runtime policies
+
+- Subscriber failures are isolated.
+- `publish()` continues selected subscribers after individual failures.
+- Failures are aggregated and surfaced after all selected handlers settle.
+- `subscribe()` returns an opaque subscription identity.
+- `unsubscribe()` is idempotent.
+- Duplicate registrations are distinct subscriptions.
+- Dispatch uses a publish-time subscriber snapshot.
+- Cancellation is unsubscribe-only in V1.
+- EventBus has no V1 timeout; timeout is deferred.
+- `await publish()` means all selected handlers have settled; it never means durable or business completion.
+- No public ordering guarantee is created by internal iteration order.
+
+All items above are `PROPOSAL / LOCAL_RUNTIME_POLICY`, not approved decisions.
+
+## Decision status
+
+`HUMAN REVIEW REQUIRED`
+
+No production runtime may be implemented until the operator approves the proposed observable behavior documented in `HUMAN-EVENTBUS-DECISIONS.md`.
+
+## Other Event Infrastructure state
+
 - InboundInbox: NOT_IMPLEMENTED; blocked on canonical persistence/schema.
 - DomainOutbox: NOT_IMPLEMENTED; blocked by `CONTRACT-001`.
-- JobQueue: NOT_IMPLEMENTED; blocked on canonical `Job` persistence and incomplete reliability policy.
-- AuditLog: NOT_IMPLEMENTED; blocked on canonical persistence and sensitive-data policy details.
-- Deduplication: contract principles exist; runtime absent; exact durable keys depend on canonical schema/contracts.
-- Retry/backoff: required concept; EventBus does not own durable retry; JobQueue remains the documented durable retry boundary.
-- Replay/reconciliation/dead-letter: documented concepts; runtime and exact state semantics absent.
-- Causation/correlation: represented in event/WSS contracts; runtime propagation absent.
-- SQLite: M5.1 foundation only; canonical business schema absent.
-- Event/WSS mapping: PARTIAL; WSS ACK boundary is clear, full runtime absent.
-
-## EventBus runtime gate findings
-
-### Closed without invention
-
-- Envelope boundary uses the current protected minimum event type.
-- Publish is in-process and post-commit.
-- EventBus is non-durable.
-- EventBus does not own durable retry.
-- DomainOutbox is outside the EventBus transaction decision.
-- EventBus has `NO_ORDERING_GUARANTEE`.
-
-### Blocking open semantics
-
-- subscriber scheduling;
-- subscriber failure propagation;
-- subscriber isolation;
-- cancellation;
-- timeout;
-- unsubscribe lifecycle;
-- duplicate registration behavior;
-- multiple-subscriber execution semantics;
-- dispatch completion semantics.
-
-## Readiness outputs
-
-- `EVENTBUS-CONTRACT.md`
-- `EVENTBUS-RUNTIME-CONTRACT.md`
-- `EVENTBUS-ERROR-MATRIX.md`
-- `EVENTBUS-TEST-MATRIX.md`
-- `EVENTBUS-IMPLEMENTATION-GATE.md`
-
-Existing territory readiness artifacts remain authoritative within their documented scope.
+- JobQueue: NOT_IMPLEMENTED; blocked on canonical persistence/reliability policy.
+- AuditLog: NOT_IMPLEMENTED; blocked on canonical persistence/policy details.
 
 ## Constraint
 
-No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified by this phase.
+No product runtime implementation, schema, migration, protected contract, global documentation, shared configuration or other agent territory was modified.
