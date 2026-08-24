@@ -43,11 +43,6 @@ async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   }
 }
 
-function safeOllamaError(response, body) {
-  const detail = body && typeof body.error === 'string' ? `: ${body.error}` : '';
-  return `Ollama request failed (${response.status})${detail}`;
-}
-
 export function getLlmStatus() {
   const value = getAiConfig();
   return {
