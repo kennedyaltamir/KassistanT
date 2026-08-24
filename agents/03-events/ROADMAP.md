@@ -8,22 +8,22 @@ Este roadmap é subordinado ao roadmap global do KassisT. Ele descreve somente o
 
 | Area | State | Evidence / boundary |
 |---|---|---|
-| EventBus | IMPLEMENTED / TESTED | V1 in-process/post-commit runtime implemented with deterministic tests. |
-| InboundInbox | BLOCKED | Durable intake/ACK contract defined; canonical schema/persistence absent. |
+| EventBus | IMPLEMENTED / HANDOFF COMPLETE | V1 runtime implemented; post-audit matched EBUS-DEC-001..008; downstream integration deferred. |
+| InboundInbox | BLOCKED | Durable intake/ACK contract defined; canonical schema/persistence from IA-01 absent. |
 | DomainOutbox | BLOCKED | Ownership/scope unresolved under `CONTRACT-001`. |
 | JobQueue | BLOCKED | `Job` persistence absent and exact retry/lease policies incomplete. |
 | AuditLog | BLOCKED | Audit contract exists; canonical persistence and sensitive-data policy are incomplete. |
-| Idempotency / deduplication | PARTIAL | Principles exist; durable runtime remains future work. |
+| Idempotency / deduplication | PARTIAL | EventBus does not own durable deduplication; Inbox uniqueness remains future work. |
 | Retry | PLANNED | Durable retry remains a JobQueue concern. |
 | Backoff | PARTIAL | WSS reconnect policy exists; JobQueue policy remains incomplete. |
 | Replay | PLANNED | WSS resume/replay contracted; local runtime absent. |
 | Reconciliation | PLANNED | Required, but algorithm/state model incomplete. |
 | Dead-letter | PLANNED | Concept identified; policy/runtime absent. |
-| Causation | PARTIAL | Contract metadata exists; EventBus preserves supplied event object metadata without expanding the contract. |
-| Correlation | PARTIAL | Contract metadata exists; EventBus preserves supplied event object metadata without expanding the contract. |
-| Observability | PARTIAL | Local subscriber failure reporting exists; broader telemetry schema remains undefined. |
+| Causation | PARTIAL | EventBus preserves supplied event object metadata without expanding the protected envelope. |
+| Correlation | PARTIAL | EventBus preserves supplied event object metadata without expanding the protected envelope. |
+| Observability | PARTIAL | EventBus failure reporting exists; broader telemetry schema remains undefined. |
 | Failure recovery | PLANNED | Durable recovery is future work outside the EventBus slice. |
-| Deterministic testing | IMPLEMENTED / TESTED | 10 EventBus tests passed in isolated runtime validation. |
+| Deterministic testing | IMPLEMENTED / PRIOR VALIDATION | Prior branch record states 10 tests passed; fresh re-execution in the current environment is not verified. |
 
 ## EventBus V1 closure
 
@@ -45,9 +45,17 @@ Este roadmap é subordinado ao roadmap global do KassisT. Ele descreve somente o
 - no durable retry;
 - no DomainOutbox coupling.
 
-### Implementation boundary
+### Post-implementation audit
 
-Only `apps/desktop/electron/infrastructure/events/**` was implemented. Downstream agent integration remains deferred.
+All EBUS-DEC-001 through EBUS-DEC-008 matched the implemented code by source inspection. No EventBus implementation divergence was identified.
+
+## InboundInbox gate
+
+`INBOX-IMPLEMENTATION-GATE.md` defines the minimum IA-01 and IA-07 evidence required before Inbox runtime implementation.
+
+`INBOX_V1 = NOT_READY`.
+
+Required next inputs include canonical persistence fields/keys/uniqueness, transaction ownership, persistence failure semantics, and the explicit transport ACK integration boundary.
 
 ## Global contracts remain unchanged
 
@@ -55,8 +63,8 @@ Only `apps/desktop/electron/infrastructure/events/**` was implemented. Downstrea
 
 ## Future implementation sequence
 
-1. **R0 — EventBus**: DONE / TESTED.
-2. **R1 — InboundInbox**: after IA-01 canonical persistence/schema is available.
+1. **R0 — EventBus**: DONE / HANDOFF COMPLETE.
+2. **R1 — InboundInbox**: after IA-01 canonical persistence/schema and IA-07 ACK boundary are ready.
 3. **R2 — JobQueue**: after Job persistence and reliability policy are finalized.
 4. **R3 — AuditLog**: after canonical persistence and sensitive-data controls are finalized.
 5. **R4 — Reliability**: replay/recovery/reconciliation/dead-letter against finalized durable state.
@@ -65,4 +73,4 @@ Only `apps/desktop/electron/infrastructure/events/**` was implemented. Downstrea
 
 ## Completion rule
 
-EventBus DONE is limited to executable code and deterministic tests for this slice. It does not imply readiness of the remaining Event Infrastructure components.
+EventBus DONE is limited to executable code, test evidence and the post-implementation handoff for this slice. It does not imply readiness of the remaining Event Infrastructure components.
