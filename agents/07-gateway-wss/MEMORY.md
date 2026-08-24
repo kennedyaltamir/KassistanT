@@ -25,3 +25,15 @@ Fatos permanentes confirmados:
 - ACK significa somente confirmação de persistência durável no `InboundInbox`; não significa conclusão de processamento de negócio.
 - O validador não implementa handshake, autenticação, replay, resume, resync, heartbeat, backpressure ou persistência.
 - O catálogo público de erros permanece PARTIAL/MISSING; códigos adicionais não devem ser tratados como normativos sem aprovação.
+
+## Session boundary — 2026-08-24
+
+- IA-06 é a autoridade sobre device identity, enrollment, Ed25519 proof-of-possession, authentication verification, revocation e key rotation.
+- IA-07 é a autoridade sobre WSS connection mechanics e transport framing depois que uma identidade autenticada for fornecida pela fronteira de device-auth.
+- A existência de uma `session identity` é explicitamente mencionada pela documentação de IA-06, mas seus campos, lifecycle, expiration e reconnect/reauthentication semantics ainda não estão fechados; IA-07 não deve inventá-los.
+- IA-03 é a autoridade sobre InboundInbox, deduplicação, durable ACK boundary, replay/recovery e infraestrutura de eventos.
+- IA-07 não deve criar Inbox, Outbox, replay store ou autoridade criptográfica concorrente.
+- Revocation: IA-06 detects/authorizes revocation; IA-07 only applies the transport/session termination effect when the executable interface is defined.
+- Sequence is monotonic per `(store_id, device_id)`, but durable ownership, duplicate/gap semantics and replay persistence remain partial; do not promote them to a local IA-07 contract.
+- IA-08 consumes connection/session state and WSS events for renderer/UI behavior; it does not own authentication, persistence or transport protocol authority.
+- The integration boundary is documented in `WSS-INTEGRATION-BOUNDARY.md` and unresolved questions are tracked in `WSS-SESSION-DECISION-MATRIX.md`.
