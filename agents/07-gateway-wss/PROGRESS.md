@@ -39,7 +39,7 @@
 |---|---|---|---|---|---|
 | Protocol version | 1.0 explicit | validator implemented | PASS | full transport absent | PARTIAL |
 | Message types | explicit list | validator implemented | PASS | dispatch/transport absent | PARTIAL |
-| Envelope fields | mostly explicit | validator implemented | PASS | message semantics remain partial | PARTIAL |
+| Envelope fields | mostly explicit | validator implemented | PASS | exact lexical rules remain partial | PARTIAL |
 | ACK | durable Inbox boundary explicit | NOT_IMPLEMENTED | MISSING | IA-03 dependency | BLOCKED |
 | Handshake/AUTH | flow explicit, IA-06 dependency | NOT_IMPLEMENTED | MISSING | IA-06 | BLOCKED |
 | Sequence | monotonic per store/device | NOT_IMPLEMENTED | MISSING | persistence/replay dependency | BLOCKED |
@@ -50,9 +50,29 @@
 | Revocation | DEVICE_REVOKED explicit | NOT_IMPLEMENTED | MISSING | IA-06 dependency | BLOCKED |
 | Errors | ERROR type explicit | NOT_IMPLEMENTED | MISSING | full error catalog partial | BLOCKED |
 
-## Implemented increment
+## WSS Envelope Contract Closure — 2026-08-24
 
-Added `gateway/src/wss-envelope.mjs`, a pure validator for the existing WSS v1 envelope contract. It does not implement sockets, authentication, persistence, replay, resume, resync, heartbeat or business behavior.
+### Field status
+
+- `protocol_version`: EXPLICIT `1.0`; negotiation/compatibility behavior UNKNOWN.
+- `message_id`: EXPLICIT non-empty string at current contract boundary; exact identifier format UNKNOWN.
+- `message_type`: EXPLICIT closed enumeration.
+- `device_id`: EXPLICIT non-empty string at current contract boundary; exact identifier format UNKNOWN.
+- `timestamp_utc`: EXPLICIT field; strict lexical/timezone grammar UNKNOWN.
+- `payload`: EXPLICIT field; individual message payload schemas PARTIAL.
+- `event_id`: OPTIONAL WHEN APPLICABLE; format UNKNOWN.
+- `correlation_id`: OPTIONAL WHEN APPLICABLE; propagation/storage rules PARTIAL.
+- `causation_id`: OPTIONAL WHEN APPLICABLE; propagation/storage rules PARTIAL.
+- `sequence`: OPTIONAL WHEN APPLICABLE; monotonic scope explicit, persistence/gap/replay semantics PARTIAL.
+- ACK payload `event_id`: EXPLICIT.
+
+### Validation boundary
+
+The existing validator checks object-ness, protocol version, message type, required identifiers, payload presence, basic optional-field string types, numeric `sequence` type and ACK payload shape. It intentionally does not invent stricter lexical rules, unknown-field policy or version negotiation.
+
+### Runtime readiness gate
+
+The next functional WSS transport slice is **BLOCKED**. It requires IA-06 device authentication/session identity, IA-03 Inbox durability and ACK/replay infrastructure, and completion of currently partial recovery/backpressure semantics. No socket, handshake, ACK, replay, resume, resync, heartbeat or backpressure runtime was added in this phase.
 
 ## Evidence rule
 
