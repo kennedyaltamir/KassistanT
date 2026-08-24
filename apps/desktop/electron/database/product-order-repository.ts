@@ -10,12 +10,14 @@ export interface ProductRecord {
 
 export interface OrderRepository {
   save(order: Order): void;
-  getById(id: string): Promise<Order | null>;
+  getById(id: string, storeId?: string): Promise<Order | null>;
+  listByStore(storeId: string): Promise<Order[]>;
 }
 
 export interface ProductRepository {
   create(product: ProductRecord): void;
-  getById(id: string): ProductRecord | null;
+  getById(id: string, storeId?: string): ProductRecord | null;
+  listByStore(storeId: string): ProductRecord[];
 }
 
 interface ProductRow extends Record<string, unknown> {
@@ -67,12 +69,19 @@ export class SQLiteProductRepository implements ProductRepository {
     );
   }
 
-  getById(id: string): ProductRecord | null {
-    const rows = this.database.query<ProductRow>(
-      `SELECT id, store_id, name, price_amount_cents, price_currency
-       FROM product WHERE id = ?`,
-      id
-    );
+  getById(id: string, storeId?: string): ProductRecord | null {
+    const rows = storeId
+      ? this.database.query<ProductRow>(
+          `SELECT id, store_id, name, price_amount_cents, price_currency
+           FROM product WHERE id = ? AND store_id = ?`,
+          id,
+          storeId
+        )
+      : this.database.query<ProductRow>(
+          `SELECT id, store_id, name, price_amount_cents, price_currency
+           FROM product WHERE id = ?`,
+          id
+        );
     const row = rows[0];
     if (!row) return null;
 
@@ -82,6 +91,20 @@ export class SQLiteProductRepository implements ProductRepository {
       name: row.name,
       price: { amount_cents: row.price_amount_cents, currency: row.price_currency }
     };
+  }
+
+  listByStore(storeId: string): ProductRecord[] {
+    const rows = this.database.query<ProductRow>(
+      `SELECT id, store_id, name, price_amount_cents, price_currency
+       FROM product WHERE store_id = ? ORDER BY name COLLATE NOCASE, id`,
+      storeId
+    );
+    return rows.map((row) => ({
+      id: row.id,
+      store_id: row.store_id,
+      name: row.name,
+      price: { amount_cents: row.price_amount_cents, currency: row.price_currency }
+    }));
   }
 }
 
@@ -130,19 +153,43 @@ export class SQLiteOrderRepository implements OrderRepository {
     });
   }
 
-  async getById(id: string): Promise<Order | null> {
-    const orderRows = this.database.query<OrderRow>(
+  async getById(id: string, storeId?: string): Promise<Order | null> {
+    const orderRows = storeId
+      ? this.database.query<OrderRow>(
+          `SELECT id, store_id, status, total_amount_cents, total_currency
+           FROM "order" WHERE id = ? AND store_id = ?`,
+          id,
+          storeId
+        )
+      : this.database.query<OrderRow>(
+          `SELECT id, store_id, status, total_amount_cents, total_currency
+           FROM "order" WHERE id = ?`,
+          id
+        );
+    return this.hydrateOrder(orderRows[0]);
+  }
+
+  async listByStore(storeId: string): Promise<Order[]> {
+    const rows = this.database.query<OrderRow>(
       `SELECT id, store_id, status, total_amount_cents, total_currency
-       FROM "order" WHERE id = ?`,
-      id
+       FROM "order" WHERE store_id = ? ORDER BY rowid DESC`,
+      storeId
     );
-    const orderRow = orderRows[0];
+    const orders: Order[] = [];
+    for (const row of rows) {
+      const order = await this.hydrateOrder(row);
+      if (order) orders.push(order);
+    }
+    return orders;
+  }
+
+  private async hydrateOrder(orderRow: OrderRow | undefined): Promise<Order | null> {
     if (!orderRow) return null;
 
     const itemRows = this.database.query<OrderItemRow>(
       `SELECT id, order_id, name, quantity, unit_price_cents, unit_price_currency
        FROM order_item WHERE order_id = ? ORDER BY rowid`,
-      id
+      orderRow.id
     );
 
     const items: OrderItem[] = [];
