@@ -18,7 +18,7 @@ Este documento permite que outra IA assuma o território de IA-01 sem depender d
 3. M5.1 já implementou a fundação SQLite.
 4. A migration atual `0001_bootstrap.sql` cria apenas `_schema_metadata`.
 5. O schema canônico das entidades de negócio ainda não existe.
-6. A documentação lista 28? Wait — the repository's canonical entity inventory should be treated exactly as listed in the protected contract, not counted heuristically.
+6. O inventário canônico de entidades deve ser tratado exatamente conforme o contrato protegido; não inferir, expandir ou reduzir a lista.
 7. Detailed field schemas remain partial for several entities.
 8. `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved in the current contract registry.
 
