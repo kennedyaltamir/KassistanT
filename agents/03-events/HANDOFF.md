@@ -3,52 +3,122 @@
 ## Identity
 Agent: IA-03. Responsibility: Event Infrastructure.
 
-## EventBus V1 state
+## EventBus milestone
 
-`IMPLEMENTED_AND_TESTED`
+`EVENTBUS_V1_IMPLEMENTED / HANDOFF_COMPLETE`
 
-The operator explicitly approved EBUS-DEC-001 through EBUS-DEC-008. The EventBus V1 runtime was implemented and deterministic tests were executed with 10/10 passing.
+The operator explicitly approved EBUS-DEC-001 through EBUS-DEC-008. Post-implementation source audit found no divergence from those decisions.
 
-## Implemented scope
+## Consumer contract
 
-- in-process EventBus;
-- post-commit usage boundary;
-- opaque subscriptions;
-- idempotent unsubscribe;
-- publish-time subscription snapshot;
-- sequential handler execution;
-- subscriber failure isolation;
-- aggregated failure reporting;
-- no EventBus timeout;
-- unsubscribe-only lifecycle cancellation;
-- all-selected-handlers-settled publish completion;
+The public V1 surface is:
+
+```ts
+subscribe(eventType, handler): Subscription
+unsubscribe(subscription): void
+publish(event): Promise<DispatchResult>
+```
+
+EventBus is:
+
+- in-process;
+- post-commit;
+- non-durable;
+- no durable retry;
 - `NO_ORDERING_GUARANTEE`;
-- no persistence or durable retry.
+- unsubscribe-only cancellation;
+- no V1 timeout;
+- completion after all selected handlers settle.
 
-## Files
+Subscriber failures are isolated and returned in `DispatchResult`. `partial_failure` means some selected handlers failed; `complete_failure` means all selected handlers failed.
 
-- `apps/desktop/electron/infrastructure/events/event-bus.ts`
-- `apps/desktop/electron/infrastructure/events/event-bus.test.ts`
+## Explicit authority exclusions
 
-## Validation
+EventBus has no authority over:
 
-10 deterministic tests passed in the isolated runtime validation environment. The standard desktop test runner was not modified because its script configuration is outside IA-03 scope; the EventBus test file was executed directly.
+- business rules;
+- persistence;
+- DomainOutbox;
+- InboundInbox;
+- JobQueue;
+- AuditLog;
+- WSS;
+- Device Authentication.
 
-## Global/cross-agent boundaries
+## Future consumers
 
-- IA-02: event semantics/payload stability.
-- IA-04: Order event producer/consumer compatibility.
-- IA-05: Conversation/LLM consumer compatibility.
-- IA-06: Device event consumer compatibility.
-- IA-07: transport consumer compatibility.
-- IA-08: UI/operational consumer compatibility.
+IA-04, IA-05, IA-06, IA-07 and IA-08 may consume the EventBus through the handoff contract. They must not rely on unsupported ordering, durability, automatic retry or business-completion semantics. No new event types are introduced by IA-03 through this handoff.
 
-`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain open and untouched.
+`order.status_changed` remains subject to `CONTRACT-002`.
 
-## Remaining Event Infrastructure
+## InboundInbox next gate
 
-Inbox, Outbox, JobQueue and AuditLog remain unimplemented and blocked by their previously documented persistence/contract gates.
+`INBOX_V1 = NOT_READY`
 
-## Integration boundary
+The next IA-03 runtime milestone is InboundInbox, but implementation is blocked until IA-01 provides the canonical persistence contract and IA-07 provides the explicit ACK integration boundary.
 
-The EventBus V1 slice is intentionally isolated. No downstream consumer integration was introduced in this milestone.
+### IA-01 must provide
+
+- canonical Inbox entity/table contract;
+- exact required fields and types;
+- exact uniqueness/deduplication key and scope;
+- store/device scoping rules;
+- timestamp rules;
+- payload representation;
+- processing-state representation;
+- correlation/causation representation when applicable;
+- transaction primitive and commit semantics;
+- persistence failure semantics;
+- migration/versioning evidence;
+- deterministic persistence test fixtures.
+
+### IA-03 will consume
+
+- canonical persistence API/transaction primitive;
+- canonical uniqueness semantics;
+- durable state model;
+- persistence error behavior;
+- field mapping required for Inbox V1.
+
+### IA-07 must provide
+
+- inbound source/provider identity;
+- external event identity;
+- device/store mapping available at receipt;
+- ACK invocation boundary;
+- WSS sequence semantics where applicable;
+- replay/resume interaction relevant to Inbox intake.
+
+### ACK ownership
+
+```text
+IA-07 receive
+    ↓
+IA-03 validate + durable Inbox persistence
+    ↓
+commit
+    ↓
+IA-07 ACK
+    ↓
+Core/Domain business processing
+```
+
+`ACK != business processing complete`.
+
+## What is not required for Inbox V1
+
+- complete KassisT business schema;
+- DomainOutbox resolution;
+- JobQueue implementation;
+- AuditLog implementation;
+- Desktop UI integration;
+- Conversation/LLM integration;
+- business processing completion.
+
+## Validation state
+
+Prior branch validation record states 10 deterministic EventBus tests passed. Fresh re-execution was requested during this handoff phase but could not be completed because the current environment lacks the `tsx` executable and package retrieval was unavailable. `REMOTE_CI_STATUS = NOT_VERIFIED` because the remote status lookup returned no statuses.
+
+## Protected boundaries preserved
+
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain open. No EventBus downstream integration, Inbox runtime, Outbox, JobQueue or AuditLog implementation was performed in this phase.
