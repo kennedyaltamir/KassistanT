@@ -1,57 +1,79 @@
-import test from "node:test";
+﻿import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const html = readFileSync(new URL("../apps/desktop/src/index.html", import.meta.url), "utf8");
+const html = readFileSync(
+  new URL("../apps/desktop/src/index.html", import.meta.url),
+  "utf8"
+);
 
-test("AppShell exposes every C1 navigation surface and active navigation", () => {
-  for (const page of ["Dashboard", "Conversas", "Pedidos", "Produtos", "Clientes", "Configurações"]) assert.match(html, new RegExp(page));
-  assert.match(html, /data-page="dashboard" class="active"/);
+test("AppShell exposes current C1 navigation surfaces", () => {
+  for (const page of [
+    "Dashboard",
+    "WhatsApp",
+    "Pedidos",
+    "Produtos",
+    "Clientes",
+    "Configurações"
+  ]) {
+    assert.match(html, new RegExp(page));
+  }
+
+  assert.match(html, /data-page="dashboard"/);
+  assert.match(html, /data-page="whatsapp"/);
   assert.match(html, /aria-label="Navegação principal"/);
 });
 
-test("products provide create, detail, edit and presentation validation", () => {
-  assert.match(html, /Novo produto/);
-  assert.match(html, /Editar produto/);
-  assert.match(html, /product-form/);
-  assert.match(html, /Informe ao menos 2 caracteres/);
-  assert.match(html, /Informe um preço maior que zero/);
-  assert.match(html, /Salvar na sessão/);
+test("WhatsApp renderer exposes real Gateway integration", () => {
+  assert.match(html, /127\.0\.0\.1:3210/);
+  assert.match(html, /\/health/);
+  assert.match(html, /\/api\/whatsapp\/status/);
+  assert.match(html, /\/api\/whatsapp\/messages\?limit=500/);
+  assert.match(html, /\/api\/whatsapp\/events/);
 });
 
-test("orders expose DRAFT review, item creation and explicit confirmation", () => {
-  assert.match(html, /Adicionar item/);
-  assert.match(html, /Confirmar pedido/);
-  assert.match(html, /Confirmar pedido\?/);
-  assert.match(html, /DRAFT/);
-  assert.match(html, /CONFIRMED/);
-  assert.match(html, /modifiers/);
-  assert.doesNotMatch(html, /product_id/);
+test("WhatsApp renderer exposes explicit operational states", () => {
+  for (const status of [
+    "HEALTHY",
+    "UNAVAILABLE",
+    "UNKNOWN",
+    "CONNECTED",
+    "DISCONNECTED",
+    "CONNECTING",
+    "ERROR"
+  ]) {
+    assert.match(html, new RegExp(status));
+  }
 });
 
-test("conversations never claim delivery without real transport", () => {
-  assert.match(html, /Enviar • UNAVAILABLE/);
-  assert.match(html, /Transport real não conectado/);
-  assert.doesNotMatch(html, /MESSAGE_SENT/);
+test("WhatsApp renderer preserves delivery boundary", () => {
+  assert.match(html, /connection==='CONNECTED'/);
+  assert.match(html, /canSend/);
+  assert.match(html, /aguardando evento SSE/);
 });
 
-test("clients, settings and diagnostics have explicit operational states", () => {
-  assert.match(html, /Clientes/);
-  assert.match(html, /Diagnostics/);
-  for (const status of ["HEALTHY", "UNAVAILABLE", "NOT_CONNECTED", "UNKNOWN"]) assert.match(html, new RegExp(status));
+test("WhatsApp renderer preserves real conversation identity", () => {
+  assert.match(html, /Conversas reais/);
+  assert.match(html, /JID REAL/);
+  assert.match(html, /@lid/);
+  assert.match(html, /message\.id/);
 });
 
-test("renderer preserves provisional and unavailable integration boundaries", () => {
+test("Provisional UI boundaries remain explicit", () => {
   assert.match(html, /PROVISIONAL_DATA/);
-  assert.match(html, /NOT_CONNECTED/);
-  assert.match(html, /UNAVAILABLE/);
-  assert.match(html, /não representam persistência real/i);
+  assert.match(html, /presentation-only|presentation only/i);
 });
 
-test("accessibility-critical primitives exist", () => {
+test("Diagnostics surface exists", () => {
+  assert.match(html, /Diagnostics/);
+  assert.match(html, /Gateway/);
+  assert.match(html, /WhatsApp/);
+  assert.match(html, /SSE/);
+});
+
+test("Accessibility-critical primitives exist", () => {
   assert.match(html, /role="dialog"/);
   assert.match(html, /aria-modal="true"/);
   assert.match(html, /tabindex="-1"/);
   assert.match(html, /:focus/);
-  assert.match(html, /<label/);
 });

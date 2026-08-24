@@ -97,7 +97,7 @@
       <div class="ai-grid">
         <div class="ai-field"><label for="ai-enabled">Auto-reply</label><select id="ai-enabled"><option value="false" ${enabled ? '' : 'selected'}>Desativado</option><option value="true" ${enabled ? 'selected' : ''}>Ativado</option></select></div>
         <div class="ai-field"><label for="ai-model">Modelo Ollama</label><input id="ai-model" value="${esc(config?.model || '')}" /></div>
-        <div class="ai-field full"><label for="ai-url">Endpoint local</label><input id="ai-url" value="${esc(config?.baseUrl || '')}" readonly /><div class="ai-note">Bloqueado para loopback (`localhost:11434`) nesta fase para evitar envio acidental de contexto para serviços externos.</div></div>
+        <div class="ai-field full"><label for="ai-url">Endpoint local</label><input id="ai-url" value="${esc(config?.baseUrl || '')}" readonly /><div class="ai-note">Bloqueado para loopback (localhost:11434) nesta fase para evitar envio acidental de contexto para serviços externos.</div></div>
         <div class="ai-field"><label for="ai-timeout">Timeout (ms)</label><input id="ai-timeout" type="number" min="1000" max="300000" value="${Number(config?.timeoutMs || 60000)}" /></div>
         <div class="ai-field"><label for="ai-context">Mensagens de contexto</label><input id="ai-context" type="number" min="1" max="50" value="${Number(config?.contextMessages || 12)}" /></div>
         <div class="ai-field full"><label for="ai-cooldown">Cooldown por conversa (ms)</label><input id="ai-cooldown" type="number" min="0" max="60000" value="${Number(config?.cooldownMs || 1500)}" /></div>
