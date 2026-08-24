@@ -116,16 +116,13 @@ async function handleMessage(message) {
   const context = conversationContext(jid);
   if (!context.length) return;
 
-  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : null;
-  const messages = promptOverride
-    ? [{ role: 'system', content: promptOverride }, ...context]
-    : context;
+  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : undefined;
 
   inFlight.add(jid);
   lastReplyAt.set(jid, now);
 
   try {
-    const reply = await generateReply(messages);
+    const reply = await generateReply(context, { systemPrompt: promptOverride });
     await sendText(jid, reply);
     console.log(`[KassisT AI] auto-reply sent to ${jid}`);
   } catch (error) {
