@@ -5,25 +5,23 @@
 ### Added
 
 - Completed the IA-06 contract readiness audit against current repository evidence.
-- Added `DEVICE-AUTH-READINESS.md` master readiness report.
-- Added `DEVICE-ENROLLMENT-MATRIX.md` endpoint/contract matrix.
-- Added `DEVICE-AUTH-MATRIX.md` authentication flow matrix.
-- Added `DEVICE-LIFECYCLE-MATRIX.md` identity, enrollment, revoke, rotate and status matrix.
-- Added `DEVICE-AUTHORIZATION-MATRIX.md` actor/action/resource matrix.
-- Added `DEVICE-ERROR-MATRIX.md` error readiness matrix.
-- Added `DEVICE-CRYPTO-SECURITY.md` security readiness constraints.
-- Added `DEVICE-DEPENDENCIES.md` cross-agent dependency map.
-- Added `IMPLEMENTATION-GATES.md` implementation gate register.
+- Added readiness, lifecycle, authorization, error, crypto, dependency and implementation-gate documents.
 
-### Updated
+## 2026-08-24 — Post-Audit Contract Stratification
 
-- `MEMORY.md`
-- `LEARNINGS.md`
-- `DECISIONS.md`
-- `ERRORS.md`
-- `PROGRESS.md`
-- `ROADMAP.md`
-- `HANDOFF.md`
+### Added
+
+- Added `DEVICE-AUTH-APPROVAL-REQUEST.md` as the project approval surface.
+
+### Refined
+
+- Separated logical Device identity from physical persistence readiness.
+- Separated Ed25519 primitive readiness from cryptographic wire-contract readiness.
+- Separated cryptographic security from replay, session and operational security.
+- Narrowed the first Signature Verification Boundary to the minimum DR-02 subset.
+- Added explicit minimum audit evidence requirements for security-sensitive events.
+- Separated logical Secure Storage requirements from concrete Windows technology selection and runtime validation.
+- Stratified implementation gates so unrelated decisions do not block independent pure slices.
 
 ### Constraints preserved
 
@@ -33,7 +31,8 @@
 - No Gateway/WSS implementation was modified.
 - No external platform configuration was executed.
 - Open global contracts `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved.
+- DR-01 through DR-08 remain project decisions, not local decisions.
 
-### Readiness conclusion
+### Current conclusion
 
-IA-06 is **READY FOR CONTRACT REVIEW / BLOCKED FOR IMPLEMENTATION**. Primary blockers are incomplete HTTP schemas/status/authz/idempotency, rate-limit policy, authentication/session semantics, rotation lifecycle, error taxonomy and final cross-agent boundaries.
+IA-06 is **READY FOR PROJECT DECISION REVIEW / FIRST-SLICE APPROVAL / BLOCKED FOR IMPLEMENTATION**.
