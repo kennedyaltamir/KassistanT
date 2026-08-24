@@ -4,7 +4,7 @@
 Agent: IA-03. Responsibility: Event Infrastructure.
 
 ## Readiness state
-The Event Infrastructure readiness audit is complete. No product runtime was implemented.
+Event Infrastructure readiness audit and EventBus contract closure are complete. No product runtime was implemented.
 
 ## Ownership
 Future ownership includes:
@@ -18,9 +18,19 @@ Future ownership includes:
 
 Shared contracts, canonical schema and global documentation remain governed dependencies.
 
-## Current findings
+## EventBus closure
 
-- EventBus: first candidate slice; in-process/post-commit only according to current documentation; no stronger delivery guarantee is assumed.
+- Scope: in-process dispatch only.
+- Timing: documented post-commit local-consumer boundary.
+- Persistence: none owned by EventBus.
+- Durable retry: not owned by EventBus.
+- DomainOutbox coupling: none implied.
+- Delivery guarantee: no exactly-once, at-least-once or global-order claim.
+- Event envelope: consumes current approved `DomainEvent`; broader documented metadata is preserved only when supplied.
+- Open implementation-contract items: subscriber failure propagation/isolation, scheduling, timeout/cancellation and ordering semantics.
+
+## Other findings
+
 - InboundInbox: durable-before-ACK semantics are clear; canonical persistence is missing.
 - DomainOutbox: blocked by `CONTRACT-001`.
 - JobQueue: capability requirements are clear, but schema and exact retry/lease/backoff policies are incomplete.
@@ -44,14 +54,14 @@ Shared contracts, canonical schema and global documentation remain governed depe
 - `CONTRACT-002` — `order.status_changed`: OPEN and impacts normative event dispatch/tests.
 - `GOV-001` — documentation/version authority: OPEN; IA-03 makes no new authority assumption.
 
-## Readiness gates
-
-A concrete slice can enter implementation only when its applicable persistence, semantic, reliability, security and deterministic-test gates are satisfied. The readiness documents define those gates.
-
 ## Readiness artifacts
 
 - `EVENT-INFRASTRUCTURE-READINESS.md`
 - `EVENTBUS-MATRIX.md`
+- `EVENTBUS-CONTRACT.md`
+- `EVENTBUS-ERROR-MATRIX.md`
+- `EVENTBUS-TEST-MATRIX.md`
+- `EVENTBUS-IMPLEMENTATION-GATE.md`
 - `INBOX-OUTBOX-MATRIX.md`
 - `JOBQUEUE-RELIABILITY-MATRIX.md`
 - `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
@@ -63,4 +73,4 @@ Never treat documentation as proof of runtime. Preserve the distinction between 
 
 ## Next gate
 
-Await sufficient IA-01 persistence availability and IA-02 event semantic stability. The next concrete candidate is the EventBus slice, provided its target contract is stable and no unresolved decision is encoded.
+Await IA-02 event-semantic stabilization and closure of the remaining EventBus implementation-contract items. Then implement the bounded EventBus slice with deterministic tests, without touching Inbox/Outbox/JobQueue/AuditLog.
