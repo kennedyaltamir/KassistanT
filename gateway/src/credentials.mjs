@@ -4,17 +4,24 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { getCredentialDefinitions } from './provider-registry.mjs';
 
+/** @typedef {{ key: string, label: string, provider: string, secret: boolean }} CredentialDefinition */
+/** @typedef {Record<string, string>} CredentialStore */
+/** @typedef {{ validationStatus?: string, lastValidatedAt?: string | null, error?: string | null }} ValidationStatusRecord */
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STORE_PATH = path.join(__dirname, '..', 'data', 'credentials.json');
 
+/** @type {CredentialDefinition[]} */
 export const CREDENTIAL_DEFINITIONS = getCredentialDefinitions();
 const ALLOWED_KEYS = new Set(CREDENTIAL_DEFINITIONS.map(item => item.key));
 
+/** @param {string} key @returns {string} */
 function assertKey(key) {
   if (!ALLOWED_KEYS.has(key)) throw new Error(`Unsupported credential: ${key}`);
   return key;
 }
 
+/** @returns {CredentialStore} */
 function readStore() {
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
@@ -25,6 +32,7 @@ function readStore() {
   }
 }
 
+/** @param {CredentialStore} store */
 function writeStore(store) {
   fs.mkdirSync(path.dirname(STORE_PATH), { recursive: true });
   const tempPath = `${STORE_PATH}.tmp`;
@@ -32,6 +40,7 @@ function writeStore(store) {
   fs.renameSync(tempPath, STORE_PATH);
 }
 
+/** @param {'protect' | 'unprotect'} mode @param {string} base64 @returns {string} */
 function dpapi(mode, base64) {
   if (process.platform !== 'win32') {
     throw new Error('Secure credential storage requires Windows DPAPI on this build');
@@ -61,6 +70,7 @@ function dpapi(mode, base64) {
   }
 }
 
+/** @param {string} key @param {unknown} value */
 export function setCredential(key, value) {
   assertKey(key);
   const normalized = String(value ?? '').trim();
@@ -73,6 +83,7 @@ export function setCredential(key, value) {
   return { key, configured: true };
 }
 
+/** @param {string} key */
 export function deleteCredential(key) {
   assertKey(key);
   const store = readStore();
@@ -82,6 +93,7 @@ export function deleteCredential(key) {
   return { key, configured: false };
 }
 
+/** @param {string} key @returns {string | null} */
 export function getCredential(key) {
   assertKey(key);
   const encrypted = readStore()[key];
@@ -90,6 +102,7 @@ export function getCredential(key) {
   return Buffer.from(plainBase64, 'base64').toString('utf8');
 }
 
+/** @param {Record<string, ValidationStatusRecord>} validationStatuses */
 export function listCredentialStatus(validationStatuses = {}) {
   const store = readStore();
   return CREDENTIAL_DEFINITIONS.map(({ key, label, provider, secret }) => ({
