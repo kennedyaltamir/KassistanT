@@ -2,33 +2,51 @@
 
 ## Current phase
 
-**Device Authentication Contract Closure / Post-Audit Correction**
+**Final DR-02 Refinement / Human Review Preparation**
 
 ## Status
 
-`CONTRACT_REVIEW_READY / IMPLEMENTATION_FROZEN`
+`CONTRACT_REVIEW_READY / DR02_STRATIFIED / IMPLEMENTATION_FROZEN`
 
 ## Confirmed
 
-- Repository and territory remain controlled by IA-06.
-- No product runtime was implemented.
+- Branch: `Agent06-device-authentication`.
+- Base: `main`.
+- No production Device Authentication runtime was implemented.
 - No shared contracts were modified.
-- Security concerns are now tracked as independent layers.
-- Ed25519 primitive is `DEFINED`.
-- Cryptographic wire contract is `OPEN / DR-02`.
-- Session, authorization, rate limiting, idempotency and rotation have independent gates.
-- Logical Secure Storage boundary is defined; concrete technology/runtime validation is external.
-- Minimum audit requirements are explicitly identified.
-- Signature Verification Boundary is `READY_AFTER_MINIMUM_DR02_CLOSURE` but still requires explicit operator authorization before implementation.
+- The approval package now distinguishes DR-02A (cryptographic verification) from DR-02B (operational replay).
+- The proposed first slice depends only on the minimum DR-02A scope.
+- Enrollment, session, authorization, rate limiting, idempotency and rotation remain independently gated.
 
-## Decision requests
+## Readiness
 
-DR-01 through DR-08 remain open project decisions.
+### READY FOR HUMAN REVIEW
 
-## Current blockers
+- Ed25519 primitive boundary.
+- DR-02A approval surface definition.
+- First-slice sequencing definition.
+- Layer separation and non-implicit-approval rule.
 
-Full runtime remains blocked by applicable DRs and cross-agent interfaces. The pure verification slice is blocked only by its minimum DR-02 subset and explicit implementation authorization.
+### OPEN
+
+- DR-02A project approval.
+- DR-02B replay runtime contract.
+- DR-01 and DR-03..DR-08.
+
+### BLOCKED FOR IMPLEMENTATION
+
+- Production enrollment.
+- Challenge/replay runtime.
+- Session runtime.
+- Authorization runtime.
+- Rate limiting.
+- Endpoint idempotency.
+- Rotation.
+
+## Implementation status
+
+No production code created. No migration created. No Gateway implementation changed. No Windows external configuration executed.
 
 ## Next phase
 
-Project authority review of `DEVICE-AUTH-APPROVAL-REQUEST.md`, followed by explicit approval or rejection of the relevant slice.
+Await explicit project authority decision on DR-02A. A DR-02A approval alone must not be treated as replay-runtime approval.
