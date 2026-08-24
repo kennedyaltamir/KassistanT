@@ -5,13 +5,20 @@ This is a decision-request register, not an approval record.
 | ID | Decision required | Why normative | Approver scope | Status |
 |---|---|---|---|---|
 | DR-01 | Enrollment HTTP schemas/status/authz/idempotency | External contract | Project authority + IA-07/IA-01 inputs | OPEN |
-| DR-02 | Challenge/signature wire semantics and replay | Security protocol | Project authority + IA-07 | OPEN |
+| DR-02A | Cryptographic verification contract | Security protocol for pure verifier | Project authority + IA-07 | OPEN |
+| DR-02B | Operational challenge/replay protocol | Runtime replay/security behavior | Project authority + IA-07/IA-03 as applicable | OPEN |
 | DR-03 | Session identity/lifecycle | Security/transport behavior | Project authority + IA-07 | OPEN |
 | DR-04 | Authorization matrix | Security boundary | Project authority | OPEN |
 | DR-05 | Rate-limit policy | Externally observable policy | Project authority + IA-07 | OPEN |
 | DR-06 | Endpoint idempotency semantics | Externally observable replay behavior | Project authority + IA-03/IA-07 | OPEN |
 | DR-07 | Key rotation lifecycle | Security/key lifecycle | Project authority + IA-01/IA-07 | OPEN |
 | DR-08 | Error taxonomy and HTTP mapping | Public API contract | Project authority + IA-07 | OPEN |
+
+## DR-02 separation rule
+
+DR-02A and DR-02B are independent approval scopes.
+
+Approval of DR-02A must state explicitly that it covers only the cryptographic verification contract unless DR-02B is separately approved. No approval may be inferred for challenge storage, freshness window, expiration, reuse rejection, replay detection, replay persistence/recovery or replay error semantics.
 
 ## Already-defined facts
 
