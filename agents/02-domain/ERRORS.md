@@ -1,43 +1,40 @@
 # IA-02 — Errors and Risks
 
-## E-001 — `CONTRACT-001` DomainOutbox ambiguity
+## Existing risks
 
-**Class:** CONTRACT_CONFLICT
-**Status:** OPEN
+- **E-001 / CONTRACT-001:** DomainOutbox ownership/scope ambiguity. OPEN.
+- **E-002 / CONTRACT-002:** `order.status_changed` ambiguity. OPEN.
+- **E-003:** domain documentation/runtime gap. EXPECTED.
+- **E-004:** cross-agent ownership risk. OPEN.
+- **E-005:** schema coupling risk. OPEN.
+- **E-006:** external-provider contamination risk. OPEN.
 
-The baseline contains conflicting statements about DomainOutbox. Implementing a specific ownership or persistence behavior before formal resolution could lock an incorrect contract into the domain/runtime boundary.
+## D1 readiness risks
 
-## E-002 — `CONTRACT-002` event ambiguity
+### E-007 — Aggregate boundary undefined
+**Class:** DOMAIN_CONTRACT_GAP  
+Implementation could accidentally couple child entities to the wrong root.
 
-**Class:** CONTRACT_CONFLICT
-**Status:** OPEN
+### E-008 — Transition semantics incomplete
+**Class:** STATE_MACHINE_GAP  
+State catalogs are insufficient for deterministic runtime.
 
-`order.status_changed` is contradictory in the normative material while the current TypeScript contracts contain it. Domain code must not silently choose one interpretation.
+### E-009 — Error taxonomy incomplete
+**Class:** ERROR_CONTRACT_GAP  
+Conditions exist without stable canonical error codes and retryability mapping.
 
-## E-003 — Domain documentation/runtime gap
+### E-010 — Command contract incompleteness
+**Class:** COMMAND_CONTRACT_GAP  
+Order commands lack fully frozen input/output/event/idempotency/auth semantics.
 
-**Class:** IMPLEMENTATION_GAP
-**Status:** OPEN / EXPECTED
+### E-011 — Query contract incompleteness
+**Class:** QUERY_CONTRACT_GAP  
+Consistency, ordering, pagination and authorization semantics are incomplete.
 
-The domain docs are substantially specified, but runtime implementation is not. This is a planned gap, not evidence of failure.
+### E-012 — Event envelope mismatch risk
+**Class:** CONTRACT_CONSISTENCY  
+`packages/contracts/src/events.ts` is narrower than the richer event envelope documented in `docs/domain/events.md`; reconciliation must be handled by contract governance.
 
-## E-004 — Cross-agent boundary risk
+## Stop rule
 
-**Class:** OWNERSHIP_RISK
-**Status:** OPEN
-
-Domain behavior can be confused with order orchestration, persistence, event transport and conversation orchestration. IA-02 must keep pure business rules under `packages/domain/**` and stop at application/infrastructure boundaries.
-
-## E-005 — Schema coupling risk
-
-**Class:** ARCHITECTURAL_RISK
-**Status:** OPEN
-
-Canonical SQLite schema is not implemented. Domain code must not invent table layouts, migration behavior or persistence details to compensate for that absence.
-
-## E-006 — External-provider contamination risk
-
-**Class:** DESIGN_RISK
-**Status:** OPEN
-
-The domain package must remain independent from Ollama, Meta, Google, Gateway and Electron implementations.
+Any implementation that requires assuming aggregate boundaries, transition semantics, canonical error codes, unresolved event semantics or Outbox ownership must stop and escalate instead of guessing.

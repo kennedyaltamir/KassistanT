@@ -3,25 +3,33 @@
 ## Verified audit learnings
 
 ### L-001 — Documentation is ahead of runtime
-
-The domain documentation defines entities, commands, events, invariants and state machines, while the repository implementation currently exposes foundation primitives only. Therefore documentation must not be treated as implementation evidence.
+Domain documentation defines entities, commands, events, invariants and state machines, while repository code exposes foundation primitives only.
 
 ### L-002 — Domain and infrastructure are separate concerns
+Pure business rules remain independent from SQLite, event transport, providers, Gateway and UI.
 
-The approved architecture separates deterministic business rules from SQLite, event transport, providers, Gateway and UI. IA-02 must preserve this boundary.
+### L-003 — Contract ambiguity is a hard implementation boundary
+`CONTRACT-001` and `CONTRACT-002` cannot be encoded through local implementation choices.
 
-### L-003 — Domain ambiguity is a hard implementation boundary
-
-`CONTRACT-001` and `CONTRACT-002` can affect domain behavior but remain unresolved. Encoding either interpretation into runtime without an approved decision would be an unauthorized contract decision.
-
-### L-004 — Current primitives are usable foundations, not the complete model
-
-`packages/domain/src/index.ts`, `money.ts`, `time.ts`, `uuidv7.ts`, `persistence.ts` and `llm-provider.ts` establish limited primitives/interfaces. No evidence was found for complete executable aggregates or command handlers.
+### L-004 — Foundation primitives are not the complete domain model
+`index.ts`, `money.ts`, `time.ts`, `uuidv7.ts`, `persistence.ts` and `llm-provider.ts` are foundations only.
 
 ### L-005 — M5.1 intentionally stopped before business schema
+Canonical entity persistence is IA-01 territory and remains unimplemented.
 
-The only migration observed is `0001_bootstrap.sql`, which creates `_schema_metadata`. Canonical entity persistence is future work and belongs to the schema agent's territory, not to be reconstructed inside IA-02.
+## D1 findings
 
-## Evidence discipline
+### L-006 — State catalogs are not state machines
+Order, Conversation, AI and Message states are enumerated, but normative transition guards are not sufficiently specified. Enum order must never be treated as transition order.
 
-Future learnings must cite the concrete repository evidence internally in the agent's working process and must not promote inference or preference to fact.
+### L-007 — Aggregate boundaries are not explicit
+`Order` is a plausible root but only an inference. Domain runtime must not assume aggregate ownership without explicit contract evidence.
+
+### L-008 — Command names do not equal executable contracts
+The order command catalog lacks complete canonical input, output, event, error, idempotency and authorization semantics.
+
+### L-009 — Event contract has normative mismatch
+`packages/contracts/src/events.ts` includes `order.status_changed`, while the normative documentation intentionally leaves its status ambiguous under CONTRACT-002.
+
+### L-010 — D1 can narrow the implementation gate without implementing code
+A safe first increment can be defined as a pure, infrastructure-free slice after contract lock; no such slice is authorized yet.

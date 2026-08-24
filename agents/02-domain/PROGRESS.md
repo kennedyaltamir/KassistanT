@@ -1,32 +1,39 @@
 # IA-02 — Progress
 
-## Current phase
+## D1 — Contract Lock, Readiness, Reconciliation and Human Decision Review
+**Status:** COMPLETE / IMPLEMENTATION_NOT_STARTED / BLOCKED_FOR_D2
 
-Agent Configuration / Territory Audit.
+### Confirmed
+- Canonical entity count is **28**; prior 29 count was a reporting/counting error.
+- `packages/domain/**` remains foundation-only.
+- No aggregate root was previously normatively frozen; DREQ-001 is now approved for the first slice.
+- Order, Conversation and Message lifecycle artifacts remain state catalogs rather than complete transition matrices.
+- The twelve documented Order commands remain partial.
+- Domain error taxonomy is conceptual but lacks final stable codes/mappings.
+- `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved.
+- No non-trivial first runtime slice is currently authorized for implementation.
 
-## Status
+### Human decision review outcome
+The four decisions for the proposed `Order + ConfirmOrder + DRAFT -> CONFIRMED` slice are now human-approved:
+1. DREQ-001 — `Order` aggregate root; `OrderItem` and `OrderItemModifier` are V1 aggregate-owned children; `OrderStatusHistory` deferred.
+2. DREQ-002 — `DRAFT -> CONFIRMED` via `ConfirmOrder`, producing `order.confirmed`.
+3. DREQ-005 — domain error semantics: `INVALID_ORDER_STATE`, `CONFIRMATION_DATA_INVALID`, `DUPLICATE_CONFIRMATION`, `CONCURRENCY_CONFLICT`.
+4. DREQ-006 — authentication outside aggregate; authorization at application/application-service boundary; minimal `ActorContext` without credentials; ActorContext shape not frozen.
 
-**CONFIGURATION_COMPLETE / IMPLEMENTATION_NOT_STARTED**
+DREQ-003 (`order.status_changed`) remains deferred because the proposed slice emits only `order.confirmed`. DREQ-004 (DomainOutbox) remains deferred because the proposed slice can remain pure and in-memory.
 
-## Audited state
+### Implementation freeze
+No product code, contracts, schema, migration or external configuration was changed by the human decision closure. The approved decisions do not authorize implementation automatically.
 
-- Repository and `main` state audited.
-- Approved baseline and domain documentation audited.
-- HTTP, WSS, device and provider boundaries inspected for domain dependencies.
-- `packages/domain/**` inspected.
-- Current domain code is foundation-level, not a complete runtime.
-- Current SQLite migration state is foundation-only.
-- Open contract ambiguities affecting domain behavior were recorded.
-- Agent ownership boundaries were documented.
+### Post-decision gate
+The next required step is a focused re-audit of the first slice against:
+- DREQ-001 aggregate boundary;
+- DREQ-002 transition semantics;
+- DREQ-005 error semantics;
+- DREQ-006 actor/authorization boundary;
+- cross-agent impact on IA-01, IA-03 and IA-04;
+- ownership;
+- frozen implementation scope;
+- test strategy.
 
-## Current implementation evidence
-
-Observed domain code consists of lifecycle types, Money, UTC time, UUIDv7, a transaction boundary type, an LLM provider interface and foundation tests. No evidence was found for complete runtime entities, command handlers, domain services or aggregate implementations.
-
-## Not started
-
-No production domain implementation was created during this configuration phase.
-
-## Completion criterion
-
-All required agent configuration documents exist under `agents/02-domain/`, ownership is delimited, blockers are recorded, and implementation remains frozen.
+Only after that re-audit may IA-02 recommend implementation authorization. **IMPLEMENTATION_AUTHORIZATION remains PENDING_HUMAN_AUTHORIZATION.**
