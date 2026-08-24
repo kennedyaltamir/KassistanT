@@ -115,6 +115,71 @@ Before modifying any file or beginning implementation dependent on repository st
 
 If the remote state cannot be compared reliably, implementation is `NOT_COMPARABLE` and blocked.
 
+### Workspace synchronization and local reproduction
+
+Before any local test, diagnostic command, runtime validation, build, or other execution whose result may be used as evidence for an audited implementation, IA-03 must establish a comparable workspace state.
+
+The minimum workspace record is:
+
+```text
+repository
+target_branch
+current_local_branch
+current_local_head_sha
+remote_tracking_branch
+remote_head_sha
+working_tree_status
+implementation_point_sha
+workspace_comparable
+```
+
+Remote GitHub state is authoritative for determining the expected implementation point. A local branch with the same name does not prove that it points to the same commit.
+
+The normal reproducible state is:
+
+```text
+current_local_branch == expected_branch
+current_local_head_sha == implementation_point_sha
+remote_head_sha == expected_remote_point
+working_tree_status == CLEAN
+workspace_comparable == true
+```
+
+If the working tree contains modifications, they must be classified before synchronization. IA-03 must not automatically discard, overwrite, reset, clean, or otherwise destroy local changes.
+
+The following operations are forbidden without explicit authorization:
+
+```text
+git reset --hard
+git clean -fd
+destructive checkout/switch that discards local changes
+automatic stash/drop used to conceal local state
+```
+
+If branch, local HEAD, remote HEAD, or working-tree state cannot be compared sufficiently to establish which code was executed, the result is:
+
+```text
+WORKSPACE_NOT_COMPARABLE
+```
+
+and the execution must not be represented as independent evidence for the audited implementation point.
+
+A different local commit is not an equivalent reproduction merely because it is a descendant or contains similar changes. When:
+
+```text
+current_local_head_sha != implementation_point_sha
+```
+
+the result is `NOT_COMPARABLE` unless a separate execution record explicitly authorizes an exception with justification, authority, evidence and impact.
+
+When the workspace is dirty, use:
+
+```text
+WORKSPACE_STATE_UNCERTAIN
+```
+
+until the relevance of the local modifications is established. Local results from an uncertain workspace must not be presented as clean reproduction evidence.
+
 ### Implementation-point policy
 
 `implementation_point_sha` is always the result of factual repository verification and must never be obtained exclusively from a prompt, handoff, historical documentation or another agent's claim.
@@ -269,6 +334,74 @@ merge_base (when relevant)
 ```
 
 Before creating a new PR, verify that no open PR already covers the same feature area or branch.
+
+### Exact terminal-state verification
+
+When IA-03 requests local execution from an operator, all commands required to establish comparability and run the requested verification must be provided in one executable block.
+
+The block must:
+
+1. identify the repository root;
+2. identify the local branch;
+3. identify local HEAD;
+4. report the working-tree status;
+5. fetch remote refs before synchronization-dependent execution;
+6. inspect the expected remote branch HEAD;
+7. compare local HEAD with the exact implementation point;
+8. stop without destructive cleanup when the workspace is dirty or the SHA does not match;
+9. run the requested verification only after comparability is established;
+10. print the final branch, HEAD and working-tree state for the execution record.
+
+A canonical Windows pattern is:
+
+```powershell
+Set-Location "C:\Users\<USER>\Desktop\KassisT"
+
+Write-Host "=== Repository ==="
+git rev-parse --show-toplevel
+
+Write-Host "=== Current branch ==="
+git branch --show-current
+
+Write-Host "=== Current HEAD ==="
+git rev-parse HEAD
+
+Write-Host "=== Working tree ==="
+git status --short --branch
+
+$STATUS = git status --porcelain
+if ($STATUS) {
+  throw "Working tree contains local changes. Do not discard them automatically."
+}
+
+Write-Host "=== Fetch remote ==="
+git fetch origin --prune
+
+$EXPECTED_SHA = "<IMPLEMENTATION_POINT_SHA>"
+$ACTUAL_SHA = git rev-parse HEAD
+$REMOTE_SHA = git rev-parse origin/MVP2
+
+Write-Host "Expected implementation SHA: $EXPECTED_SHA"
+Write-Host "Local HEAD:                 $ACTUAL_SHA"
+Write-Host "Remote MVP2 HEAD:           $REMOTE_SHA"
+
+if ($ACTUAL_SHA -ne $EXPECTED_SHA) {
+  throw "Local workspace does not match the audited implementation point."
+}
+
+if ($REMOTE_SHA -ne $EXPECTED_SHA) {
+  throw "Remote MVP2 no longer matches the implementation point."
+}
+
+<TEST_OR_VERIFICATION_COMMANDS>
+
+Write-Host "=== Final state ==="
+git branch --show-current
+git rev-parse HEAD
+git status --short --branch
+```
+
+This policy is illustrative of the required control flow. The exact verification command may change by task, but the comparability gate may not be omitted.
 
 ### Audit scope integrity
 
