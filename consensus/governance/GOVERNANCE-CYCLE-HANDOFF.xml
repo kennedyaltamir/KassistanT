@@ -1,85 +1,43 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<governance_cycle_handoff protocol="KASSIST-GOVERNANCE-CYCLE" version="1.0.2" status="BLOCKED_PENDING_HUMAN_DECISIONS">
+<governance_cycle_handoff protocol="KASSIST-GOVERNANCE-CYCLE" version="1.1.0" status="READY_FOR_IA01_RECONCILIATION">
   <repository>kennedyaltamir/KassistanT</repository>
-
-  <baseline>
-    <branch>MVP2</branch>
-    <cycle_start_reference_sha>0bea2a0ca7c52729cfd58bebc8cd568373222230</cycle_start_reference_sha>
-    <previous_final_cycle_head_sha>0f50709a588ec7c127127fa912505553711e50ff</previous_final_cycle_head_sha>
-    <current_head_sha_verified_before_handoff_write>330308ad10f7f27e19c706963d3fad32f9d4464f</current_head_sha_verified_before_handoff_write>
-    <implementation_point_sha>330308ad10f7f27e19c706963d3fad32f9d4464f</implementation_point_sha>
-    <main_sha>86387b02ed55ef3af3b24f1591b3e0b0ff436a30</main_sha>
-    <merge_base_sha>86387b02ed55ef3af3b24f1591b3e0b0ff436a30</merge_base_sha>
-    <relation_at_implementation_point>
-      <ahead_by>450</ahead_by>
-      <behind_by>0</behind_by>
-    </relation_at_implementation_point>
-  </baseline>
-
-  <traceability>
-    <rule>implementation_point_sha records the factual repository state verified at the start of this governance cycle and is not replaced by a historical SHA.</rule>
-    <rule>Documentation-only commits produced by this cycle do not retroactively change implementation_point_sha.</rule>
-    <previous_handoff_error>0bea2a0ca7c52729cfd58bebc8cd568373222230 was a historical baseline reference and is no longer valid as the current implementation point.</previous_handoff_error>
-  </traceability>
+  <branch>MVP2</branch>
+  <current_head_sha>e2d8807a6e797b0fb35e6a4658f8c4aabec7535a</current_head_sha>
+  <main_sha>86387b02ed55ef3af3b24f1591b3e0b0ff436a30</main_sha>
+  <normative_decision_record>consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml</normative_decision_record>
 
   <decisions>
-    <item id="MVP_SCOPE_DECISION" state="PENDING_APPROVAL">Candidate scope formalized without normative promotion.</item>
-    <item id="GOV-DRIFT-0002" state="BLOCKER_PENDING_OPERATOR_DECISION">Migration 0002 documentation conflicts with factual branch state.</item>
-    <item id="CUSTOMER_IDENTITY" state="OPEN_DECISION_PENDING_FORMALIZATION">Proposed identity key/invariant/policy packaged; no option selected.</item>
-    <item id="CONVERSATION_CONTRACT" state="OPEN_DECISION_PENDING_FORMALIZATION">Proposed cardinality and identity separation packaged; no option selected.</item>
-    <item id="MESSAGE_CONTRACT" state="OPEN_UNTIL_FORMALLY_FROZEN">Proposed uniqueness packaged; no option selected.</item>
-    <item id="CONTRACT-001" state="BLOCKER_PENDING_GLOBAL_DECISION">DomainOutbox ownership and transaction semantics remain pending.</item>
+    <item id="MVP_SCOPE_DECISION" state="APPROVED">TEXT-FIRST_REAL_COMMERCIAL_OPERATION.</item>
+    <item id="GOV-DRIFT-0002" state="RESOLVED">Existing 0002 remains physical but non-authoritative.</item>
+    <item id="CUSTOMER_IDENTITY" state="FORMALLY_FROZEN">(store_id, phone_normalized).</item>
+    <item id="CONVERSATION_CONTRACT" state="FORMALLY_FROZEN">Customer 1:N Conversation; internal id distinct from external_thread_id; UNIQUE(store_id, external_thread_id).</item>
+    <item id="MESSAGE_CONTRACT" state="FORMALLY_FROZEN">Inbound provider uniqueness: UNIQUE(store_id, external_message_id); outbound identity deferred to explicit contract.</item>
+    <item id="CONTRACT-001" state="RESOLVED">Domain event intent + IA-03 durable Outbox mechanics; atomic business+intent transaction where applicable.</item>
   </decisions>
 
   <schema_state>
-    <migration_0002_physical>EXISTS_IN_MVP2</migration_0002_physical>
-    <migration_0002_documentary_projection>STATES_NOT_CREATED</migration_0002_documentary_projection>
-    <migration_0002_authorization_document>STATES_NOT_AUTHORIZED</migration_0002_authorization_document>
-    <classification>GOVERNANCE_DRIFT_BLOCKER</classification>
-    <action_taken>TRACEABILITY_DOCUMENTATION_ONLY</action_taken>
-    <schema_modified>false</schema_modified>
-    <new_migration_created>false</new_migration_created>
+    <migration_0002>EXISTS_PHYSICALLY_NON_AUTHORITATIVE</migration_0002>
+    <schema_mutated_in_operator_cycle>false</schema_mutated_in_operator_cycle>
+    <migration_executed>false</migration_executed>
+    <schema_reconciliation>READY_FOR_POST_DECISION_RECONCILIATION</schema_reconciliation>
   </schema_state>
 
-  <contracts>
-    <customer_identity>OPEN_DECISION_PENDING_FORMALIZATION</customer_identity>
-    <conversation_contract>OPEN_DECISION_PENDING_FORMALIZATION</conversation_contract>
-    <message_contract>OPEN_UNTIL_FORMALLY_FROZEN</message_contract>
-    <contract_001>BLOCKER_PENDING_GLOBAL_DECISION</contract_001>
-  </contracts>
-
-  <evidence>
-    <item source="GitHub branch API">MVP2 current HEAD was verified as 330308ad10f7f27e19c706963d3fad32f9d4464f.</item>
-    <item source="GitHub main ref">main current HEAD was verified as 86387b02ed55ef3af3b24f1591b3e0b0ff436a30.</item>
-    <item source="GitHub compare">MVP2 is 450 commits ahead and 0 behind main at the implementation point.</item>
-    <item source="GitHub commit history">330308ad10f7f27e19c706963d3fad32f9d4464f has parent 0f50709a588ec7c127127fa912505553711e50ff.</item>
-    <item source="GitHub repository tree">apps/desktop/database/migrations/0002_c1_product_order.sql exists in MVP2.</item>
-    <item source="agents/01-schema/MIGRATION-0002-PROJECTION.md">Projection states that 0002 is not created and remains non-executable.</item>
-    <item source="agents/01-schema/HUMAN-SCHEMA-REVIEW.md">0002 remains not authorized and SD-001..SD-005 are proposals pending Operator decisions.</item>
-    <item source="consensus/governance decision packages">MVP scope, GOV-DRIFT-0002, Customer/Conversation/Message and CONTRACT-001 remain open.</item>
-  </evidence>
-
-  <limitations>
-    <item>Normative human decisions were not inferred.</item>
-    <item>No functional commercial implementation was authorized or performed.</item>
-    <item>No schema migration was altered, executed or created by this cycle.</item>
-    <item>Local workstation branch/HEAD alignment remains independently unverifiable through the repository connector.</item>
-    <item>No tests, CI, runtime or E2E were executed in this governance/documentation-only cycle.</item>
-  </limitations>
-
   <release_gate>
-    <mvp_scope_decision>PENDING_APPROVAL</mvp_scope_decision>
-    <gov_drift_0002>BLOCKER_PENDING_OPERATOR_DECISION</gov_drift_0002>
-    <customer_identity>OPEN_DECISION_PENDING_FORMALIZATION</customer_identity>
-    <conversation_contract>OPEN_DECISION_PENDING_FORMALIZATION</conversation_contract>
-    <message_contract>OPEN_UNTIL_FORMALLY_FROZEN</message_contract>
-    <contract_001>BLOCKER_PENDING_GLOBAL_DECISION</contract_001>
-    <ia01_schema_reconciliation>COMPLETE_FOR_CURRENT_EVIDENCE; NORMATIVE CLOSURE BLOCKED</ia01_schema_reconciliation>
+    <ia01_schema_reconciliation>REQUIRED_NEXT</ia01_schema_reconciliation>
     <ready_for_ia02>false</ready_for_ia02>
-    <functional_implementation_authorized>false</functional_implementation_authorized>
+    <ready_for_ia03>false</ready_for_ia03>
     <merge_authorized>false</merge_authorized>
+    <production>BLOCKED</production>
   </release_gate>
 
-  <next_authority>OPERATOR_PROJECT_GOVERNANCE</next_authority>
-  <next_action>Decide MVP_SCOPE_DECISION, GOV-DRIFT-0002, Customer Identity, Conversation, Message and CONTRACT-001. IA-01 must not choose alternatives in the Operator's place.</next_action>
+  <next_authority>IA-01</next_authority>
+  <next_action>Reconcile schema and documentation against the recorded Operator decisions. Do not change normative content, execute migration, mutate schema, merge or release.</next_action>
+
+  <evidence>
+    <item>GitHub MVP2 HEAD verified as e2d8807a6e797b0fb35e6a4658f8c4aabec7535a before final handoff write.</item>
+    <item>GitHub main HEAD verified as 86387b02ed55ef3af3b24f1591b3e0b0ff436a30.</item>
+    <item>Physical 0002 exists and is explicitly classified non-authoritative by GOV-DRIFT-0002.</item>
+    <item>Customer, Conversation and Message contracts are formally frozen for their stated scope.</item>
+    <item>CONTRACT-001 is resolved with Domain/IA-03 ownership separation.</item>
+  </evidence>
 </governance_cycle_handoff>
