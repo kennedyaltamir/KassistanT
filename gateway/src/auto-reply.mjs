@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const POLICY_PATH = path.join(__dirname, '..', 'data', 'ai-conversations.json');
 const inFlight = new Set();
+/** @type {Map<string, number>} */
 const lastReplyAt = new Map();
 let started = false;
 /** @type {ConversationPolicyMap | null} */
@@ -24,7 +25,9 @@ function loadPolicies() {
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
-    conversationPolicies = parsed && typeof parsed === 'object' ? /** @type {ConversationPolicyMap} */ (parsed) : {};
+    conversationPolicies = parsed && typeof parsed === 'object'
+      ? /** @type {ConversationPolicyMap} */ (parsed)
+      : {};
   } catch {
     conversationPolicies = {};
   }
@@ -77,23 +80,29 @@ export function getConversationPolicyStatus(jid) {
 }
 
 export function listConversationPolicies() {
-  return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...(value || {}) }));
+  /** @type {Array<[string, ConversationPolicy]>} */
+  const entries = Object.entries(loadPolicies());
+  return entries.map(([jid, value]) => ({ jid, ...value }));
 }
 
 /** @param {string} jid @returns {ContextMessage[]} */
 function conversationContext(jid) {
   const maxContextMessages = getAiConfig().contextMessages;
-  /** @type {(ContextMessage | null)[]} */
-  const context = getMessages(500)
-    .filter(message => message.jid === jid && typeof message.text === 'string')
-    .slice(-maxContextMessages)
-    .map(message => {
-      if (message.fromMe || message.direction === 'OUTBOUND') {
-        return { role: 'assistant', content: message.text };
-      }
-      return { role: 'user', content: message.text };
+  /** @type {ContextMessage[]} */
+  const context = [];
+
+  for (const message of getMessages(500)) {
+    if (message.jid !== jid) continue;
+    const text = message.text;
+    if (typeof text !== 'string' || !text.trim()) continue;
+
+    context.push({
+      role: message.fromMe || message.direction === 'OUTBOUND' ? 'assistant' : 'user',
+      content: text,
     });
-  return context.filter((message) => message !== null);
+  }
+
+  return context.slice(-maxContextMessages);
 }
 
 export function getAutoReplyStatus() {
@@ -107,18 +116,28 @@ export function getAutoReplyStatus() {
 export function startAutoReply() {
   if (started) return;
   started = true;
-  subscribe((message) => {
-    if (!message || message.direction !== 'INBOUND' || message.fromMe || !message.jid || typeof message.text !== 'string' || !message.text.trim()) {
+  subscribe((event) => {
+    if (!event || event.type !== 'message') return;
+    const message = event.message;
+    if (
+      message.direction !== 'INBOUND' ||
+      message.fromMe ||
+      typeof message.jid !== 'string' ||
+      typeof message.text !== 'string' ||
+      !message.text.trim()
+    ) {
       return;
     }
-    void handleInbound(message);
+    void handleInbound({ ...message, jid: message.jid, text: message.text });
   });
 }
 
 /** @param {MessageSnapshot} message */
 async function handleInbound(message) {
+  if (typeof message.jid !== 'string' || !message.jid) return;
+  /** @type {string} */
   const jid = message.jid;
-  if (!jid) return;
+
   const policy = getConversationPolicy(jid);
   if (policy.enabled === false) return;
   if (inFlight.has(jid)) return;
@@ -131,7 +150,9 @@ async function handleInbound(message) {
   const context = conversationContext(jid);
   if (!context.length) return;
 
-  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : undefined;
+  const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim()
+    ? policy.prompt.trim()
+    : undefined;
 
   inFlight.add(jid);
   lastReplyAt.set(jid, now);
