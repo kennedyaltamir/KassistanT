@@ -51,3 +51,15 @@
 - Status: OPEN / CONTRACT GAP
 - O contrato declara tipos e presença de campos, mas não fecha formato exato de identificadores, gramática de timestamp, limites de `sequence`, política de campos desconhecidos ou negociação de versão.
 - Impacto: o validador deve permanecer conservador; não assumir regras adicionais como normativas.
+
+## E-010 — Session identity boundary incomplete
+
+- Status: OPEN / CROSS-AGENT CONTRACT GAP
+- IA-06 define que session identity existe na fronteira de device authentication, mas não fecha campos, lifecycle, expiration ou reconnect/reauthentication semantics executáveis.
+- Impacto: IA-07 não pode implementar `WSS connection lifecycle` sem correr o risco de criar uma sessão concorrente ou incompatível.
+
+## E-011 — ACK boundary depends on IA-03
+
+- Status: BLOCKER / DEPENDENCY
+- ACK depende de durable `InboundInbox` persistence; IA-03 runtime ainda não está implementado.
+- Impacto: IA-07 não pode implementar ACK persistence, replay store ou durable intake.
