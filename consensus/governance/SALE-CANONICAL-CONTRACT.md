@@ -1,28 +1,47 @@
 # Sale — Canonical Contract
 
-Status: **BLOCKED / SEMANTIC CONTRACT INCOMPLETE**
+Status: **CLOSED_FOR_MVP_PHYSICAL_SCHEMA**
 
-## Evidence already fixed
+## Canonical interpretation
 
-- `CONFIRMED` is the operational milestone of the sale.
-- Monetary values are deterministic integer cents / BRL.
-- Financial metrics are derived from Order totals, not LLM output.
+The approved MVP does not define a separate `Sale` persistence entity.
 
-## Not yet frozen
+`Order` is the authoritative persisted commercial record and `Order.lifecycle_state = CONFIRMED` is the operational sale milestone. The canonical entity inventory contains `Order` and related order records, but no `Sale` entity/table. fileciteturn190file0
 
-The current repository does not provide sufficient normative evidence for a separate `Sale` persistence entity defining:
+## Physical consequence
 
-- canonical identity;
-- Order to Sale cardinality;
-- whether Sale can exist without Order;
-- uniqueness;
-- persisted monetary snapshot semantics;
-- customer relationship ownership;
-- lifecycle/state model;
-- required timestamps beyond generic entity conventions.
+No `sale` table is introduced by the MVP schema.
 
-The mandate's candidate `UNIQUE(store_id, order_id)` therefore remains a proposal and is not promoted to schema authority.
+No `sale.id`, `sale.order_id`, `sale.customer_id` or duplicated sale monetary snapshot is required.
 
-## Consequence
+The authoritative monetary values remain on `Order`:
 
-IA-01 must not invent a Sale table merely because `CONFIRMED` represents the operational sale milestone. A separate Sale persistence contract requires explicit semantic authority first.
+- `subtotal_cents`
+- `discount_cents`
+- `delivery_fee_cents`
+- `total_cents`
+- `currency`
+
+with integer cents / BRL semantics. fileciteturn187file0
+
+## Relationship consequence
+
+No `Order -> Sale` FK exists because no separate Sale entity exists in the canonical MVP schema.
+
+Customer and store relationships remain represented through `Order.customer_id` and `Order.store_id`.
+
+## Operational consequence
+
+A confirmed Order is the persisted sale milestone. This does not create a second persistence aggregate.
+
+## Non-scope
+
+- separate Sale aggregate
+- separate Sale lifecycle
+- duplicated Sale monetary snapshot
+- `UNIQUE(store_id, order_id)` on a Sale table
+- Sale-specific migration
+
+## Boundary
+
+This closes the physical Sale question for the MVP without introducing new business semantics. It does not implement the Order runtime or the confirmation flow.
