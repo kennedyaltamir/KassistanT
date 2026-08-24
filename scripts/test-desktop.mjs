@@ -15,7 +15,8 @@ const tsTests = [
   path.join(domain, "src", "foundation.test.ts"),
   path.join(domain, "src", "order.test.ts"),
   path.join(desktop, "electron", "database", "database.test.ts"),
-  path.join(desktop, "electron", "database", "product-order-persistence.test.ts")
+  path.join(desktop, "electron", "database", "product-order-persistence.test.ts"),
+  path.join(desktop, "electron", "commerce-service.test.ts")
 ];
 
 run("node", ["--test", ...jsTests], root);
