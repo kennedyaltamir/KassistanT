@@ -16,3 +16,14 @@
 - Added `IMPLEMENTATION-GATES.md` defining objective readiness gates for concrete runtime slices.
 - Updated IA-03 decisions, memory, learnings, errors, progress, roadmap and handoff.
 - No application code, contracts, schema, migrations, workflows, package configuration or main branch were modified.
+
+## 2026-08-24 — EventBus contract closure
+- Added `EVENTBUS-CONTRACT.md` defining the bounded first-slice contract.
+- Added `EVENTBUS-ERROR-MATRIX.md` defining known error boundaries and unresolved handler semantics.
+- Added `EVENTBUS-TEST-MATRIX.md` defining deterministic future tests without implementing them.
+- Added `EVENTBUS-IMPLEMENTATION-GATE.md` defining production start conditions.
+- Updated `EVENTBUS-MATRIX.md` with event catalogue and envelope evidence.
+- Recorded the contract-field mismatch between domain documentation and current TypeScript `DomainEvent` without changing the protected contract.
+- Recorded the non-guarantees for ordering, delivery, durability and retry.
+- Preserved `CONTRACT-001`, `CONTRACT-002` and `GOV-001`.
+- No product runtime, schema, migration, package, global documentation or protected contract was modified.
