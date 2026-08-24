@@ -15,5 +15,8 @@ Audit-derived, evidence-backed learnings. These are not new requirements.
 11. Promotion semantics are materially incomplete: eligibility, stacking/exclusivity, priority, usage limits and conflict resolution are not all contractually fixed.
 12. Delivery and payment are represented as Order concerns, but complete executable command/state semantics are not established; payment is registration of a method, not a payment gateway.
 13. The current TypeScript event contract is concrete repository evidence, but because `DOMAIN-EVENT-V1` remains AMBIGUOUS it cannot override the baseline contradiction.
-14. The implemented Money primitive is a safe-isolated slice; it is not evidence that the Order pricing engine exists.
-15. The readiness audit can support staged implementation later: Money arithmetic first, then contract-complete lifecycle/pricing/order command slices, rather than starting the complete Order Engine at once.
+14. The canonical Money primitive is already implemented in `packages/domain/src/money.ts`, so IA-04 must consume it rather than duplicate monetary semantics.
+15. The canonical Money primitive exposes only safe integer cents/BRL creation, addition, subtraction and validation; IA-04 does not invent multiply, comparison, rounding or formatting APIs that are not part of the existing contract.
+16. The Order Engine territory now contains contract-level tests for consuming the canonical Money primitive without modifying the domain package.
+17. The Money slice is independently safe because it does not depend on DomainOutbox, event infrastructure, lifecycle, promotions, delivery, payment or other unresolved Order contracts.
+18. The readiness audit can support staged implementation later: Money consumption first, then contract-complete lifecycle/pricing/order command slices, rather than starting the complete Order Engine at once.
