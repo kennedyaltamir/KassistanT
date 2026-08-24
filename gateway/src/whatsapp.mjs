@@ -103,6 +103,15 @@ function snapshotMessage(message, direction) {
   };
 }
 
+/** @param {unknown} error @returns {number | undefined} */
+function getDisconnectStatusCode(error) {
+  if (typeof error !== 'object' || error === null || !('output' in error)) return undefined;
+  const output = error.output;
+  if (typeof output !== 'object' || output === null || !('statusCode' in output)) return undefined;
+  const statusCode = output.statusCode;
+  return typeof statusCode === 'number' ? statusCode : undefined;
+}
+
 /** @param {MessageSnapshot} snapshot @returns {boolean} */
 export function recordMessage(snapshot) {
   if (state.messageIds.has(snapshot.id)) return false;
@@ -161,7 +170,7 @@ async function startSocket() {
     }
 
     if (connection === 'close') {
-      const statusCode = lastDisconnect?.error?.output?.statusCode;
+      const statusCode = getDisconnectStatusCode(lastDisconnect?.error);
       const loggedOut = statusCode === DisconnectReason.loggedOut;
       const error = lastDisconnect?.error?.message ?? String(lastDisconnect?.error ?? 'Connection closed');
 
@@ -240,6 +249,7 @@ export async function resetSession() {
   emit({ type: 'connection', status: getStatus() });
 }
 
+/** @param {string} to @param {string} text @returns {Promise<MessageSnapshot>} */
 export async function sendText(to, text) {
   if (!socket || state.connection !== 'CONNECTED') {
     throw new Error('WhatsApp transport is not connected');
@@ -249,6 +259,7 @@ export async function sendText(to, text) {
   if (!body) throw new Error('Message text is required');
 
   const result = await socket.sendMessage(jid, { text: body });
+  if (!result) throw new Error('WhatsApp transport did not return a message');
   const snapshot = snapshotMessage(result, 'OUTBOUND');
   recordMessage(snapshot);
   return snapshot;
