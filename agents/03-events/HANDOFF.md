@@ -3,38 +3,64 @@
 ## Identity
 Agent: IA-03. Responsibility: Event Infrastructure.
 
-## Current State
-The repository currently contains the M5.1 persistence foundation, but EventBus, InboundInbox, DomainOutbox, JobQueue, and AuditLog runtime implementations are not yet established as production runtime components. Existing WSS documentation defines durable InboundInbox persistence as the condition for ACK semantics.
+## Readiness state
+The Event Infrastructure readiness audit is complete. No product runtime was implemented.
 
 ## Ownership
-Future ownership includes the event, inbox, outbox, jobs, and audit infrastructure under the IA-03 territory, plus directly associated tests. Shared contracts and canonical schema remain governed dependencies.
+Future ownership includes:
 
-## Non-Ownership
-IA-03 does not own canonical schema design, core domain business rules, Order Engine, Conversation/LLM, Device Authentication, Gateway/WSS transport, Desktop UI, or global contracts.
+- `apps/desktop/electron/infrastructure/events/**`
+- `apps/desktop/electron/infrastructure/inbox/**`
+- `apps/desktop/electron/infrastructure/outbox/**`
+- `apps/desktop/electron/infrastructure/jobs/**`
+- `apps/desktop/electron/infrastructure/audit/**`
+- directly associated tests.
+
+Shared contracts, canonical schema and global documentation remain governed dependencies.
+
+## Current findings
+
+- EventBus: first candidate slice; in-process/post-commit only according to current documentation; no stronger delivery guarantee is assumed.
+- InboundInbox: durable-before-ACK semantics are clear; canonical persistence is missing.
+- DomainOutbox: blocked by `CONTRACT-001`.
+- JobQueue: capability requirements are clear, but schema and exact retry/lease/backoff policies are incomplete.
+- AuditLog: fields/critical event classes are documented; durable runtime is absent.
+- Causation/correlation: contract metadata exists; runtime propagation is absent.
+- Replay/reconciliation/dead-letter: requirements exist, but state/recovery runtime is absent.
 
 ## Dependencies
-- IA-01: canonical persistence/schema.
-- IA-02: domain events and invariants.
-- IA-04: Order Engine event producers/consumers.
-- IA-05: asynchronous conversation/LLM work.
-- IA-06: device/auth lifecycle events and audit requirements.
-- IA-07: transport/delivery boundary.
-- IA-08: Desktop event consumption and operational visibility.
 
-## Contracts
-CONTRACT-001 (DomainOutbox ownership/semantics), CONTRACT-002 (`order.status_changed`), and GOV-001 (document authority/versioning) remain open. They must not be resolved unilaterally.
+- IA-01: canonical persistence/schema and transaction primitives.
+- IA-02: domain event semantics and domain errors.
+- IA-04: Order event producers/consumers.
+- IA-05: Conversation/LLM asynchronous work.
+- IA-06: device lifecycle/security audit events.
+- IA-07: WSS EVENT/ACK/RESUME transport semantics.
+- IA-08: operational event consumers.
 
-## Blockers
-Canonical persistence is still foundation-only. DomainOutbox semantics are blocked by CONTRACT-001. Event lifecycle semantics are affected by CONTRACT-002.
+## Open contracts
 
-## Future Tests
-Deterministic tests should cover deduplication, transactionality, retries/backoff, replay/recovery, causation/correlation, dead-letter behavior, audit guarantees, and integration with persistence.
+- `CONTRACT-001` — DomainOutbox ownership/semantics: BLOCKING for Outbox implementation.
+- `CONTRACT-002` — `order.status_changed`: OPEN and impacts normative event dispatch/tests.
+- `GOV-001` — documentation/version authority: OPEN; IA-03 makes no new authority assumption.
 
-## Preconditions for Implementation
-Freeze relevant contracts, confirm canonical schema tables, establish ownership boundaries with dependent agents, and define deterministic failure/recovery semantics before production implementation.
+## Readiness gates
 
-## Next Gate
-Complete the contract decisions affecting Event Infrastructure, then implement the smallest deterministic runtime slice with tests and auditability.
+A concrete slice can enter implementation only when its applicable persistence, semantic, reliability, security and deterministic-test gates are satisfied. The readiness documents define those gates.
 
-## Information That Must Not Be Lost
-Never treat documentation as proof of runtime. Preserve the distinction between local persistence primitives and future event infrastructure, and preserve the open status of CONTRACT-001/002/GOV-001.
+## Readiness artifacts
+
+- `EVENT-INFRASTRUCTURE-READINESS.md`
+- `EVENTBUS-MATRIX.md`
+- `INBOX-OUTBOX-MATRIX.md`
+- `JOBQUEUE-RELIABILITY-MATRIX.md`
+- `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
+
+## Information that must not be lost
+
+Never treat documentation as proof of runtime. Preserve the distinction between SQLite foundation and canonical event persistence. Preserve the open status of `CONTRACT-001`, `CONTRACT-002` and `GOV-001`. Do not invent retry, retention, ordering, lease, dead-letter or transaction semantics.
+
+## Next gate
+
+Await sufficient IA-01 persistence availability and IA-02 event semantic stability. The next concrete candidate is the EventBus slice, provided its target contract is stable and no unresolved decision is encoded.
