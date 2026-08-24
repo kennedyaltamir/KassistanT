@@ -1,87 +1,57 @@
 # IA-01 — DECISIONS
 
-## Decision registry
+## Approved / evidence-based constraints
 
 ### D-001 — SQLite for MVP persistence
-
-- **Status:** APPROVED / BASELINE
-- **Source:** Approved Technical Baseline, ADR-002 and repository architecture docs.
+Status: APPROVED / BASELINE. Source: approved baseline and ADR-002.
 
 ### D-002 — UTC persistence
+Status: APPROVED / BASELINE. Source: baseline §23 and backend database contract.
 
-- **Status:** APPROVED / BASELINE
-- **Source:** Baseline §23 and backend database contract.
-
-### D-003 — Monetary persistence as integer cents / BRL
-
-- **Status:** APPROVED / BASELINE
-- **Source:** Baseline §15/75 and M5.1 money primitive.
+### D-003 — Integer cents / BRL
+Status: APPROVED / BASELINE. Source: baseline §15/75 and M5.1 money primitive.
 
 ### D-004 — UUIDv7 identifier direction
+Status: APPROVED / BASELINE. Source: baseline §23 and M5.1 primitive.
 
-- **Status:** APPROVED / BASELINE
-- **Source:** Baseline §23 and M5.1 UUIDv7 primitive.
+### D-005 — Store scoping where explicitly contracted
+Status: APPROVED / BASELINE. Store isolation must not be generalized to entities whose field scope is not explicit.
 
-### D-005 — Store scoping
+### D-006 — Deterministic migration integrity
+Status: IMPLEMENTED FOUNDATION / PRESERVE. Future migrations remain compatible with M5.1.
 
-- **Status:** APPROVED / BASELINE
-- **Source:** Baseline §23 and domain entity documentation.
+### D-007 — Seven normative UNIQUE constraints
+Status: APPROVED EVIDENCE CLASSIFICATION. Source: baseline §23.1.
 
-### D-006 — Deterministic migrations with checksum integrity
+### D-008 — Phase 2 physical specification is proposal-level except for semantic contracts
+Status: DOCUMENTED / NOT APPROVED FOR DDL. `CANONICAL-SCHEMA-SPEC.md` separates FROZEN semantics from PROPOSED physical choices.
 
-- **Status:** IMPLEMENTED FOUNDATION / APPROVED BASELINE COMPATIBILITY
-- **Source:** merged M5.1 implementation.
+## Phase 2 proposals — NOT APPROVED
 
-### D-007 — Canonical schema entities are defined, but several field schemas are partial
+### P-001 — lower_snake_case physical table names
+Mechanically derived proposal. Requires project approval before becoming FROZEN.
 
-- **Status:** APPROVED SCOPE / FIELD DETAIL PARTIAL
-- **Source:** `docs/domain/entities.md` and baseline §23.
+### P-002 — physical UUID/timestamp encoding
+No physical SQLite encoding is selected by current protected documents. Must be approved before deterministic DDL.
 
-### D-008 — Phase 1 matrix is the current schema specification baseline
+### P-003 — SQL lifecycle/status representation
+Semantic values are known, physical representation is not. No CHECK representation is silently introduced.
 
-- **Status:** DOCUMENTED / NOT YET APPROVED DDL
-- **Source:** `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md`.
-- **Decision:** use the matrix as the authoritative local audit artifact for Phase 1; it records UNKNOWN/PARTIAL gaps rather than inventing schema details.
-- **Consequence:** migration `0002` must not be generated from assumptions outside the matrix.
+### P-004 — FK delete/update policy
+Current evidence does not specify cascade/restrict/set-null behavior. Must remain UNKNOWN.
 
-### D-009 — Normative unique constraints are limited to those explicitly declared
+### P-005 — parent keys for OrderItem/OrderItemModifier/OrderStatusHistory
+Must be explicitly defined by authoritative schema/domain material; names such as `order_id` are not approved by IA-01 alone.
 
-- **Status:** APPROVED EVIDENCE CLASSIFICATION
-- **Source:** baseline §23.1.
-- **Decision:** treat the seven declared unique constraints as `REQUIRED_BY_CONTRACT`; do not elevate performance-only indexes to normative status during Phase 1.
+### P-006 — full physical models for Settings/ProductCategory/CustomerAddress/PaymentMethod/Integration/IntegrationCredential/KnowledgeItem
+Blocked on field-level contract detail.
 
-## Explicitly not approved by IA-01
+## Global contract handling
 
-### P-001 — Canonical migration structure/order beyond current M5.1
+`CONTRACT-001` remains OPEN and blocks affected DomainOutbox physical design.
 
-- **Status:** PROPOSAL / NOT_APPROVED
-- **Reason:** migration grouping/order for the full canonical schema has not yet been globally approved.
+`CONTRACT-002` remains OPEN but is currently NON-BLOCKING FOR EXISTING SCHEMA STATE unless its final decision changes physical persistence.
 
-### P-002 — Physical representation of unresolved DomainOutbox ownership
+`GOV-001` remains OPEN and must be escalated if source authority affects a schema-critical decision.
 
-- **Status:** PROPOSAL / BLOCKED BY CONTRACT-001
-- **Reason:** selecting a schema layout that assumes one ownership model would silently resolve an open global contract.
-
-### P-003 — Schema changes derived from `order.status_changed`
-
-- **Status:** PROPOSAL / NOT_APPROVED
-- **Reason:** `CONTRACT-002` remains ambiguous.
-
-### P-004 — SQL table naming convention
-
-- **Status:** PROPOSAL / OPEN
-- **Reason:** canonical entity names are defined, but physical SQL table naming is not explicitly frozen by current protected schema documentation.
-
-### P-005 — Missing parent-key field names for OrderItem/OrderItemModifier/OrderStatusHistory
-
-- **Status:** PROPOSAL / BLOCKED BY FIELD SPECIFICATION GAP
-- **Reason:** adding assumed keys would invent schema.
-
-### P-006 — Exact storage model for Settings, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem
-
-- **Status:** PROPOSAL / BLOCKED BY FIELD SPECIFICATION GAP
-- **Reason:** authoritative field-level schemas are incomplete.
-
-## Decision rule
-
-Any new schema decision with cross-agent architectural impact must be recorded as a proposal first and escalated through project governance. IA-01 cannot self-approve a global architectural decision.
+No Phase 2 proposal is project-authoritative until integrated and approved through normal governance.
