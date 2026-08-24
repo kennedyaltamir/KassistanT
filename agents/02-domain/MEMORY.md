@@ -17,18 +17,16 @@
 - Current domain runtime remains foundation-only: lifecycle types, Money, UTC time, UUIDv7, TransactionBoundary, LLMProvider and foundation tests.
 - `CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain unresolved.
 
-## D1 reconciliation facts
+## D1 decision-package facts
 
-- No explicit aggregate root/boundary was found. `Order` is only a strong inference from the documented command/lifecycle surface.
-- Lifecycle documents are state catalogs; they do not provide a complete normative transition matrix.
-- Twelve Order commands are documented; complete input/output/error/event/idempotency contracts remain partial.
-- Query contracts are partial; pagination, ordering, consistency and authorization semantics remain incomplete.
-- Domain error conditions exist but the canonical error-code catalog is missing.
-- `packages/contracts/src/events.ts` contains `order.created`, `order.confirmed`, `order.status_changed` and `order.cancelled`.
-- `order.status_changed` remains blocked by `CONTRACT-002`.
-- `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md` was requested by reconciliation but is absent at the audited ref; this is a documentation gap, not evidence of another entity.
-- First domain slice readiness is BLOCKED; Order remains a proposal only.
+- No aggregate root is normatively frozen. `Order` remains a candidate only.
+- No current non-trivial runtime slice satisfies all first-slice readiness criteria without additional decisions.
+- The existing Money, UUIDv7 and UTC primitives are already foundation code; duplicating them is not a valid first Domain Runtime increment.
+- `CONTRACT-001` blocks Outbox-integrated work but does not inherently block a pure in-memory domain slice that does not persist or publish through Outbox.
+- `CONTRACT-002` blocks slices that require `order.status_changed`; it need not block a slice that demonstrably avoids that event, subject to authority approval.
+- The minimum decision set for an Order-oriented first slice is: aggregate boundary, one normative transition, one complete command/error contract, and stable event choice.
+- `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md` is absent at the audited ref and remains a documentation gap only.
 
 ## Memory rule
 
-This file stores durable facts only. Proposals and unresolved interpretations remain outside the fact register.
+This file stores durable facts only. Recommendations and decision requests remain proposals until formally approved.
