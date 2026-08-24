@@ -1,79 +1,46 @@
 # IA-01 — ERRORS
 
-## Known inconsistencies, risks and traps
+## Phase 2 schema blockers
 
 ### E-001 — CONTRACT-001: DomainOutbox ownership/scope
-
-- **Status:** OPEN / BLOCKING FOR AFFECTED DESIGN
-- **Evidence:** contract registry, persistence and Inbox/Outbox documentation.
-- **Impact:** physical ownership, fields, transaction boundary and cross-system semantics.
-- **Rule:** do not silently resolve.
+Status: OPEN / BLOCKING FOR AFFECTED DESIGN. Physical ownership, scope and event persistence semantics remain ambiguous across Core/Gateway.
 
 ### E-002 — CONTRACT-002: `order.status_changed`
-
-- **Status:** OPEN / CONDITIONAL FOR SCHEMA
-- **Evidence:** baseline §24/§74 and domain events documentation.
-- **Impact:** event-derived schema semantics only; lifecycle state itself is defined.
-- **Rule:** do not encode disputed event semantics.
+Status: OPEN / CURRENTLY NON-BLOCKING FOR EXISTING SCHEMA. Becomes blocking only if final event semantics require new physical persistence.
 
 ### E-003 — GOV-001: documentation authority/history mismatch
+Status: OPEN. Must be escalated if source authority changes interpretation of schema-critical material.
 
-- **Status:** OPEN
-- **Evidence:** baseline version/history and `docs/product` copy.
-- **Impact:** selecting the wrong normative source for field details.
-- **Rule:** use current protected authority and escalate conflicts.
+### E-004 — Field specification gaps
+Status: OPEN / BLOCKING. Exact fields remain incomplete for Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential and KnowledgeItem.
 
-### E-004 — Canonical field specifications are incomplete
+### E-005 — Child parent-key names absent
+Status: OPEN / BLOCKING. OrderItem, OrderItemModifier and OrderStatusHistory cannot receive deterministic FKs without explicit parent-key field names.
 
-- **Status:** OPEN / SCHEMA-SPECIFICATION GAP
-- **Evidence:** baseline §23 and `docs/domain/entities.md`.
-- **Impact:** prevents deterministic nullability/default/type/constraint decisions.
-- **Rule:** classify missing detail as UNKNOWN/PARTIAL.
+### E-006 — Physical SQL table naming not frozen
+Status: OPEN / BLOCKING. lower_snake_case is only a proposal.
 
-### E-005 — Parent key names absent for child entities
+### E-007 — Physical UUID/timestamp encoding not frozen
+Status: OPEN / BLOCKING FOR DDL. Semantic conventions are known; SQLite encoding is not explicitly selected.
 
-- **Status:** OPEN / SCHEMA-SPECIFICATION GAP
-- **Entities:** `OrderItem`, `OrderItemModifier`, `OrderStatusHistory`.
-- **Impact:** deterministic FK DDL cannot be generated without inventing field names.
-- **Rule:** do not assume `order_id`, `order_item_id` or similar names.
+### E-008 — Nullability/defaults not frozen
+Status: OPEN / BLOCKING. Do not add NOT NULL or DEFAULT based on intuition.
 
-### E-006 — Seven entities remain especially underspecified
+### E-009 — FK delete/update behavior not frozen
+Status: OPEN / BLOCKING where explicit actions are required for deterministic DDL.
 
-- **Status:** OPEN
-- **Entities:** `Settings`, `ProductCategory`, `CustomerAddress`, `PaymentMethod`, `Integration`, `IntegrationCredential`, `KnowledgeItem`.
-- **Impact:** insufficient evidence for deterministic canonical DDL.
+### E-010 — SQL state representation not frozen
+Status: OPEN / BLOCKING. Semantic state values are known, physical representation is not.
 
-### E-007 — Physical SQL table naming is not explicitly frozen
+### E-011 — Existing migration is foundation-only
+Status: CONFIRMED. `0001_bootstrap.sql` remains unchanged and creates only `_schema_metadata`.
 
-- **Status:** OPEN
-- **Impact:** a migration requires concrete table names while current protected sources only freeze canonical entity names.
-- **Rule:** table naming convention must be established through an approved decision; do not hide it inside implementation.
+### E-012 — M5.1 runtime remains outside IA-01 write scope
+Status: CONFIRMED. `apps/desktop/electron/database/**` is protected in this phase.
 
-### E-008 — Store scoping is conceptually normative but not enumerated as a field for every entity
-
-- **Status:** OPEN / SPECIFICATION GAP
-- **Impact:** automatically adding `store_id` to all 28 tables would be an unsupported schema invention.
-- **Rule:** use explicit field evidence or an approved decision per entity.
-
-### E-009 — Existing migration is foundation-only
-
-- **Status:** CONFIRMED
-- **Evidence:** `0001_bootstrap.sql` creates only `_schema_metadata`.
-- **Impact:** downstream agents must not assume canonical business tables exist.
-
-### E-010 — SQLite runtime files remain outside IA-01 ownership
-
-- **Status:** CONFIRMED
-- **Evidence:** OWNERSHIP.md.
-- **Impact:** editing M5.1 runtime files would cross ownership.
-- **Rule:** preserve `apps/desktop/electron/database/**` unless integration authority explicitly changes ownership.
-
-### E-011 — No performance-only index contract is currently established
-
-- **Status:** CONFIRMED
-- **Impact:** adding indexes based only on expected query patterns would create unapproved schema decisions.
-- **Rule:** restrict Phase 1 normative index set to explicit unique constraints.
+### E-013 — Performance-only indexes are unapproved
+Status: CONFIRMED. Only seven explicit uniqueness indexes are contract-required.
 
 ## Error handling rule
 
-This file records verified problems and schema-specific traps. Proposals remain proposals and are not treated as implementation errors.
+No blocker is removed because a convenient implementation exists. Resolution requires authoritative evidence or explicit project decision.
