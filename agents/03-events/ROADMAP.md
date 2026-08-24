@@ -11,109 +11,81 @@ Este roadmap é subordinado ao roadmap global do KassisT. Ele descreve somente o
 - **BLOCKED** — uma decisão ou dependência não resolvida impede implementação segura.
 - **NOT_STARTED** — não há runtime implementado nem avanço específico suficiente para classificação PARTIAL.
 - **PLANNED** — definido/documentado para implementação futura, sem runtime.
+- **READY_CANDIDATE** — um slice pode ser preparado, mas ainda depende de gates objetivos antes do código de produção.
 
 ## Current state
 
 | Area | State | Evidence / boundary |
 |---|---|---|
-| EventBus | NOT_STARTED | Contract/documentation exists; in-process runtime is NOT_IMPLEMENTED. |
-| InboundInbox | NOT_STARTED | Contract defines durable intake before processing and ACK after commit; runtime is NOT_IMPLEMENTED. |
-| DomainOutbox | BLOCKED | Runtime absent; ownership/scope is unresolved under CONTRACT-001. |
-| JobQueue | NOT_STARTED | Contract defines async jobs with idempotency, retry, backoff, attempts, locking and observability; runtime absent. |
-| AuditLog | NOT_STARTED | Audit contract defines actor/action/entity/before-after/correlation/timestamp; runtime absent. |
-| Idempotency / deduplication | PARTIAL | Idempotency principles and Inbox uniqueness contract exist; runtime mechanisms are absent. |
+| EventBus | READY_CANDIDATE | In-process/post-commit local dispatch is documented; runtime absent. Event semantics must be stable first. |
+| InboundInbox | BLOCKED | Durable intake/ACK contract defined; canonical schema/persistence absent. |
+| DomainOutbox | BLOCKED | Ownership/scope unresolved under `CONTRACT-001`. |
+| JobQueue | BLOCKED | `Job` persistence absent and exact retry/lease policies incomplete. |
+| AuditLog | BLOCKED | Audit contract exists; canonical persistence and sensitive-data policy are incomplete. |
+| Idempotency / deduplication | PARTIAL | Principles and Inbox uniqueness concept exist; runtime mechanisms absent. |
 | Retry | PLANNED | Required by job/event contracts; exact policy remains incomplete. |
-| Backoff | PARTIAL | WSS documentation defines jitter/backoff concepts, but exact algorithm is partial; local job policy is not fully specified. |
-| Replay | PLANNED | WSS resume/replay is contracted; local event-infrastructure runtime is absent. |
-| Reconciliation | PLANNED | Recovery/reconciliation is a documented requirement; no runtime exists. |
-| Dead-letter | PLANNED | Operational concept identified; policy and runtime are not implemented. |
-| Causation | PARTIAL | Event contracts carry causation metadata; propagation runtime is absent. |
-| Correlation | PARTIAL | Event/WSS/error contracts carry correlation metadata; propagation/runtime is absent. |
-| Observability | PARTIAL | Requirements and audit fields are documented; event-infrastructure telemetry runtime is absent. |
-| Failure recovery | PLANNED | Recovery is part of the architecture, but implementation is future work. |
-| Deterministic testing | PLANNED | Future implementation must be covered by deterministic tests; current area has no runtime test suite. |
+| Backoff | PARTIAL | WSS reconnect policy exists with five-minute ceiling; exact jitter is partial and job policy is not defined. |
+| Replay | PLANNED | WSS resume/replay is contracted; local runtime is absent. |
+| Reconciliation | PLANNED | Recovery/reconciliation is required but algorithm/state model is incomplete. |
+| Dead-letter | PLANNED | Operational concept identified; policy/state runtime absent. |
+| Causation | PARTIAL | Event/WSS contracts carry metadata; propagation runtime absent. |
+| Correlation | PARTIAL | Event/WSS/error contracts carry metadata; propagation/runtime absent. |
+| Observability | PARTIAL | Requirements exist; event-infrastructure telemetry runtime absent. |
+| Failure recovery | PLANNED | Recovery is architectural requirement; implementation future. |
+| Deterministic testing | PLANNED | Tests will be added with each implementation slice; current runtime suite absent. |
 
 ## Dependency gates
 
 ### Gate E0 — Contract authority
-
-**State:** PARTIAL / GOVERNED.
-
-Required before implementation: use approved baseline and protected contracts as authority. Do not locally redefine global semantics.
+**State:** PASS / GOVERNED.
 
 ### Gate E1 — Canonical persistence
-
-**Dependency:** IA-01.
-
-Canonical schema and transaction/persistence primitives must exist sufficiently for IA-03 runtime persistence. M5.1 currently provides only `_schema_metadata`, not the canonical business schema.
-
-### Gate E2 — Domain semantics
-
-**Dependency:** IA-02.
-
-Event infrastructure consumes domain event definitions and must not invent business semantics.
-
-### Gate E3 — CONTRACT-001
-
+**Dependency:** IA-01.  
 **State:** BLOCKED.
 
-DomainOutbox ownership, scope and transaction semantics must be resolved before implementing behavior that encodes that decision.
+M5.1 provides migration lifecycle/checksum/transaction primitives and `_schema_metadata`, but canonical Inbox/Outbox/Job/Audit business tables are not present.
+
+### Gate E2 — Domain semantics
+**Dependency:** IA-02.  
+**State:** PARTIAL.
+
+Domain event contracts exist, but `DOMAIN-EVENT-V1` remains ambiguous and `CONTRACT-002` affects the order event catalogue.
+
+### Gate E3 — CONTRACT-001
+**State:** BLOCKED.
+
+DomainOutbox ownership, scope and transaction semantics must be resolved before runtime implementation.
 
 ### Gate E4 — CONTRACT-002
-
 **State:** OPEN / IMPACTED.
 
-The normative status of `order.status_changed` affects event dispatch, persistence, replay and tests. IA-03 must not choose the answer locally.
+The normative status of `order.status_changed` affects event dispatch, persistence, replay and tests.
+
+### Gate E5 — Reliability policy
+**State:** PARTIAL.
+
+Retryability, attempts, backoff, leasing and dead-letter behavior require sufficiently explicit policy for each slice.
 
 ## Future implementation sequence
 
-### E5 — EventBus
+1. **R0 — EventBus**: in-process dispatch abstraction and deterministic tests, without durable semantics.
+2. **R1 — InboundInbox**: durable intake, deduplication, processing state and ACK boundary after IA-01 schema/persistence is available.
+3. **R2 — JobQueue**: recoverable async jobs with explicit attempts/locking/retry/backoff after policies close.
+4. **R3 — AuditLog**: evidence-oriented durable audit persistence with sensitive-data controls.
+5. **R4 — Reliability**: replay/recovery/reconciliation/dead-letter against finalized durable state.
+6. **R5 — DomainOutbox**: only after `CONTRACT-001` resolution.
+7. **R6 — Cross-agent integration**: Order, Conversation, Device, Gateway and Desktop consumers/producers.
 
-**State:** PLANNED.
+This order is a territory execution sequence, not a global release schedule.
 
-Implement only after domain event contract consumption is stable. EventBus is in-process communication and is not durable storage.
+## Readiness artifacts
 
-### E6 — InboundInbox
-
-**State:** PLANNED.
-
-Implement durable intake, deduplication and ACK boundary. The externally visible invariant is: durable local Inbox persistence precedes ACK.
-
-### E7 — DomainOutbox
-
-**State:** BLOCKED until CONTRACT-001 is resolved.
-
-No implementation should encode disputed ownership or transaction boundaries.
-
-### E8 — JobQueue
-
-**State:** PLANNED.
-
-Implement recoverable asynchronous execution with explicit attempt state, idempotency, locking, retry/backoff and observability after required persistence/contract gates close.
-
-### E9 — AuditLog
-
-**State:** PLANNED.
-
-Implement evidence-oriented audit persistence without becoming business-rule authority or leaking sensitive customer data.
-
-### E10 — Reliability mechanisms
-
-**State:** PLANNED.
-
-Add replay, reconciliation, dead-letter and failure recovery only against finalized contracts and deterministic persistence semantics.
-
-### E11 — Integration validation
-
-**State:** PLANNED.
-
-Validate interactions with IA-04 Order, IA-05 Conversation/LLM, IA-06 Device/Auth, IA-07 Gateway/WSS and IA-08 Desktop consumers.
-
-### E12 — Deterministic test gate
-
-**State:** PLANNED.
-
-No implementation area is DONE until relevant invariants, idempotency, retry/recovery and cross-boundary behavior have executable deterministic tests and evidence on the actual PR HEAD.
+- `EVENT-INFRASTRUCTURE-READINESS.md`
+- `EVENTBUS-MATRIX.md`
+- `INBOX-OUTBOX-MATRIX.md`
+- `JOBQUEUE-RELIABILITY-MATRIX.md`
+- `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
+- `IMPLEMENTATION-GATES.md`
 
 ## Completion rule
 
