@@ -28,11 +28,13 @@ This document is the single approval entry point for AI-V1 closure. It contains 
 
 `NOT_READY` · `READY_WITH_GATES` · `READY` · `BLOCKED` · `EXTERNAL`
 
-Current package state for every DR is intentionally:
+Current package state:
 
-- `CONTRACT_STATUS = PROPOSAL`
-- `IMPLEMENTATION_AUTHORIZATION = NOT_AUTHORIZED`
-- `IMPLEMENTATION_READINESS = BLOCKED` or `EXTERNAL` as specified below
+- `CONTRACT_STATUS = PROPOSAL` for all unresolved DRs.
+- `IMPLEMENTATION_AUTHORIZATION` is `NOT_AUTHORIZED` or `EXTERNAL` unless explicitly granted.
+- `IMPLEMENTATION_READINESS` is evaluated independently per DR.
+
+Each DR is authoritative for its own readiness state. `READY_WITH_GATES` never implies authorization. `NOT_AUTHORIZED` remains the default until explicitly changed by the integration authority.
 
 No DR is a `DECISION`.
 
