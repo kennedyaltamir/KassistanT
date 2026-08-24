@@ -8,37 +8,46 @@
 - IA-01 territory: Canonical SQLite Schema / Persistence Schema Foundation.
 - Integration authority is `main`.
 - Active implementation branch: `Agent01-schema-canonical-sqlite`.
-- Phase 1 audit matrix was created without modifying protected contracts or M5.1 runtime.
+- Phase 1 and Phase 2 work are documentation-only; protected contracts and M5.1 runtime remain untouched.
 
 ### Baseline
 
-- Approved baseline file: `KassisT_Approved_Technical_Baseline_v1.0.1.md`.
-- Baseline blob SHA observed in the repository: `02830152099f58307912ce382c064a3c4075f505`.
-- SQLite is the MVP local persistence technology.
-- Canonical persistence uses UTC timestamps, integer monetary cents/BRL and store scoping.
-- UUIDv7 is the normative identifier direction where supported by the stack.
+- Approved baseline: `KassisT_Approved_Technical_Baseline_v1.0.1.md`.
+- Baseline SHA: `02830152099f58307912ce382c064a3c4075f505`.
+- SQLite is MVP persistence.
+- Timestamps persist in UTC.
+- Money uses integer cents / BRL.
+- UUIDv7 is the identifier direction where supported.
 
-### M5.1 persistence foundation
+### M5.1 foundation
 
-M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 checksums, idempotent migration application, checksum drift detection, transaction boundaries, database errors, database health checks and UUIDv7/UTC/BRL integer-cent primitives.
+M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 checksums, idempotent migration application, checksum drift detection, transaction boundaries, database errors, health checks and UUIDv7/UTC/BRL primitives.
 
-The current bootstrap migration creates only `_schema_metadata`; canonical business tables are not implemented.
+`0001_bootstrap.sql` still creates only `_schema_metadata`; canonical business tables are not implemented.
 
-### Phase 1 schema audit
+### Phase 2 physical specification
 
-- Canonical inventory verified as exactly 28 entities.
-- `agents/01-schema/CANONICAL_SCHEMA_AUDIT.md` records field-level evidence, relationships, constraints, indexes, blockers and implementation readiness.
-- Seven normative unique constraints are explicit: Customer `(store_id, phone_normalized)`, Conversation `(store_id, external_thread_id)`, Message `(store_id, external_message_id)`, InboundInbox `(provider, external_event_id)`, DomainOutbox `(idempotency_key)`, Order `(store_id, display_number)`, Device `(store_id, id)`.
-- Baseline §23 explicitly defines fields for the major product/order/event entities, but several field-level definitions remain partial.
-- `Settings`, `ProductCategory`, `CustomerAddress`, `PaymentMethod`, `Integration`, `IntegrationCredential` and `KnowledgeItem` remain particularly underspecified at field level.
-- Parent relation fields for `OrderItem`, `OrderItemModifier` and `OrderStatusHistory` are not explicitly named in the current baseline; deterministic FK DDL must not invent them.
+- `CANONICAL-SCHEMA-SPEC.md` now consolidates physical naming proposals, semantic fields, scope, state storage, mutability and implementation order.
+- `ENTITY-PHYSICAL-MAP.md` maps all 28 canonical entities to lower_snake_case table-name proposals while explicitly keeping naming PROPOSED.
+- `RELATIONSHIP-SPEC.md` records 23 relationships and refuses to invent missing parent keys or delete/update actions.
+- `CONSTRAINT-SPEC.md` freezes only the seven contract-required unique constraints and keeps most NOT NULL/DEFAULT/CHECK/FK actions open.
+- `INDEX-SPEC.md` limits REQUIRED_BY_CONTRACT indexes to the seven explicit unique constraints.
+- `MIGRATION-0002-READINESS.md` records every table as blocked for deterministic DDL under current evidence.
+- `MIGRATION-0002-PROJECTION.md` projects dependency order and migration structure without creating `0002`.
 
-### Open contracts relevant to schema
+### Remaining schema-critical gaps
 
-- `CONTRACT-001`: DomainOutbox ownership/scope remains ambiguous.
-- `CONTRACT-002`: `order.status_changed` semantics remain contradictory.
-- `GOV-001`: baseline/document authority history remains ambiguous.
+- Physical SQL table naming is a proposal, not an approved convention.
+- UUID and timestamp physical SQLite encoding is not frozen.
+- Several entities lack complete field-level definitions: Settings, ProductCategory, CustomerAddress, PaymentMethod, Integration, IntegrationCredential, KnowledgeItem.
+- Parent key names are missing for OrderItem, OrderItemModifier and OrderStatusHistory.
+- Nullability and SQL defaults are mostly UNKNOWN.
+- FK ON DELETE / ON UPDATE behavior is UNKNOWN.
+- Lifecycle/status SQL representation is not frozen, although semantic values are known.
+- DomainOutbox remains blocked where physical ownership/scope depends on CONTRACT-001.
 
-### Schema readiness fact
+## Open contracts
 
-The Phase 1 matrix is complete as an evidence audit but does not establish enough authoritative field-level detail to generate deterministic migration `0002` yet.
+- `CONTRACT-001`: DomainOutbox ownership/scope.
+- `CONTRACT-002`: `order.status_changed` semantics; currently non-blocking unless its final decision changes physical schema.
+- `GOV-001`: baseline/document authority history.
