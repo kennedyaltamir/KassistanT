@@ -7,8 +7,11 @@ contextBridge.exposeInMainWorld("kassist", {
 window.addEventListener("DOMContentLoaded", () => {
   if (window.__kassistAiPanelLoader) return;
   window.__kassistAiPanelLoader = true;
-  const script = document.createElement("script");
-  script.src = new URL("./ai-panel.js", window.location.href).href;
-  script.async = false;
-  document.documentElement.appendChild(script);
+  const scripts = ["./ai-panel.js", "./llm-settings.js"];
+  for (const source of scripts) {
+    const script = document.createElement("script");
+    script.src = new URL(source, window.location.href).href;
+    script.async = false;
+    document.documentElement.appendChild(script);
+  }
 });
