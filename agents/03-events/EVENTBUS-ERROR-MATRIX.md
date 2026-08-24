@@ -1,19 +1,26 @@
 # IA-03 — EventBus Error Matrix
 
-| Error point | Current evidence | Owner boundary | Propagation | Retry | Audit | Observability | Status |
+## Status
+
+`RUNTIME GATE / BLOCKED`
+
+| Error point | Current evidence | Owner boundary | Propagation | Retry | Audit | Observability | Gate |
 |---|---|---|---|---|---|---|---|
-| Event input invalid | Domain/event contract validation exists conceptually; exact EventBus validation API is not specified | Publisher / contract boundary | UNKNOWN | No automatic EventBus retry | Not implied | Correlate when metadata exists | OPEN |
-| Subscriber throws | No normative isolation/aggregation behavior documented | EventBus implementation contract | UNKNOWN | NOT EventBus-owned | Not automatic | Must expose dispatch failure | OPEN |
-| Subscriber rejects async work | Async handler semantics are not documented | EventBus implementation contract | UNKNOWN | JobQueue may own durable retry when applicable | Not automatic | Correlation/causation preserved if present | OPEN |
-| Multiple subscriber failure | No all-or-nothing guarantee documented | EventBus | UNKNOWN | NOT EventBus-owned | Not automatic | Must identify affected dispatch | OPEN |
-| Publish before commit | Current documentation requires post-commit local consumers | Publisher/transaction boundary | Must not be used as documented normal path | N/A | N/A | Implementation/test gate | DEFINED NEGATIVE |
-| Publish after commit but handler fails | Post-commit dispatch is documented; recovery is not | EventBus + consumer boundary | UNKNOWN | Durable retry belongs outside EventBus | Business/security audit only where separately required | Required for operational diagnosis | OPEN |
-| Handler timeout | Timeout policy not documented | EventBus/consumer contract | UNKNOWN | No automatic EventBus retry | Not automatic | Required when timeout exists | UNKNOWN |
-| Correlation/causation missing | Source event contract may omit them; broader docs describe them | Source contract | Preserve if present; do not fabricate | N/A | N/A | Use available identifiers | DEFINED |
+| Event input invalid | Domain/event contract exists; EventBus validation API is undefined | Publisher / contract boundary | UNKNOWN | No automatic EventBus retry | Not implied | Correlate when available | OPEN |
+| Subscriber throws | No normative propagation behavior | EventBus runtime contract | UNKNOWN | NOT EventBus-owned | Not automatic | Dispatch failure must be diagnosable | BLOCKING |
+| Multiple subscriber failure | No fail-fast, isolate, aggregate, or continue rule | EventBus | UNKNOWN | NOT EventBus-owned | Not automatic | Affected dispatch must be diagnosable | BLOCKING |
+| Async subscriber rejects | Async handler semantics not defined | EventBus / consumer boundary | UNKNOWN | Durable retry may belong to JobQueue when applicable | Not automatic | Preserve available correlation/causation | BLOCKING |
+| Publish before commit | Backend documentation requires post-commit local consumers | Transaction boundary | Invalid normal path | N/A | N/A | Testable negative invariant | CLOSED |
+| Publish after commit, handler fails | Post-commit is documented; recovery is external to EventBus | EventBus + consumer boundary | UNKNOWN | No automatic EventBus retry | Business/security audit only where separately required | Required | BLOCKING |
+| Handler timeout | No EventBus timeout contract | EventBus / consumer contract | UNKNOWN | No automatic EventBus retry | Not automatic | UNKNOWN | BLOCKING |
+| Cancellation requested | No EventBus cancellation contract | EventBus / subscription contract | UNKNOWN | No automatic retry | Not automatic | UNKNOWN | BLOCKING |
+| Correlation/causation available | Event/domain contracts may supply identifiers | Source contract | Preserve unchanged | N/A | N/A | Preserve unchanged | CLOSED |
+| Correlation/causation absent | No permission to synthesize identifiers | Source contract | Preserve absence | N/A | N/A | Use available context only | CLOSED |
 
 ## Rules
 
-1. EventBus must not convert a subscriber failure into a business decision.
+1. EventBus must not convert subscriber failure into a business decision.
 2. EventBus must not create durable retry semantics that belong to JobQueue.
 3. EventBus must not imply exactly-once delivery.
-4. Until subscriber failure propagation is finalized, production implementation is not fully closed.
+4. Ordering is explicitly `NO_ORDERING_GUARANTEE` at EventBus scope.
+5. Production runtime remains blocked until subscriber failure propagation, isolation, scheduling, cancellation, timeout and completion semantics are explicit.
