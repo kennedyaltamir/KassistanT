@@ -8,7 +8,7 @@
 
 ## 1. Objetivo
 
-Este documento consolida as posições dos dois auditores técnicos independentes e servirá como artefato único para a diplomacia técnica entre Auditor 1, Auditor 2 e o Operador humano.
+Este documento consolida as posições dos dois auditores técnicos independentes e serve como artefato único para a diplomacia técnica entre Auditor 1, Auditor 2 e o Operador humano.
 
 O objetivo é chegar a uma única estratégia operacional que maximize paralelismo seguro sem sacrificar evidência, ownership, contratos, segurança, testes, reversibilidade, governança e autoridade da `main`.
 
@@ -18,9 +18,9 @@ Os dois auditores convergem nos seguintes pontos:
 
 1. `main` é a autoridade de integração.
 2. Cada IA deve permanecer dentro de seu ownership.
-3. `CONTRACT-001` continua `OPEN`.
-4. `CONTRACT-002` continua `OPEN`.
-5. `GOV-001` permanece condicional e não deve ser usado como blocker global.
+3. `CONTRACT-001` continua `OPEN` e bloqueia somente os slices que codifiquem diretamente sua semântica.
+4. `CONTRACT-002` continua `OPEN` e possui impacto condicionado aos slices que dependam da semântica contestada.
+5. `GOV-001` é um **`CONDITIONAL_GOVERNANCE_GATE`**, não um hard blocker global.
 6. O projeto não deve ser classificado como `GLOBAL GREEN`.
 7. Documentação não constitui evidência de implementação.
 8. Implementação não constitui evidência de testes.
@@ -29,7 +29,7 @@ Os dois auditores convergem nos seguintes pontos:
 11. Contrato aprovado não implica autorização automática de implementação.
 12. Slices tecnicamente independentes podem avançar em paralelo quando seus gates estiverem satisfeitos.
 
-## 3. Modelo operacional consensual candidato
+## 3. Modelo operacional consensual
 
 ### Parallel Controlled Tracks
 
@@ -59,10 +59,22 @@ IMPLEMENTATION
     !=
 VERIFICATION
     !=
+IMPLEMENTATION_READINESS
+    !=
 INTEGRATION
+    !=
+MERGE_READINESS
     !=
 MERGE
 ```
+
+Regra explícita:
+
+```text
+IMPLEMENTATION_READINESS != MERGE_READINESS
+```
+
+Um slice pode estar corretamente implementado e testado localmente e ainda não estar `MERGE_READY` por ausência de CI, revisão, integração oficial ou outro gate aplicável.
 
 O fato de um agente reportar `READY` não substitui os demais gates.
 
@@ -92,7 +104,7 @@ Objetivo: liberar o primeiro slice `Order + ConfirmOrder + DRAFT -> CONFIRMED + 
 
 `DR-001`.
 
-Objetivo: fechar o contrato tipado mínimo de `LLMProvider`, mantendo separada a autorização de implementação.
+Objetivo: fechar o contrato tipado mínimo de `LLMProvider`, mantendo separada a autorização de implementação e sem transferir ownership de `packages/domain/**` para IA-05.
 
 ### IA-06 — Device Authentication
 
@@ -110,15 +122,17 @@ Não pode inventar persistência, Outbox, EventBus durável ou schema.
 
 ### IA-05
 
-Após `DR-001` aprovado e com autorização de implementação, pode iniciar exclusivamente o contrato/runtime delimitado pelo decision package.
+Após `DR-001` aprovado e com autorização de implementação, pode iniciar exclusivamente o contrato/runtime delimitado pelo decision package e dentro do ownership efetivo definido para a tarefa.
 
-Não pode automaticamente alterar `packages/domain/**`, Conversation Engine completo, Tool Runtime ou seleção de modelo.
+**Aprovação de `DR-001` não concede ownership de `packages/domain/**` à IA-05.** Alterações nesse território permanecem sob IA-02 e coordenação da autoridade de integração.
+
+Não iniciar automaticamente Conversation Engine completo, Tool Runtime, seleção de modelo ou persistence runtime.
 
 ### IA-06
 
 Após `DR-02A` aprovado e autorizado, pode implementar apenas o `Signature Verification Boundary`.
 
-Não precisa esperar sessão, enrollment completo, replay, rotation, Gateway ou runtime de Secure Storage para esse slice isolado.
+Não precisa esperar sessão, enrollment completo, replay, rotation, Gateway ou runtime de Secure Storage para esse slice isolado, desde que o próprio contrato aprovado mantenha essas fronteiras fora do slice.
 
 ### IA-08
 
@@ -130,7 +144,7 @@ Proibido neste slice: APIs fictícias, IPC novo, SQLite, Gateway, regras de neg�
 
 ### IA-04
 
-O `Money slice` não deve ser tratado como workstream ativo do Order Engine. Ele permanece como pendência de verificação da infraestrutura transversal de testes.
+O `Money slice` não deve ser tratado como workstream ativo do Order Engine. Ele permanece como pendência de verificação da infraestrutura transversal de testes e não é automaticamente um candidato a implementação/merge.
 
 ### IA-01
 
@@ -144,6 +158,8 @@ EventBus V1 fechado para o escopo atual. Aguardará persistência suficiente par
 
 Permanece em `CONTROLLED_STANDBY`. O próximo trigger é a disponibilidade de artefatos executáveis verificáveis de IA-03 e/ou IA-06.
 
+Não realizar deep audit amplo agora apenas como prevenção. Quando houver implementação concreta ou candidato real de integração, aplicar os acceptance gates e executar o deep runtime/security audit correspondente.
+
 ## 8. Shared Test Harness
 
 O shared test harness é classificado como:
@@ -155,6 +171,22 @@ NOT_GLOBAL_IMPLEMENTATION_BLOCKER
 
 Deve possuir owner explícito e ser corrigido em paralelo, com escopo mínimo e revisão apropriada.
 
+Estado verificável do harness:
+
+```text
+OWNER_ASSIGNED
+    ->
+CHANGE_PROPOSED
+    ->
+CHANGE_IMPLEMENTED
+    ->
+OFFICIAL_SUITE_VERIFIED
+    ->
+CI_VERIFIED
+```
+
+A ausência de um estágio não deve ser mascarada por inferência. A pendência deixa de ser apenas uma prioridade administrativa quando a sua resolução for necessária para satisfazer o `MERGE_READINESS` de um slice específico.
+
 Distinguir sempre:
 
 ```text
@@ -162,6 +194,25 @@ DIRECT_TEST
 OFFICIAL_SUITE
 CI
 ```
+
+### Official Suite applicability
+
+```text
+OFFICIAL_SUITE_REQUIRED = TRUE
+```
+quando existir um caminho oficial de execução que cubra o tipo de teste/artefato do slice.
+
+```text
+OFFICIAL_SUITE_NOT_AVAILABLE
+```
+quando não existir caminho oficial aplicável.
+
+```text
+OFFICIAL_SUITE_NOT_REGISTERED
+```
+quando o teste existir, mas ainda não estiver incluído no caminho oficial.
+
+Quando `OFFICIAL_SUITE_REQUIRED = TRUE`, a sua ausência pode impedir `MERGE_READY` para o slice afetado, mas não deve bloquear automaticamente trabalho independente que não dependa dessa cobertura.
 
 ## 9. IA-07 e segurança
 
@@ -171,11 +222,18 @@ IA-07 já possui acceptance gates. Quando IA-03 ou IA-06 fornecerem artefatos ex
 
 Enquanto isso, IA-07 permanece em standby controlado.
 
-## 10. Hard blockers atuais
+## 10. Global Contracts and Conditional Gates
 
 ### CONTRACT-001
 
 `DomainOutbox` ownership/scope/transaction semantics.
+
+Classificação:
+
+```text
+GLOBAL_CONTRACT_OPEN
+LOCALIZED_RUNTIME_BLOCKER
+```
 
 Impacto localizado aos slices que codifiquem diretamente essas semânticas.
 
@@ -183,13 +241,28 @@ Impacto localizado aos slices que codifiquem diretamente essas semânticas.
 
 `order.status_changed`.
 
+Classificação:
+
+```text
+GLOBAL_CONTRACT_OPEN
+CONDITIONAL_RUNTIME_BLOCKER
+```
+
 Impacto localizado aos slices que dependam da semântica contestada.
 
 ### GOV-001
 
 Authority/versioning.
 
-Impacto condicional: escalar apenas quando uma divergência documental mudar uma decisão técnica.
+Classificação:
+
+```text
+CONDITIONAL_GOVERNANCE_GATE
+```
+
+Escalar apenas quando uma divergência documental mudar uma decisão técnica ou quando uma promoção normativa exigir autoridade explícita.
+
+`GOV-001` não deve ser tratado como `HARD_BLOCKER` genérico.
 
 ## 11. Schema / Migration 0002
 
@@ -225,23 +298,31 @@ Antes de qualquer DDL, verificar se a política de migrations permite aplicaçã
 
 Não existe um agente numericamente obrigatório para o primeiro merge.
 
-O primeiro merge deve ser escolhido pela regra `FIRST_MERGE_SELECTION_RULE`.
+A seleção deve obedecer a:
 
-O primeiro candidato que atingir todos os gates necessários deve ser elegível:
+```text
+FIRST_MERGE_SELECTION =
+EVIDENCE_BASED
+NOT_TIME_BASED
+NOT_AGENT_NUMBER_BASED
+NOT_CODE_VOLUME_BASED
+```
+
+O primeiro candidato que atingir todos os gates relevantes torna-se elegível:
 
 1. decisão/contrato aprovado, quando aplicável;
 2. autorização explícita de implementação;
 3. ownership/scope limpo;
 4. testes diretos verificados;
-5. suíte oficial verificada, quando aplicável;
-6. CI verificado;
+5. suíte oficial verificada quando aplicável;
+6. CI verificado quando aplicável;
 7. revisão de segurança/arquitetura quando aplicável;
 8. aprovação humana;
 9. post-merge verification.
 
 Candidatos atuais: IA-06 Signature Verification Boundary, IA-02 ConfirmOrder e IA-08 AppShell Visual Foundation.
 
-O candidato final deve ser escolhido pela evidência de prontidão, não por preferência de processo.
+O primeiro merge não é selecionado por preferência de processo nem por quem terminou primeiro; ele é selecionado pela primeira evidência suficiente de `MERGE_READINESS`.
 
 ## 13. Estratégia de merge
 
@@ -260,7 +341,7 @@ direct tests
   ->
 official suite when applicable
   ->
-CI
+CI when applicable
   ->
 security/architecture review when applicable
   ->
@@ -271,17 +352,20 @@ merge
 post-merge audit
 ```
 
-`mergeable != correct`.
+Regras:
 
-`local test pass != CI green`.
+```text
+mergeable != correct
+local test pass != CI green
+contract approved != implementation authorized
+implementation readiness != merge readiness
+```
 
-`contract approved != implementation authorized`.
-
-## 14. Consenso provisório entre os dois auditores
+## 14. Consenso entre os dois auditores
 
 ### Agreements
 
-- Parallel Controlled Tracks.
+- `Parallel Controlled Tracks`.
 - EventBus V1 fechado no escopo atual.
 - IA-02 pode avançar sem esperar schema quando o slice for puro.
 - IA-05 e IA-06 podem ter decisões em paralelo.
@@ -291,12 +375,14 @@ post-merge audit
 - Shared test harness é prioridade transversal, não blocker global.
 - `0002` não está autorizada.
 - CONTRACT-001 e CONTRACT-002 permanecem abertos e localizados.
+- `GOV-001` é um gate de governança condicional, não um hard blocker geral.
+- Implementation readiness e merge readiness são estados independentes.
 
 ### Divergences to resolve
 
-No momento da criação deste documento, não há divergência estrutural relevante identificada entre os dois auditores sobre a estratégia geral.
+Nenhuma divergência estrutural relevante entre os dois auditores sobre a estratégia geral após as correções acima.
 
-Quaisquer divergências futuras devem ser registradas neste documento com:
+Qualquer divergência futura deve ser registrada com:
 
 ```text
 ITEM
@@ -307,7 +393,7 @@ IMPACT
 RECOMMENDED_RESOLUTION
 ```
 
-## 15. Estado da decisão
+## 15. Estados de consenso
 
 ```text
 CONSENSUS_STRUCTURE = ACCEPTED
@@ -319,7 +405,39 @@ MERGE_AUTHORIZATION = NONE
 
 Este documento não resolve nenhuma decisão humana pendente.
 
-## 16. Próximo ciclo proposto
+## 16. Shared Work / Ownership Rule
+
+Uma decisão aprovada não transfere automaticamente ownership entre agentes.
+
+Exemplos:
+
+```text
+DR-001 APPROVED
+    !=
+IA-05 OWNS packages/domain/**
+```
+
+Ownership permanece definido pelo registry e por autorizações explícitas da autoridade de integração.
+
+Qualquer necessidade de alteração cross-agent deve ser registrada como dependência e autorizada antes da mudança.
+
+## 17. Critério de saída do Shared Test Harness
+
+O harness deve possuir owner explícito.
+
+Para um slice que dependa do caminho oficial de testes, o estado esperado é:
+
+```text
+OWNER_ASSIGNED
+CHANGE_PROPOSED
+CHANGE_IMPLEMENTED
+OFFICIAL_SUITE_VERIFIED
+CI_VERIFIED
+```
+
+Para slices que não dependam da suíte oficial, a pendência do harness pode permanecer em paralelo sem impedir implementação, desde que o gate de merge desse slice seja satisfeito por sua estratégia de verificação aplicável.
+
+## 18. Próximo ciclo proposto
 
 ### Agora
 
@@ -334,17 +452,17 @@ Este documento não resolve nenhuma decisão humana pendente.
 3. IA-01 continua consolidando schema readiness.
 4. IA-07 permanece em standby.
 
-### Após aprovação
+### Após aprovação dos respectivos gates
 
 1. Implementar slices independentes autorizados.
 2. Testar diretamente.
 3. Passar pelo runner oficial quando aplicável.
-4. Executar CI.
+4. Executar CI quando aplicável.
 5. Auditar.
 6. Preparar PR.
-7. Revisar e fazer merge somente após gates.
+7. Revisar e fazer merge somente após `MERGE_READINESS`.
 
-## 17. Critério para considerar o plano FINAL
+## 19. Critério para considerar o plano FINAL
 
 O plano só deve sair de `DRAFT` quando:
 
@@ -356,7 +474,7 @@ O plano só deve sair de `DRAFT` quando:
 
 Somente depois disso o plano poderá ser usado como referência operacional do próximo ciclo.
 
-## 18. Nota de governança
+## 20. Nota de governança
 
 Este documento é uma ponte entre auditoria e execução.
 
