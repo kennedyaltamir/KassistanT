@@ -4,52 +4,74 @@
 
 ### L-001 — M5.1 is a foundation, not the canonical schema
 
-**Evidence:** the repository migration `0001_bootstrap.sql` creates only `_schema_metadata`; `docs/backend/database.md` explicitly marks business tables as `NOT_IMPLEMENTED`.
+**Evidence:** `0001_bootstrap.sql` creates only `_schema_metadata`; business tables remain NOT_IMPLEMENTED.
 
-**Operational consequence:** no schema entity may be treated as implemented merely because the baseline lists it.
+**Operational consequence:** no canonical entity is considered implemented merely because it appears in the baseline.
 
 ### L-002 — Migration integrity is already a concrete contract
 
-**Evidence:** M5.1 contains deterministic migration discovery, SHA-256 checksums, idempotent application and checksum-drift rejection.
+**Evidence:** M5.1 provides deterministic migration discovery, SHA-256 checksums, idempotent application and checksum-drift rejection.
 
-**Operational consequence:** future canonical migrations must remain compatible with those guarantees rather than introducing an incompatible migration mechanism.
+**Operational consequence:** future canonical migrations must remain compatible with that mechanism.
 
-### L-003 — Several entity details are intentionally incomplete
+### L-003 — Field-level schema is materially incomplete
 
-**Evidence:** `docs/domain/entities.md` states that detailed field schemas for several entities remain partial and must not be inferred from implementation.
+**Evidence:** baseline §23 and `docs/domain/entities.md` define the entity inventory and selected fields but explicitly leave several detailed field schemas partial.
 
-**Operational consequence:** field-level choices require contract evidence or explicit approved decisions; absence of detail is not permission to invent.
+**Operational consequence:** missing names, types, nullability, defaults and constraints must be classified UNKNOWN/PARTIAL rather than invented.
 
-### L-004 — DomainOutbox is a cross-boundary schema risk
+### L-004 — Seven entities have especially low field-level specification coverage
 
-**Evidence:** `CONTRACT-001` is recorded as ambiguous because the baseline uses DomainOutbox in both local domain transaction flow and Gateway architecture.
+**Evidence:** Phase 1 matrix audit.
 
-**Operational consequence:** IA-01 cannot independently finalize ownership, storage scope or cross-system semantics by choosing a schema shape.
+**Entities:** `Settings`, `ProductCategory`, `CustomerAddress`, `PaymentMethod`, `Integration`, `IntegrationCredential`, `KnowledgeItem`.
 
-### L-005 — Order event ambiguity is not primarily a schema problem
+**Operational consequence:** these entities are not deterministic-DDL ready.
 
-**Evidence:** `CONTRACT-002` concerns the normative semantics of `order.status_changed`.
+### L-005 — Parent key fields are missing for some child entities
 
-**Operational consequence:** IA-01 should not add schema semantics merely to force a resolution of an event contract disagreement.
+**Evidence:** baseline names fields for `OrderItem`, `OrderItemModifier` and `OrderStatusHistory`, but does not explicitly enumerate parent key fields.
 
-### L-006 — Schema and runtime ownership are different
+**Operational consequence:** do not invent `order_id`, `order_item_id` or equivalent names solely from relational intuition.
 
-**Evidence:** existing SQLite lifecycle files implement the M5.1 runtime foundation, while the assigned IA-01 ownership explicitly targets migrations and schema artifacts.
+### L-006 — Normative uniqueness is stronger than general indexing evidence
 
-**Operational consequence:** IA-01 must not expand from schema ownership into repository or database-runtime ownership without an explicit governance change.
+**Evidence:** baseline §23.1 explicitly declares seven unique constraints.
 
-### L-007 — Documentation can lag repository history
+**Operational consequence:** only those uniqueness indexes are currently REQUIRED_BY_CONTRACT. Performance indexes are not to be invented during schema design.
 
-**Evidence:** current `main` advanced after PR #4 while the roadmap text still references an older `main` HEAD.
+### L-007 — Store scoping is an invariant but not mechanically enumerated for every entity
 
-**Operational consequence:** repository state and current Git history must be checked directly before treating documentation snapshots as current state.
+**Evidence:** baseline states canonical entities are scoped by Store, while §23 does not list `store_id` for every entity.
 
-### L-008 — Store scoping is a persistent architectural invariant
+**Operational consequence:** add store keys only where authoritative evidence establishes them; do not normalize the schema by assumption.
 
-**Evidence:** baseline and domain documentation define Store as an operational boundary and specify uniqueness/indexing patterns involving `store_id`.
+### L-008 — Money representation is fully established
 
-**Operational consequence:** any canonical schema proposal must preserve tenant/store isolation semantics already approved for the MVP.
+**Evidence:** baseline §75 and `packages/domain/src/money.ts`.
 
-## Classification rule
+**Operational consequence:** monetary persistence uses integer cents and BRL; floating point is prohibited.
 
-These are audit learnings derived from repository evidence. They are not architectural proposals and do not override protected contracts.
+### L-009 — Lifecycle values are established for Conversation, AI state, Message and Order
+
+**Evidence:** `docs/domain/state-machines.md` and `packages/domain/src/index.ts`.
+
+**Operational consequence:** schema may preserve those exact semantic values, but SQL representation and nullability remain to be specified.
+
+### L-010 — DomainOutbox remains a schema blocker
+
+**Evidence:** `CONTRACT-001`, persistence and Inbox/Outbox documentation.
+
+**Operational consequence:** do not choose a physical schema that silently resolves local-Core vs Gateway ownership.
+
+### L-011 — `order.status_changed` is an event-contract issue, not a reason to alter schema now
+
+**Evidence:** `docs/domain/events.md` and baseline §24/§74.
+
+**Operational consequence:** keep lifecycle state neutral and defer event-derived schema semantics until `CONTRACT-002` is resolved.
+
+### L-012 — Phase 1 is complete as an evidence audit, not as a DDL authorization
+
+**Evidence:** `CANONICAL_SCHEMA_AUDIT.md`.
+
+**Operational consequence:** migration `0002` remains unauthorized until field-level gaps and schema-critical ambiguities are closed.
