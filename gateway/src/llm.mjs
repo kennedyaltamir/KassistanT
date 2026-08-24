@@ -1,6 +1,7 @@
 import { getAiConfig } from './ai-config.mjs';
 
 /** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
+/** @typedef {{ name?: unknown }} OllamaModel */
 
 /** @returns {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number, systemPrompt: string }} */
 export function getLlmStatus() {
@@ -25,7 +26,9 @@ export async function getLlmProviderStatus() {
       return { reachable: false, error: `HTTP ${response.status}`, models: [] };
     }
     const models = Array.isArray(body?.models)
-      ? body.models.map(model => typeof model?.name === 'string' ? model.name : '').filter(Boolean)
+      ? /** @type {OllamaModel[]} */ (body.models)
+        .map(model => typeof model.name === 'string' ? model.name : '')
+        .filter(Boolean)
       : [];
     return {
       reachable: true,
