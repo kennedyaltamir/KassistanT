@@ -87,10 +87,21 @@
 - Impact: confirmation preconditions and downstream lifecycle behavior.
 - Rule: do not invent payment gateway behavior or delivery integration.
 
-## E-012 — Money slice test execution unavailable in current tool environment
+## E-012 — Money slice direct test not verifiable in current environment
 
 - Severity: INFORMATIONAL
 - Status: OPEN / NOT_VERIFIED
-- Problem: the canonical Money consumer test was added under IA-04, but this environment has no verified local checkout/runtime for executing the repository test command.
-- Impact: local test result cannot be truthfully claimed from this run.
-- Rule: report TEST_STATUS as NOT_VERIFIED until the test is actually executed; remote CI status is also tracked independently.
+- Problem: the canonical Money consumer test exists, but this session has no verified project checkout/runtime for executing the repository test command.
+- Impact: direct test PASS/FAIL cannot be truthfully claimed.
+- Rule: keep direct test status NOT_VERIFIED until actually executed.
+
+## E-013 — Official Desktop suite does not include Money consumer test
+
+- Severity: MEDIUM
+- Status: OPEN / HANDOFF
+- Problem: `scripts/test-desktop.mjs` does not list `apps/desktop/electron/order/money-contract.test.ts` in `tsTests`.
+- Impact: the Money test is not executed by the official Desktop test path and therefore is not covered by the existing `pnpm test` CI path.
+- Required owner: shared test harness / integration authority.
+- Required minimal change: add the Money test path to the `tsTests` list.
+- IA-04 authorization: FALSE.
+- Rule: IA-04 must not modify the shared harness.
