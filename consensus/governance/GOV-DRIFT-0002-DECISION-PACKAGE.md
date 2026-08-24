@@ -1,56 +1,51 @@
 # GOV-DRIFT-0002 — Decision Package
 
-Status: **BLOCKER / PENDING_OPERATOR_DECISION**
+Status: **RESOLVED**
 Authority: `OPERATOR_PROJECT_GOVERNANCE`
-Verified baseline: `MVP2` @ `0bea2a0ca7c52729cfd58bebc8cd568373222230`
+Effective from: `2026-08-24T19:52:00-03:00`
+Decision record: `consensus/governance/OPERATOR-DECISIONS-2026-08-24.xml`
 
-## Conflict
+## Decision
 
-O estado factual do branch contém `apps/desktop/database/migrations/0002_c1_product_order.sql`, enquanto `agents/01-schema/MIGRATION-0002-PROJECTION.md` declara `0002 file: NOT CREATED` e o `HUMAN-SCHEMA-REVIEW.md` declara `0002 NOT AUTHORIZED`.
+**OPTION B — DEPRECATE_OR_REJECT_EXISTING_MIGRATION_AS_NON_AUTHORITATIVE**.
 
-O commit atual do branch é inclusive um revert de um probe documental, demonstrando necessidade de tratar o HEAD como evidência factual e não como relato histórico.
+The physical file `apps/desktop/database/migrations/0002_c1_product_order.sql` remains preserved as repository evidence, but it is not a normative migration baseline.
 
-## Question
+## Rationale
 
-Qual deve ser a autoridade normativa do estado físico existente de Migration 0002 e qual tratamento deve receber o arquivo já presente?
+The file exists physically, but it does not correspond to the canonical 0002 projection and was previously blocked by governance documentation. Physical presence cannot promote it to normative authority. Treating it as non-authoritative prevents a partial schema implementation from becoming the canonical baseline by accident.
 
-## Real Alternatives
+## Impact
 
-### Option A — Preserve and formally recognize existing 0002
+### Schema
 
-Reconhecer o arquivo atual como artefato físico existente, sem ainda declarar que ele é normativamente aprovado. Em seguida, IA-01 reconcilia o conteúdo com os contratos vigentes e registra lacunas.
+The existing 0002 file remains physically untouched by this decision. It must not be executed, renamed, deleted or replaced as part of this decision. IA-01 must produce the post-decision reconciliation and a separate authorized physical-change step when applicable.
 
-Consequence: preserva o estado físico, mas exige reconciliação explícita antes de qualquer uso como baseline normativa.
+### Contracts
 
-### Option B — Treat existing 0002 as non-authoritative artifact
+Schema authority remains subordinate to the frozen contracts and the forthcoming IA-01 reconciliation.
 
-Classificar o arquivo como implementação histórica/experimental não normativa e manter a regra documental de que nenhuma migration é autorizada até novo fechamento contratual.
+### Implementation
 
-Consequence: preserva a evidência do arquivo sem atribuir autoridade sem aprovação.
+No implementation is retroactively authorized by the existence of 0002 or by this decision.
 
-### Option C — Escalate to broader repository governance decision
+### Audit
 
-O Operator decide uma regra global para artifacts físicos que contradizem gates documentais, incluindo ownership e autoridade de migration state.
+The physical artifact remains auditable historical evidence. Its non-authoritative classification must be preserved in provenance.
 
-Consequence: resolve a classe de conflitos, não apenas este arquivo.
+## Explicit Non-Scope
 
-## Recommendation
+No migration execution; no migration deletion; no migration replacement; no schema mutation; no merge; no production release.
 
-**Nenhuma opção é escolhida unilateralmente neste pacote.** A decisão pertence ao Operator. A recomendação operacional é somente registrar o conflito como blocker e impedir que a presença física de `0002` seja interpretada como aprovação normativa.
+## Evidence
 
-## Required Facts for Decision
+- `apps/desktop/database/migrations/0002_c1_product_order.sql` exists in `MVP2`.
+- `agents/01-schema/MIGRATION-0002-PROJECTION.md` states that 0002 is not created.
+- `agents/01-schema/HUMAN-SCHEMA-REVIEW.md` states that 0002 is not authorized.
+- `consensus/governance/MVP2-RECONCILIATION.md` classified the discrepancy as governance drift.
+- Current `MVP2` HEAD was verified as `e2d8807a6e797b0fb35e6a4658f8c4aabec7535a` before this decision cycle's final recording.
 
-- `0002` existe fisicamente em `MVP2`.
-- O conteúdo atual cria `product`, `order`, `order_item` e `order_item_modifier` e adiciona índices de store/parent.
-- O arquivo atual não corresponde integralmente ao projection document que lista 28 tabelas e sete uniqueness constraints.
-- O projection document afirma que `domain_outbox` deve ser final e que CONTRACT-001 pode afetar seu escopo.
+## Consequence
 
-## Decision State
-
-`PENDING_OPERATOR_DECISION`.
-
-## Prohibited Interpretation
-
-Existência física != aprovação normativa.
-
-Nenhuma alternativa deste pacote autoriza executar migrations, criar nova migration, alterar schema, remover `0002` ou fazer merge.
+`GOV-DRIFT-0002 = RESOLVED`.
+IA-01 must now reconcile documentation and schema authority without altering the normative decision.
