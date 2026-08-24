@@ -15,7 +15,6 @@ export interface ConfirmationData {
 export interface ConfirmOrderCommand<TActorContext extends object = object> {
   readonly confirmation: ConfirmationData;
   readonly actor_context: TActorContext;
-  readonly concurrency_conflict?: boolean;
 }
 
 export interface OrderConfirmedEvent {
@@ -50,10 +49,6 @@ export function confirmOrder<TActorContext extends object>(
   order: Order,
   command: ConfirmOrderCommand<TActorContext>
 ): ConfirmOrderResult<TActorContext> {
-  if (command.concurrency_conflict === true) {
-    return failure(ORDER_DOMAIN_ERRORS.CONCURRENCY_CONFLICT, command.actor_context);
-  }
-
   if (order.status === "CONFIRMED") {
     return failure(ORDER_DOMAIN_ERRORS.DUPLICATE_CONFIRMATION, command.actor_context);
   }
