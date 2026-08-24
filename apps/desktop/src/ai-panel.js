@@ -3,7 +3,7 @@
   const PANEL_ID = 'kassist-ai-panel';
   const BUTTON_ID = 'kassist-ai-button';
 
-  const state = { config: null, provider: null, saving: false, error: null, jid: null, policy: {} };
+  const state = { config: null, provider: null, saving: false, testing: false, testMessage: '', error: null, jid: null, policy: {} };
 
   const $ = (selector, root = document) => root.querySelector(selector);
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({
@@ -55,6 +55,7 @@
       #${PANEL_ID} .ai-state.bad{background:#f4e9eb;color:#943542}
       #${PANEL_ID} .ai-section{border-top:1px solid #e4e7ef;margin-top:16px;padding-top:16px}
       #${PANEL_ID} .ai-error{padding:10px;border-radius:8px;background:#f4e9eb;color:#943542;font-size:12px;margin-bottom:12px}
+      #${PANEL_ID} .ai-feedback{padding:10px;border-radius:8px;background:#e4f6ee;color:#116846;font-size:12px;margin-bottom:12px}
       #${BUTTON_ID}{margin-left:12px;white-space:nowrap}
       @media(max-width:720px){#${PANEL_ID}{top:64px;right:10px;width:calc(100vw - 20px);max-height:calc(100vh - 74px)}#${PANEL_ID} .ai-grid{grid-template-columns:1fr}}
     `;
@@ -70,12 +71,16 @@
     const modelOk = state.provider?.selectedModelAvailable === true;
     const providerLabel = !state.provider ? 'NÃO TESTADO' : providerOk && modelOk ? 'OLLAMA OK' : providerOk ? 'MODELO NÃO ENCONTRADO' : 'OLLAMA INDISPONÍVEL';
     const mode = !state.jid ? 'SELECIONE UMA CONVERSA' : state.policy.enabled === false ? 'DESATIVADA NESTA CONVERSA' : state.policy.enabled === true ? 'ATIVADA NESTA CONVERSA' : 'HERDA GLOBAL';
+    const testState = state.testing ? 'TESTANDO…' : state.testMessage || (!state.provider ? 'AINDA NÃO TESTADO' : providerLabel);
+    const testStateClass = state.testing ? '' : providerOk && modelOk ? 'ok' : state.testMessage && !providerOk ? 'bad' : '';
 
     panel.innerHTML = `
       <div class="ai-head"><div><div class="ai-title">IA Local</div><div class="ai-sub">Auto-reply operacional • Ollama local • Gateway</div></div><button class="btn" id="ai-close">Fechar</button></div>
       ${state.error ? '<div class="ai-error">' + esc(state.error) + '</div>' : ''}
+      ${state.testMessage ? '<div class="ai-feedback">' + esc(state.testMessage) + '</div>' : ''}
       <div class="ai-row"><div><strong>Estado global</strong><div class="ai-note">Controla o auto-reply para novas mensagens.</div></div><span class="ai-state ${enabled ? 'ok' : ''}">${enabled ? 'ATIVA' : 'DESATIVADA'}</span></div>
       <div class="ai-row"><div><strong>Provedor local</strong><div class="ai-note">Teste direto do Ollama configurado.</div></div><span class="ai-state ${providerOk && modelOk ? 'ok' : providerOk ? '' : 'bad'}">${providerLabel}</span></div>
+      <div class="ai-row"><div><strong>Último teste</strong><div class="ai-note">Validação operacional do endpoint e do modelo selecionado.</div></div><span class="ai-state ${testStateClass}">${esc(testState)}</span></div>
       <div class="ai-grid">
         <div class="ai-field"><label for="ai-enabled">Auto-reply</label><select id="ai-enabled"><option value="false" ${enabled ? '' : 'selected'}>Desativado</option><option value="true" ${enabled ? 'selected' : ''}>Ativado</option></select></div>
         <div class="ai-field"><label for="ai-model">Modelo Ollama</label><input id="ai-model" value="${esc(config.model || '')}" /></div>
@@ -85,7 +90,7 @@
         <div class="ai-field ai-full"><label for="ai-cooldown">Cooldown por conversa (ms)</label><input id="ai-cooldown" type="number" min="0" max="60000" value="${Number(config.cooldownMs || 1500)}" /></div>
         <div class="ai-field ai-full"><label for="ai-prompt">Prompt global</label><textarea id="ai-prompt">${esc(config.systemPrompt || '')}</textarea></div>
       </div>
-      <div class="ai-actions"><button class="btn" id="ai-test">Testar Ollama</button><button class="btn" id="ai-reload">Recarregar</button><button class="btn primary" id="ai-save" ${state.saving ? 'disabled' : ''}>${state.saving ? 'Salvando…' : 'Salvar configuração'}</button></div>
+      <div class="ai-actions"><button class="btn" id="ai-test" ${state.testing ? 'disabled' : ''}>${state.testing ? 'Testando…' : 'Testar Ollama'}</button><button class="btn" id="ai-reload">Recarregar</button><button class="btn primary" id="ai-save" ${state.saving ? 'disabled' : ''}>${state.saving ? 'Salvando…' : 'Salvar configuração'}</button></div>
       ${state.provider?.models?.length ? '<div class="ai-note">Modelos disponíveis: ' + esc(state.provider.models.join(', ')) + '</div>' : ''}
       <div class="ai-section">
         <div class="ai-row"><div><strong>Comportamento por conversa</strong><div class="ai-note">Sem override, a conversa herda o estado global.</div></div><span class="ai-state ${state.jid ? 'ok' : ''}">${mode}</span></div>
@@ -108,6 +113,7 @@
 
   async function loadAll() {
     state.error = null;
+    state.testMessage = '';
     try {
       state.config = await api('/api/whatsapp/ai/config');
       state.jid = currentJid();
@@ -121,18 +127,34 @@
 
   async function testProvider() {
     state.error = null;
+    state.testing = true;
+    state.testMessage = 'Executando teste do Ollama…';
+    render();
     try {
       state.provider = await api('/api/whatsapp/ai/provider');
-      toast(state.provider.reachable && state.provider.selectedModelAvailable ? 'Ollama e modelo disponíveis.' : 'Ollama respondeu, mas verifique o modelo selecionado.');
+      if (state.provider.reachable && state.provider.selectedModelAvailable) {
+        state.testMessage = `Teste concluído com sucesso. Ollama acessível e modelo ${state.provider.models?.find(model => model === state.config?.model) || state.config?.model || 'selecionado'} disponível.`;
+        toast('Ollama e modelo disponíveis.');
+      } else if (state.provider.reachable) {
+        state.testMessage = 'Ollama respondeu, mas o modelo selecionado não está disponível.';
+        toast('Ollama respondeu; verifique o modelo.');
+      } else {
+        state.testMessage = state.provider.error || 'Ollama indisponível.';
+        toast('Ollama indisponível.');
+      }
     } catch (error) {
       state.error = error instanceof Error ? error.message : String(error);
+      state.testMessage = 'Falha ao testar o provedor local.';
+    } finally {
+      state.testing = false;
+      render();
     }
-    render();
   }
 
   async function saveConfig() {
     state.saving = true;
     state.error = null;
+    state.testMessage = '';
     render();
     try {
       state.config = await api('/api/whatsapp/ai/config', {
@@ -147,7 +169,7 @@
         })
       });
       state.provider = await api('/api/whatsapp/ai/provider');
-      toast('Configuração da IA salva.');
+      toast(state.config.enabled ? 'Auto-reply global ativado.' : 'Auto-reply global desativado.');
     } catch (error) {
       state.error = error instanceof Error ? error.message : String(error);
     } finally {
