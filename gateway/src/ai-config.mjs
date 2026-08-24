@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '..', 'data', 'ai-config.json');
+const LOCAL_OLLAMA_URLS = new Set(['http://127.0.0.1:11434', 'http://localhost:11434']);
 
 const DEFAULT_CONFIG = {
   enabled: false,
@@ -31,14 +32,25 @@ function envConfig() {
 }
 
 function normalize(value = {}) {
+  const baseUrl = String(value.baseUrl ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, '');
+  if (!LOCAL_OLLAMA_URLS.has(baseUrl)) {
+    throw new Error('Local LLM URL must point to localhost:11434');
+  }
+
+  const model = String(value.model ?? DEFAULT_CONFIG.model).trim();
+  const systemPrompt = String(value.systemPrompt ?? DEFAULT_CONFIG.systemPrompt).trim();
+  if (!model) throw new Error('LLM model is required');
+  if (!systemPrompt) throw new Error('System prompt is required');
+  if (systemPrompt.length > 12000) throw new Error('System prompt exceeds 12000 characters');
+
   return {
     enabled: Boolean(value.enabled),
-    baseUrl: String(value.baseUrl ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, ''),
-    model: String(value.model ?? DEFAULT_CONFIG.model).trim() || DEFAULT_CONFIG.model,
+    baseUrl,
+    model,
     timeoutMs: Math.min(300000, Math.max(1000, Number(value.timeoutMs ?? DEFAULT_CONFIG.timeoutMs))),
     contextMessages: Math.min(50, Math.max(1, Number(value.contextMessages ?? DEFAULT_CONFIG.contextMessages))),
     cooldownMs: Math.min(60000, Math.max(0, Number(value.cooldownMs ?? DEFAULT_CONFIG.cooldownMs))),
-    systemPrompt: String(value.systemPrompt ?? DEFAULT_CONFIG.systemPrompt).trim() || DEFAULT_CONFIG.systemPrompt,
+    systemPrompt,
   };
 }
 
