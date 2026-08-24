@@ -1,327 +1,191 @@
 # IA-01 — Canonical Physical Schema Specification
 
-Status: **PHASE 2 — SPECIFICATION / BLOCKED FOR DDL**  
-Branch: `Agent01-schema-canonical-sqlite`  
-Migration `0002`: **NOT CREATED**  
+Status: **SCHEMA DECISION PACKAGE / DDL BLOCKED**
+Branch: `Agent01-schema-canonical-sqlite`
+Migration `0002`: **NOT CREATED**
 M5.1: **PRESERVED**
 
-## 1. Authority
+## 1. Purpose
 
-The specification is derived from current Git/GitHub state, the approved baseline SHA `02830152099f58307912ce382c064a3c4075f505`, protected domain/backend/protocol documentation, current packages and the Phase 1 audit.
+This document is the physical-schema authority package for IA-01. It does not itself approve unresolved global or cross-agent decisions. It records which physical choices are local implementation details, which require semantic owners, and which remain globally blocked.
 
-This document distinguishes:
+Supporting decision artifacts:
 
-- `FROZEN` — sufficiently authoritative for deterministic DDL.
-- `PARTIAL` — concept is authoritative but physical detail is incomplete.
-- `BLOCKED` — implementation requires an unresolved contract or missing normative field detail.
-- `UNKNOWN` — evidence is insufficient.
-- `PROPOSED` — a mechanically derived design proposal, not project-approved.
+- `SCHEMA-DECISION-MATRIX.md`
+- `SCHEMA-AUTHORITY-MATRIX.md`
+- `TABLE-READINESS-MATRIX.md`
+- `ENTITY-PHYSICAL-MAP.md`
+- `RELATIONSHIP-SPEC.md`
+- `CONSTRAINT-SPEC.md`
+- `INDEX-SPEC.md`
+- `MIGRATION-0002-READINESS.md`
+- `MIGRATION-0002-PROJECTION.md`
 
-## 2. Global physical conventions
+## 2. Frozen repository facts
 
-| Concern | Current specification | Status | Evidence |
+- SQLite is the MVP persistence technology.
+- UUIDv7 is the logical identifier convention where supported.
+- Persisted timestamps are UTC.
+- Monetary values are integer cents in BRL.
+- The canonical inventory contains exactly 28 entities.
+- Seven UNIQUE constraints are explicitly normative: `Customer(store_id, phone_normalized)`, `Conversation(store_id, external_thread_id)`, `Message(store_id, external_message_id)`, `InboundInbox(provider, external_event_id)`, `DomainOutbox(idempotency_key)`, `Order(store_id, display_number)`, and `Device(store_id, id)`.
+- Current `0001_bootstrap.sql` creates only `_schema_metadata`; no canonical business table is implemented. fileciteturn103file0
+
+## 3. Physical decisions and authority
+
+| Concern | Current classification | Authority | Current resolution |
 |---|---|---|---|
-| Storage | SQLite local Desktop Core | FROZEN | Baseline §23; backend database |
-| Identifier semantic | UUIDv7 where supported | FROZEN | Baseline §23; M5.1 UUIDv7 primitive |
-| UUID physical SQLite type | Not explicitly frozen | UNKNOWN | Protected docs do not select TEXT/BLOB |
-| Timestamp semantic | UTC | FROZEN | Baseline §23; backend database |
-| Timestamp physical SQLite type | Not explicitly frozen | UNKNOWN | No protected physical encoding decision found |
-| Money semantic | integer cents | FROZEN | Baseline §15/75; domain money primitive |
-| Currency | BRL | FROZEN | Baseline §75 |
-| Money physical SQLite type | INTEGER is compatible and mechanically required by integer-cent semantic | STRONG_INFERENCE | Baseline + `packages/domain/src/money.ts` |
-| Naming convention | lower_snake_case proposed from existing `_schema_metadata` / field names | PROPOSED | Existing repository naming; not normatively frozen |
-| Store isolation | Where explicitly required by canonical field inventory / uniqueness contracts | FROZEN | Baseline §23 / §23.1 |
-| Unknown store scope | Must remain UNKNOWN rather than adding `store_id` | FROZEN | Phase 1 evidence rule |
-| SQL enum strategy | Not frozen; exact state values are semantic contracts | UNKNOWN | State machines define values but not SQL encoding |
-| FK delete/update behavior | Not frozen | UNKNOWN | No protected schema source defines actions |
-
-## 3. Physical table map
-
-Physical names below are deterministic **proposals**, not frozen decisions. The proposal applies lower_snake_case to the canonical entity name. This is intentionally not promoted to `FROZEN` because the protected sources do not currently state a SQL naming convention.
-
-| Entity | Proposed table | Status | Migration readiness |
-|---|---|---|---|
-| Store | `store` | PROPOSED | BLOCKED — TABLE-NAMING |
-| Device | `device` | PROPOSED | BLOCKED — TABLE-NAMING |
-| Settings | `settings` | PROPOSED | BLOCKED — FIELD-GAPS |
-| ProductCategory | `product_category` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Product | `product` | PROPOSED | BLOCKED — TABLE-NAMING |
-| ProductModifier | `product_modifier` | PROPOSED | BLOCKED — TABLE-NAMING |
-| ProductImage | `product_image` | PROPOSED | BLOCKED — TABLE-NAMING |
-| Promotion | `promotion` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Customer | `customer` | PROPOSED | BLOCKED — TABLE-NAMING / NULLABILITY |
-| CustomerAddress | `customer_address` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Conversation | `conversation` | PROPOSED | BLOCKED — TABLE-NAMING |
-| Message | `message` | PROPOSED | BLOCKED — TABLE-NAMING |
-| Order | `order` | PROPOSED | BLOCKED — SQL naming verification |
-| OrderItem | `order_item` | PROPOSED | BLOCKED — MISSING PARENT KEY |
-| OrderItemModifier | `order_item_modifier` | PROPOSED | BLOCKED — MISSING PARENT KEY |
-| OrderStatusHistory | `order_status_history` | PROPOSED | BLOCKED — MISSING PARENT KEY |
-| PaymentMethod | `payment_method` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Notification | `notification` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Integration | `integration` | PROPOSED | BLOCKED — FIELD-GAPS |
-| IntegrationCredential | `integration_credential` | PROPOSED | BLOCKED — FIELD-GAPS / SECURITY |
-| InboundInbox | `inbound_inbox` | PROPOSED | BLOCKED — PROCESSING MODEL DETAIL |
-| DomainOutbox | `domain_outbox` | PROPOSED | BLOCKED — CONTRACT-001 |
-| Job | `job` | PROPOSED | BLOCKED — FIELD-GAPS |
-| AuditLog | `audit_log` | PROPOSED | BLOCKED — FIELD-GAPS |
-| Log | `log` | PROPOSED | BLOCKED — FIELD-GAPS |
-| AIProfile | `ai_profile` | PROPOSED | BLOCKED — FIELD-GAPS |
-| AIExecution | `ai_execution` | PROPOSED | BLOCKED — FIELD-GAPS |
-| KnowledgeItem | `knowledge_item` | PROPOSED | BLOCKED — FIELD-GAPS |
-
-## 4. Field specification
-
-### 4.1 FROZEN semantic fields
-
-The following names are explicitly present in the approved baseline and therefore may be carried forward exactly as logical/physical column candidates. Their **SQL type, nullability and default are not automatically frozen** unless stated below.
-
-#### Store
-`id`, `name`, `phone`, `address`, `timezone`, timestamp concept.  
-`id` is the entity identifier; physical representation remains UNKNOWN.
-
-#### Device
-`id`, `store_id`, `status`, `protocol_version`, `app_version`, `last_seen_at`, `revoked_at`, timestamp concept.  
-`store_id -> Store.id` is explicit. `UNIQUE(store_id,id)` is explicit.
-
-#### Product
-`id`, `store_id`, `category_id`, `name`, `description`, `price_cents`, `currency`, `available`, `tags`, timestamp concept.  
-`price_cents` = integer cents; `currency` = BRL. `category_id -> ProductCategory.id` is a strong inference from explicit naming and entity inventory, not a new business rule.
-
-#### ProductModifier
-`id`, `store_id`, `product_id`, `name`, `price_cents`, `available`, `min_quantity`, `max_quantity`.  
-`product_id -> Product.id` is a strong inference supported by baseline §76.
-
-#### ProductImage
-`product_id`, `file_path`, `mime_type`, `dimensions`, `checksum`.  
-`product_id -> Product.id` is a strong inference from explicit field/entity naming.
-
-#### Promotion
-`store_id`, `name`, `active`, `start_at`, `end_at`, `type`, `value`, `product_scope`, `minimum_quantity`.  
-`type` allowed semantic values are `FIXED_AMOUNT` and `PERCENTAGE`. Physical encoding and `value` representation remain UNKNOWN/PARTIAL.
-
-#### Customer
-`store_id`, `phone_normalized`, `name`, `notes`, `first_order_at`, `last_order_at`, `order_count`, `total_spent_cents`, `currency`, Google identifiers, `status`, timestamp concept.  
-`UNIQUE(store_id,phone_normalized)` is FROZEN by contract. Google identifier physical fields are not frozen.
-
-#### CustomerAddress
-Structured address + `is_default`.  
-**BLOCKED:** authoritative component field names and parent key are absent.
-
-#### Conversation
-`store_id`, `customer_id`, `external_thread_id`, `lifecycle_state`, `ownership`, `ai_state`, unread count, timestamps.  
-`customer_id -> Customer.id` is mechanically implied but not separately frozen. `UNIQUE(store_id,external_thread_id)` is FROZEN. State values are FROZEN semantically: lifecycle `OPEN|CLOSED`, ownership `AI|HUMAN`, AI state `ACTIVE|PAUSED|UNAVAILABLE`.
-
-#### Message
-`store_id`, `conversation_id`, `external_message_id`, `direction`, `sender_type`, `message_type`, `text`, `media reference`, `reply reference`, `raw_event_reference`, `lifecycle_state`, provider status/error, timestamps, `correlation_id`, `causation_id`.  
-`conversation_id -> Conversation.id` is mechanically implied. `raw_event_reference` must reference the internal Inbox identity. `UNIQUE(store_id,external_message_id)` is FROZEN. Message lifecycle values are FROZEN semantically: `RECEIVED|QUEUED|PROCESSING|SENT|DELIVERED|READ|FAILED|REJECTED`.
-
-#### Order
-`store_id`, `display_number`, `customer_id`, `conversation_id`, `lifecycle_state`, `subtotal_cents`, `discount_cents`, `delivery_fee_cents`, `total_cents`, `currency`, `delivery_type`, `address_id`, `payment_method_id`, `notes`, timestamps.  
-Money fields are integer cents, currency is BRL. Order lifecycle values are FROZEN semantically. `UNIQUE(store_id,display_number)` is FROZEN. Parent FKs are not physically frozen by the protected schema texts.
-
-#### OrderItem
-`product_name_snapshot`, `unit_price_cents_snapshot`, `quantity`, `subtotal_cents`.  
-`quantity` is a positive integer by domain invariant. **BLOCKED:** parent key(s), item identifier and exact ownership relation are not explicitly named.
+| Table naming | PROPOSAL | IA-01 local | `lower_snake_case`; operator confirmation required |
+| Column naming | PROPOSAL | IA-01 local | preserve documented logical field names using `lower_snake_case` where physically materialized |
+| UUID SQLite type | PROPOSAL | IA-01 local | canonical textual UUID (`TEXT`) |
+| UTC timestamp SQLite type | PROPOSAL | IA-01 local | canonical UTC RFC3339/ISO-8601 text (`TEXT`) |
+| Money SQLite type | FROZEN | baseline/domain | `INTEGER` cents; currency `BRL` |
+| Boolean SQLite type | PROPOSAL | IA-01 local | `INTEGER` constrained to `0/1` when a boolean field is semantically frozen |
+| JSON/payload encoding | PROPOSAL | IA-01 local | `TEXT` containing canonical JSON only where contract identifies a JSON payload/reference |
+| Status/lifecycle physical encoding | BLOCKED | semantic owner + IA-01 | semantic value set first; physical encoding only after owner approval |
+| FK delete/update | BLOCKED | semantic owner | no action chosen by convention |
+| Performance indexes | DEFERRED | IA-01 | none beyond contract-required indexes |
 
-#### OrderItemModifier
-`modifier_name_snapshot`, `unit_price_cents_snapshot`, `quantity`, `subtotal_cents`.  
-**BLOCKED:** parent key(s), modifier relation and exact ownership relation are not explicitly named.
-
-#### OrderStatusHistory
-`from_state`, `to_state`, `reason`, `actor`, `timestamp`.  
-`from_state/to_state` reuse the Order lifecycle semantic set. **BLOCKED:** parent Order key and history row identifier are not explicitly named.
-
-#### PaymentMethod
-Concept: method recorded for MVP; no real financial processing.  
-**BLOCKED:** exact field names/representation are not frozen.
-
-#### Notification
-`channel`, `destination`, idempotency data, `attempts`, `status`, `errors`, timestamps.  
-**PARTIAL/BLOCKED:** exact idempotency field, status values and error representation are not frozen.
-
-#### Integration
-Integration state/configuration concept.  
-**BLOCKED:** exact field inventory is absent.
-
-#### IntegrationCredential
-Secure credential reference concept.  
-**BLOCKED:** exact fields are absent; plaintext secrets are prohibited by security contract. Physical secret material must not be invented.
-
-#### InboundInbox
-`provider`, `external_event_id`, payload hash/reference, processing state, timestamps, correlation.  
-`UNIQUE(provider,external_event_id)` is FROZEN. Processing-state values/field decomposition are not frozen.
+These physical proposals are implementation-level choices and are not silently promoted to project-wide architectural decisions.
 
-#### DomainOutbox
-Event created in a domain transaction, `idempotency_key`, `attempts`, processed state.  
-`UNIQUE(idempotency_key)` is FROZEN. **BLOCKED:** physical ownership/scope and complete event field set depend on CONTRACT-001.
-
-#### Job
-`type`, `state`, payload reference, scheduling, lock/attempts.  
-Retry/backoff/idempotency are required behaviorally; exact physical fields are not fully frozen.
+## 4. Entity physical map
 
-#### AuditLog
-`actor`, `action`, `entity`, before/after reference, `correlation`, `timestamp`.  
-Exact actor/entity key types and before/after representation remain UNKNOWN.
+Proposed table names:
 
-#### Log
-`timestamp`, `level`, `category`, `event`, `correlation`, `entity`, `message`, error code, metadata.  
-Exact physical types and structured metadata encoding remain UNKNOWN.
+`store`, `device`, `settings`, `product_category`, `product`, `product_modifier`, `product_image`, `promotion`, `customer`, `customer_address`, `conversation`, `message`, `order`, `order_item`, `order_item_modifier`, `order_status_history`, `payment_method`, `notification`, `integration`, `integration_credential`, `inbound_inbox`, `domain_outbox`, `job`, `audit_log`, `log`, `ai_profile`, `ai_execution`, `knowledge_item`.
 
-#### AIProfile
-attendant profile, rules version, objectives, model, temperature, token limit.  
-Exact column decomposition is not frozen.
+Status: `PROPOSED`, not frozen.
 
-#### AIExecution
-model, model version/digest, prompt version, policy version, knowledge version, input hash, tool calls, validation, latency, token usage, fallback, timestamps.  
-Exact physical decomposition is not frozen.
+## 5. Field authority rule
 
-#### KnowledgeItem
-structured content and `store_id`.  
-**BLOCKED:** exact content/identity fields are absent.
+A field name explicitly present in the approved baseline is a valid logical candidate. A field is `FROZEN` for migration only when its logical meaning, physical type, nullability/default, key semantics and relevant constraints are deterministic.
 
-### 4.2 Physical column status rule
+No missing field, parent key, default, FK action or enum encoding is invented by IA-01.
 
-Where the baseline names a logical field but does not define its SQLite representation, the physical column is `PARTIAL/UNKNOWN`, not an inferred `TEXT/INTEGER` decision. The only current type-level exception is money: integer cents is contractually established, and the domain primitive uses a safe integer.
+### Explicit logical field sets
 
-## 5. Nullability/defaults
+**Store:** `id`, `name`, `phone`, `address`, `timezone`, timestamps.
 
-No blanket `NOT NULL` policy is authorized by current protected schema documents. No business default is added solely from intuition. Each unresolved field remains `UNKNOWN` until authoritative evidence closes it.
+**Device:** `id`, `store_id`, `status`, `protocol_version`, `app_version`, `last_seen_at`, `revoked_at`, timestamps.
 
-Explicitly known semantic default:
+**Product:** `id`, `store_id`, `category_id`, `name`, `description`, `price_cents`, `currency`, `available`, `tags`, timestamps.
 
-- Currency semantic = `BRL`.
+**ProductModifier:** `id`, `store_id`, `product_id`, `name`, `price_cents`, `available`, `min_quantity`, `max_quantity`.
 
-This does **not** automatically authorize a SQL `DEFAULT 'BRL'` constraint; default behavior remains `UNKNOWN` pending physical contract.
+**ProductImage:** `product_id`, `file_path`, `mime_type`, `dimensions`, `checksum`.
 
-## 6. Mutability
-
-`id` identifiers are semantically stable. Snapshot fields in OrderItem/OrderItemModifier are intended to preserve order-time values, but exact immutability enforcement is not specified by SQL contract. Runtime immutability belongs to domain/order logic, not inferred CHECK/trigger behavior.
-
-Known operational timestamps such as `revoked_at`, `last_seen_at`, `first_order_at`, `last_order_at` are mutable lifecycle data; exact update rules are not frozen here.
-
-## 7. Store/device/actor scope
-
-| Entity | Current scope classification | Evidence status |
-|---|---|---|
-| Store | GLOBAL ROOT | FROZEN |
-| Device | STORE_SCOPED | FROZEN (`store_id`) |
-| Settings | UNKNOWN / likely Store configuration | PARTIAL |
-| ProductCategory | UNKNOWN | PARTIAL |
-| Product | STORE_SCOPED | FROZEN (`store_id`) |
-| ProductModifier | STORE_SCOPED | FROZEN (`store_id`) |
-| ProductImage | STORE_SCOPED via Product | STRONG_INFERENCE |
-| Promotion | STORE_SCOPED | STRONG_INFERENCE (`store_id`) |
-| Customer | STORE_SCOPED | FROZEN (`store_id`) |
-| CustomerAddress | UNKNOWN | BLOCKED |
-| Conversation | STORE_SCOPED | FROZEN (`store_id`) |
-| Message | STORE_SCOPED | FROZEN (`store_id`) |
-| Order | STORE_SCOPED | FROZEN (`store_id`) |
-| OrderItem | UNKNOWN via Order | BLOCKED pending parent key |
-| OrderItemModifier | UNKNOWN via OrderItem | BLOCKED pending parent key |
-| OrderStatusHistory | UNKNOWN via Order | BLOCKED pending parent key |
-| PaymentMethod | UNKNOWN | BLOCKED |
-| Notification | UNKNOWN | PARTIAL |
-| Integration | UNKNOWN | BLOCKED |
-| IntegrationCredential | UNKNOWN | BLOCKED |
-| InboundInbox | Provider-scoped; store relation not explicitly enumerated | PARTIAL |
-| DomainOutbox | UNKNOWN across Core/Gateway | BLOCKED — CONTRACT-001 |
-| Job | UNKNOWN | PARTIAL |
-| AuditLog | UNKNOWN / operational store likely, but not field-frozen | PARTIAL |
-| Log | UNKNOWN | PARTIAL |
-| AIProfile | UNKNOWN / likely Store operational profile | PARTIAL |
-| AIExecution | UNKNOWN / likely Store execution context | PARTIAL |
-| KnowledgeItem | STORE_SCOPED (`store_id`) | FROZEN |
-
-## 8. Lifecycle/status storage
-
-Semantic state sets that are safe to preserve:
-
-- Conversation lifecycle: `OPEN`, `CLOSED`.
-- Conversation ownership: `AI`, `HUMAN`.
-- AI state: `ACTIVE`, `PAUSED`, `UNAVAILABLE`.
-- Message lifecycle: `RECEIVED`, `QUEUED`, `PROCESSING`, `SENT`, `DELIVERED`, `READ`, `FAILED`, `REJECTED`.
-- Order lifecycle: `DRAFT`, `CONFIRMED`, `IN_PRODUCTION`, `READY`, `OUT_FOR_DELIVERY`, `DELIVERED`, `CANCELLED`.
-- Promotion type: `FIXED_AMOUNT`, `PERCENTAGE`.
-
-The physical SQL representation (`TEXT`, integer code, lookup table, etc.) is not frozen by current contracts. SQL CHECKs cannot be finalized until that representation is explicitly approved.
-
-## 9. Idempotency / deduplication / causation
-
-Currently contractually significant:
-
-- `Customer(store_id,phone_normalized)` — logical identity uniqueness.
-- `Conversation(store_id,external_thread_id)` — external thread deduplication.
-- `Message(store_id,external_message_id)` — external message deduplication.
-- `InboundInbox(provider,external_event_id)` — inbound event deduplication.
-- `DomainOutbox(idempotency_key)` — outbound effect idempotency.
-- Message `correlation_id` / `causation_id` — traceability metadata.
-
-The exact nullability, format and FK status of correlation/causation fields are not frozen.
-
-## 10. Delete/update actions
-
-No protected schema source currently specifies `ON DELETE` or `ON UPDATE` actions. Therefore all such actions remain `UNKNOWN`. No cascade may be introduced by convention during Phase 2.
-
-## 11. Immutable vs mutable
-
-### Semantically stable
-- entity identifiers;
-- external identity keys used for deduplication;
-- Order snapshot values after confirmation, subject to domain invariant.
-
-### Operationally mutable
-- status/lifecycle fields;
-- retry/attempt state;
-- timestamps such as `last_seen_at` / `revoked_at`;
-- availability/active state.
-
-SQL immutability enforcement is not authorized where the contract only establishes a domain invariant.
-
-## 12. Implementation order proposal
-
-The following is a dependency-aware **proposal**, not an approved migration plan:
-
-1. Store
-2. Device
-3. Settings
-4. ProductCategory
-5. Product
-6. ProductModifier
-7. ProductImage
-8. Promotion
-9. Customer
-10. CustomerAddress
-11. Conversation
-12. Message
-13. PaymentMethod
-14. Integration
-15. IntegrationCredential
-16. KnowledgeItem
-17. Order
-18. OrderItem
-19. OrderItemModifier
-20. OrderStatusHistory
-21. InboundInbox
-22. Job
-23. AuditLog
-24. Log
-25. AIProfile
-26. AIExecution
-27. Notification
-28. DomainOutbox — only after CONTRACT-001 is resolved if physical ownership is schema-significant.
-
-This order keeps obvious parent-before-child dependencies ahead of child tables but does not bypass unresolved contract semantics.
-
-## 13. Overall status
-
-**Phase 2 cannot freeze the physical schema yet.** The repository supports a deterministic semantic map, but the following still require authoritative closure before `0002` can be generated without interpretation:
-
-1. physical SQL naming convention;
-2. field-level definitions for seven underspecified entities;
-3. parent key names for OrderItem, OrderItemModifier and OrderStatusHistory;
-4. nullability/default rules;
-5. FK actions;
-6. SQL representation of lifecycle enums;
-7. DomainOutbox ownership/physical scope where applicable;
-8. source-authority decision if GOV-001 changes interpretation.
+**Promotion:** `store_id`, `name`, `active`, `start_at`, `end_at`, `type`, `value`, `product_scope`, `minimum_quantity`; semantic promotion types are `FIXED_AMOUNT` and `PERCENTAGE`.
+
+**Customer:** `store_id`, `phone_normalized`, `name`, `notes`, `first_order_at`, `last_order_at`, `order_count`, `total_spent_cents`, `currency`, Google identifiers, `status`, timestamps.
+
+**Conversation:** `store_id`, `customer_id`, `external_thread_id`, `lifecycle_state`, `ownership`, `ai_state`, unread count, timestamps. Semantic states: lifecycle `OPEN|CLOSED`; ownership `AI|HUMAN`; AI state `ACTIVE|PAUSED|UNAVAILABLE`.
+
+**Message:** `store_id`, `conversation_id`, `external_message_id`, `direction`, `sender_type`, `message_type`, `text`, media reference, reply reference, `raw_event_reference`, `lifecycle_state`, provider status/error, timestamps, `correlation_id`, `causation_id`. Message lifecycle: `RECEIVED|QUEUED|PROCESSING|SENT|DELIVERED|READ|FAILED|REJECTED`.
+
+**Order:** `store_id`, `display_number`, `customer_id`, `conversation_id`, `lifecycle_state`, `subtotal_cents`, `discount_cents`, `delivery_fee_cents`, `total_cents`, `currency`, `delivery_type`, `address_id`, `payment_method_id`, `notes`, timestamps. Order lifecycle: `DRAFT|CONFIRMED|IN_PRODUCTION|READY|OUT_FOR_DELIVERY|DELIVERED|CANCELLED`.
+
+**OrderItem:** `product_name_snapshot`, `unit_price_cents_snapshot`, `quantity`, `subtotal_cents`; parent key and identity remain blocked pending IA-04.
+
+**OrderItemModifier:** `modifier_name_snapshot`, `unit_price_cents_snapshot`, `quantity`, `subtotal_cents`; parent keys remain blocked pending IA-04.
+
+**OrderStatusHistory:** `from_state`, `to_state`, `reason`, `actor`, `timestamp`; parent order key and row identity remain blocked pending IA-04/IA-02.
+
+**PaymentMethod:** MVP records a payment method only; exact physical fields remain blocked.
+
+**Notification:** channel, destination, idempotency data, attempts, status, errors, timestamps; exact physical decomposition remains partial.
+
+**Integration:** state/configuration concept; exact field inventory remains blocked.
+
+**IntegrationCredential:** secure credential-reference concept only; plaintext secrets are prohibited; exact reference schema remains blocked.
+
+**InboundInbox:** `provider`, `external_event_id`, payload hash/reference, processing state, timestamps, correlation; `UNIQUE(provider, external_event_id)` is frozen.
+
+**DomainOutbox:** domain-transaction event, `idempotency_key`, attempts, processed state; `UNIQUE(idempotency_key)` is frozen; ownership/scope remains blocked by CONTRACT-001.
+
+**Job:** type, state, payload reference, scheduling, lock/attempts; exact physical decomposition remains partial.
+
+**AuditLog:** actor, action, entity, before/after reference, correlation, timestamp; exact representation remains partial.
+
+**Log:** timestamp, level, category, event, correlation, entity, message, error code, metadata.
+
+**AIProfile:** attendant profile, rules version, objectives, model, temperature, token limit.
+
+**AIExecution:** model, model version/digest, prompt version, policy version, knowledge version, input hash, tool calls, validation, latency, token usage, fallback, timestamps.
+
+**KnowledgeItem:** structured content and `store_id`; exact identity/content fields remain blocked.
+
+## 6. Store scoping
+
+Store scoping is frozen only where explicit. Current classification:
+
+- Explicit store-scoped: Device, Product, ProductModifier, Customer, Conversation, Message, Order, KnowledgeItem.
+- Explicit unique scope additionally exists on Customer, Conversation, Message, Order and Device.
+- ProductImage is store-scoped only through Product by strong inference.
+- Promotion is store-scoped by explicit `store_id` field.
+- Settings, ProductCategory, CustomerAddress, PaymentMethod, Notification, Integration, IntegrationCredential, Job, AuditLog, Log, AIProfile and AIExecution remain unknown/partial where the field-level contract does not explicitly establish `store_id`.
+- DomainOutbox remains unknown across Core/Gateway because of CONTRACT-001.
+
+IA-01 must not blanket-add `store_id` to every entity.
+
+## 7. Relationships
+
+The relationship matrix remains authoritative for the 23 identified relationships. Key unresolved relationships are:
+
+- `OrderItem` parent reference: blocked; field name/identity not frozen.
+- `OrderItemModifier` parent reference(s): blocked; field names/ownership not frozen.
+- `OrderStatusHistory` parent order reference: blocked.
+- `DomainOutbox` ownership/scope: blocked by CONTRACT-001.
+- Other relationships that are mechanically indicated by explicit field names may be prepared after semantic owners confirm optionality and FK actions.
+
+No `ON DELETE` or `ON UPDATE` action is currently frozen.
+
+## 8. Nullability and defaults
+
+No blanket `NOT NULL` policy is authorized. SQL defaults are not inferred from semantic defaults. `currency = BRL` is a frozen semantic convention but does not by itself authorize `DEFAULT 'BRL'` in SQLite.
+
+Required/optional semantics must be closed by the semantic owner before physical DDL is frozen.
+
+## 9. Mutability and immutability
+
+Stable identifiers remain semantically immutable. Order snapshot values are intended to preserve transaction-time values, but SQL-level immutability is not introduced without an explicit contract. Lifecycle mutation belongs to domain/application runtime, not schema triggers invented by IA-01.
+
+## 10. Idempotency, deduplication and traceability
+
+Frozen uniqueness/deduplication surfaces:
+
+- Customer `(store_id, phone_normalized)`
+- Conversation `(store_id, external_thread_id)`
+- Message `(store_id, external_message_id)`
+- InboundInbox `(provider, external_event_id)`
+- DomainOutbox `(idempotency_key)`
+- Order `(store_id, display_number)`
+- Device `(store_id, id)`
+
+Message correlation/causation are contractually present, but exact nullability/format are not frozen.
+
+## 11. Blocker closure status
+
+### CONTRACT-001
+Schema impact: only `DomainOutbox` and any physical boundary fields whose meaning depends on local-Core vs Gateway ownership. Other tables are non-blocked by this contract.
+
+Classification: `GLOBAL_DECISION / BLOCKED`.
+
+### CONTRACT-002
+Current schema impact: no mandatory physical change. Order lifecycle state is already defined independently of the disputed event catalog.
+
+Classification: `NON_BLOCKING` for current schema; becomes blocking only if the approved event decision changes persisted state/history or a new physical column/constraint.
+
+### GOV-001
+Only schema interpretations that rely on conflicting normative documents are affected. It does not block local implementation choices already supported by consistent current evidence.
+
+Classification: `GLOBAL_DECISION / DEFERRED`.
+
+### FIELD-GAPS / CHILD-KEY-GAPS
+These are cross-agent blockers, not blanket global blockers. Their closure belongs to the semantic owners listed in `SCHEMA-AUTHORITY-MATRIX.md`.
+
+### TABLE-NAMING
+Local IA-01 decision, subject to operator confirmation because the decision becomes repository-visible physical convention.
+
+## 12. Migration gate
+
+`0002` remains prohibited until the decision package is approved and all schema-critical fields are deterministic. A table may advance independently when its semantic owner and physical representation are closed; the entire schema does not need every future table to be complete merely to classify readiness.
