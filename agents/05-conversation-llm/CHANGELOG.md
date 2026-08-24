@@ -1,18 +1,26 @@
 # IA-05 — Changelog
 
+## 2026-08-24 — Post-audit correction / approval preparation
+
+- Added `AI-V1-APPROVAL-REQUEST.md` as the single decision-entry document for integration authority.
+- Explicitly marked DR-001..DR-007 as `PROPOSAL / PENDING_APPROVAL`; no new `DECISION` was introduced.
+- Separated minimum implementation-enabling contract, production requirements, deferred items and external decisions.
+- Clarified AIExecution logical contract versus IA-01 physical persistence ownership.
+- Clarified tool boundary: LLM interpretation is not authorization and IA-05 grants no permission.
+- Clarified Conversation transition authority: IA-02 owns domain transitions; IA-05 consumes approved semantics.
+- Performed cross-agent ownership validation against IA-01, IA-02, IA-03 and IA-04; no structural conflict identified.
+- Reclassified `GOV-001` as non-blocking for documentation-only proposal work while retaining its relevance before normative approval.
+- No product runtime, shared contract, schema, migration or external configuration was changed.
+
 ## 2026-08-24 — AI-V1 Contract Closure / Decision Package
 
-- Added `AI-V1-DECISION-PACKAGE.md` with gap classification, ownership, dependencies, blocking levels and minimum closure proposal.
-- Added `AI-V1-GLOBAL-DECISIONS.md` with explicit decision requests; recommendations remain PROPOSAL and are not approvals.
-- Added `AI-V1-FIRST-SLICE.md` proposing deterministic contract tests around a typed LLM request/result/error envelope after shared-contract approval.
-- Reconciled LLMProvider, AIExecution, tool authorization, prompt/version, conversation lifecycle, dependency and implementation-gate matrices.
-- Updated operational memory, learnings, decisions, errors, progress, roadmap and handoff.
-- Confirmed no Conversation Engine, Ollama adapter, Tool Runner, prompt engine, AIExecution runtime, migration or schema change was implemented.
-- Confirmed no shared contract or global documentation was modified.
+- Added `AI-V1-DECISION-PACKAGE.md`, `AI-V1-GLOBAL-DECISIONS.md` and `AI-V1-FIRST-SLICE.md`.
+- Reconciled provider, AIExecution, tool authorization, prompt/version, Conversation lifecycle, dependency and implementation-gate matrices.
+- Confirmed no Conversation Engine, Ollama adapter, Tool Runner, prompt engine or AIExecution runtime was implemented.
 
 ## 2026-08-24 — AI-V1 Contract Readiness Audit
 
 - Completed the AI-V1 readiness audit against current repository evidence, baseline and domain/protocol/provider documentation.
-- Confirmed that Conversation runtime and LLM provider runtime remain NOT_IMPLEMENTED.
-- Confirmed that the existing `LLMProvider` contract was not modified.
-- Recorded `CONTRACT-001`, `CONTRACT-002` and `GOV-001` as unresolved global blockers.
+- Confirmed Conversation runtime and LLM provider runtime remain NOT_IMPLEMENTED.
+- Confirmed the existing `LLMProvider` contract was not modified.
+- Recorded `CONTRACT-001`, `CONTRACT-002` and `GOV-001` as governance items.
