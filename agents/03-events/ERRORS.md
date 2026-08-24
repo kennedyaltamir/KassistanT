@@ -23,7 +23,7 @@ Contracts and validation notes exist, but completion claims require executable i
 ## ERR-005 — Partial operational policies
 **Status:** PARTIAL
 
-Queue limits, retention, exact jitter, some idempotency rules and authorization mappings remain incomplete. Values must not be invented.
+Queue limits, retention, exact job jitter, lease durations, maximum attempts, dead-letter transitions and some idempotency rules remain incomplete. Values must not be invented.
 
 ## ERR-006 — Cross-agent contract drift
 **Status:** OPERATIONAL RISK
@@ -35,9 +35,25 @@ IA-03 is consumed by Order, Conversation and transport areas. Shared contract ch
 
 Customer data, conversations, orders and credentials must not be exposed through logs/audit without explicit policy. Secrets must never be committed.
 
+## ERR-008 — EventBus guarantee inflation
+**Status:** READINESS RISK
+
+EventBus is documented as in-process/post-commit local communication. The repository does not establish exactly-once, global ordering, durable replay or automatic retry. Tests and implementation must not imply these guarantees without a protected contract.
+
+## ERR-009 — Persistence model duplication
+**Status:** READINESS RISK
+
+IA-03 must not create temporary Inbox/Outbox/Job/Audit schema merely to unblock implementation while IA-01 owns canonical persistence. Such duplication would create competing sources of truth.
+
+## ERR-010 — Reliability policy invention
+**Status:** READINESS RISK
+
+Retry count, job backoff, leases, timeout values, retention and dead-letter transitions are not fully normative. Local guesses would become accidental architecture.
+
 ## Recovery traps
 
 - ACK before durable Inbox persistence breaks the contract.
 - Retry without idempotency can create duplicate logical effects.
 - Replay without causation/correlation breaks traceability.
 - Dead-letter state is not a business outcome.
+- Treating WSS reconnect backoff as JobQueue retry policy would cross a transport boundary without authorization.
