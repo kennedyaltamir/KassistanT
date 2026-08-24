@@ -3,74 +3,62 @@
 ## Identity
 Agent: IA-03. Responsibility: Event Infrastructure.
 
-## Runtime gate state
-The EventBus runtime gate was audited and remains `BLOCKED`. No product runtime was implemented.
+## EventBus decision state
 
-## Closed EventBus semantics
+The EventBus local decision closure is complete as a **proposal package**. Runtime remains frozen pending human approval.
+
+`EVENTBUS_RUNTIME_READINESS = READY_AFTER_HUMAN_APPROVAL`
+
+## Evidence-backed semantics
 
 - EventBus is in-process communication.
 - Local consumers are post-commit.
 - EventBus is non-durable.
 - EventBus does not own durable retry.
 - EventBus has `NO_ORDERING_GUARANTEE`.
-- DomainOutbox transaction semantics remain outside this boundary because `CONTRACT-001` is open.
+- DomainOutbox remains outside this boundary because `CONTRACT-001` is open.
 
-## Blocking EventBus semantics
+## Proposed local V1 policy
 
-The repository does not define:
+- async `publish()` boundary;
+- publish-time subscriber snapshot;
+- distinct opaque subscription identities;
+- idempotent `unsubscribe()`;
+- duplicate registrations remain distinct;
+- subscriber failures are isolated;
+- failures are aggregated and reported after all selected handlers settle;
+- cancellation is unsubscribe-only;
+- no EventBus timeout in V1;
+- `await publish()` means all selected handlers have settled;
+- no public ordering guarantee.
 
-- subscriber scheduling;
-- subscriber failure propagation;
-- subscriber isolation;
-- cancellation;
-- timeout;
-- unsubscribe lifecycle;
-- duplicate registration and multiple-subscriber execution semantics;
-- dispatch completion semantics.
+These are `PROPOSAL / LOCAL_RUNTIME_POLICY`, not approved decisions.
 
-These are recorded as runtime gates rather than local assumptions.
+## Global/cross-agent boundaries
 
-## Other Event Infrastructure state
+- IA-02: event semantics/payload stability.
+- IA-04: Order event producer/consumer compatibility.
+- IA-05: Conversation/LLM consumer compatibility.
+- IA-06: Device event consumer compatibility.
+- IA-07: transport consumer compatibility.
+- IA-08: UI/operational consumer compatibility.
 
-- InboundInbox: durable-before-ACK semantics are clear; canonical persistence is missing.
-- DomainOutbox: blocked by `CONTRACT-001`.
-- JobQueue: capability requirements are clear, but schema and exact retry/lease/backoff policies are incomplete.
-- AuditLog: fields/critical event classes are documented; durable runtime is absent.
-- Causation/correlation: contract metadata exists; runtime propagation is absent.
-- Replay/reconciliation/dead-letter: requirements exist, but state/recovery runtime is absent.
+`CONTRACT-001`, `CONTRACT-002` and `GOV-001` remain open and untouched.
 
-## Dependencies
+## Approval gate
 
-- IA-01: canonical persistence/schema and transaction primitives.
-- IA-02: domain event semantics and domain errors.
-- IA-04: Order event producers/consumers.
-- IA-05: Conversation/LLM asynchronous work.
-- IA-06: device lifecycle/security audit events.
-- IA-07: WSS EVENT/ACK/RESUME transport semantics.
-- IA-08: operational event consumers.
+Human approval is required before production EventBus code is written. Approval should explicitly accept or reject the proposed observable runtime behavior in `HUMAN-EVENTBUS-DECISIONS.md`.
 
-## Open contracts
+## Runtime slice after approval
 
-- `CONTRACT-001` — DomainOutbox ownership/semantics: BLOCKING for Outbox implementation.
-- `CONTRACT-002` — `order.status_changed`: OPEN and impacts normative event dispatch/tests.
-- `GOV-001` — documentation/version authority: OPEN; IA-03 makes no new authority assumption.
+Only:
 
-## Readiness artifacts
+`apps/desktop/electron/infrastructure/events/**`
 
-- `EVENT-INFRASTRUCTURE-READINESS.md`
-- `EVENTBUS-MATRIX.md`
-- `EVENTBUS-CONTRACT.md`
-- `EVENTBUS-RUNTIME-CONTRACT.md`
-- `EVENTBUS-ERROR-MATRIX.md`
-- `EVENTBUS-TEST-MATRIX.md`
-- `EVENTBUS-IMPLEMENTATION-GATE.md`
-- `INBOX-OUTBOX-MATRIX.md`
-- `JOBQUEUE-RELIABILITY-MATRIX.md`
-- `EVENT-INFRASTRUCTURE-DEPENDENCIES.md`
-- `IMPLEMENTATION-GATES.md`
+and directly associated deterministic tests.
 
-## Next gate
+Explicit non-goals remain SQLite, Inbox, Outbox, JobQueue, AuditLog, WSS, durable retry, replay/reconciliation/dead-letter, business rules and protected contract changes.
 
-Close the remaining EventBus lifecycle/error semantics without modifying protected contracts. After those gates close, the next concrete candidate is the in-process EventBus runtime slice with deterministic tests.
+## Evidence discipline
 
-Never treat documentation as proof of runtime. Preserve the open status of `CONTRACT-001`, `CONTRACT-002` and `GOV-001`. Do not invent retry, retention, ordering, lease, cancellation, timeout, scheduling or dispatch-completion semantics.
+The proposal document is preparation, not implementation evidence. No EventBus runtime exists yet.
