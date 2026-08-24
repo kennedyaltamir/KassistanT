@@ -2,50 +2,50 @@
 
 ## Current phase
 
-EventBus V1 Authorization and Implementation.
+Post-Implementation Audit / EventBus Handoff / Inbox Gate.
 
 ## Status
 
-`IMPLEMENTED_AND_TESTED / FIRST SLICE COMPLETE`
+`EVENTBUS_MILESTONE_CLOSED / INBOX_BLOCKED`
 
-## Approved EventBus policies
+## EventBus post-implementation audit
 
-- subscriber failures are isolated;
-- `publish()` continues all subscriptions in the dispatch snapshot;
-- failures are aggregated after all selected handlers settle;
-- subscriptions use opaque identities;
-- `unsubscribe()` is idempotent;
-- duplicate registrations are distinct;
-- dispatch snapshots registrations at publish start;
-- V1 cancellation is unsubscribe-only;
-- V1 has no EventBus timeout;
-- `await publish()` completes after all selected handlers settle;
-- EventBus has `NO_ORDERING_GUARANTEE`;
-- EventBus is in-process, post-commit, non-durable and has no durable retry or DomainOutbox coupling.
+| Decision | Actual behavior | Test/code evidence | Status |
+|---|---|---|---|
+| EBUS-DEC-001 | Failures are isolated, collected and returned in `DispatchResult` after selected handlers settle | `event-bus.ts` + failure tests | MATCH |
+| EBUS-DEC-002 | Later subscribers continue after an earlier handler failure | sequential loop + isolation test | MATCH |
+| EBUS-DEC-003 | `publish()` is async; handlers are awaited sequentially over a publish-time snapshot | `publish()` implementation + completion test | MATCH |
+| EBUS-DEC-004 | Opaque subscription identity; `unsubscribe()` idempotent | subscription implementation + unsubscribe test | MATCH |
+| EBUS-DEC-005 | Unsubscribe-only lifecycle cancellation; no `AbortSignal` | API surface and implementation | MATCH |
+| EBUS-DEC-006 | No EventBus timeout exists | implementation contains no timeout path | MATCH |
+| EBUS-DEC-007 | Publish settles only after all selected handlers finish | awaited handler loop + completion test | MATCH |
+| EBUS-DEC-008 | Publish-time snapshot; each subscription invoked at most once per dispatch | snapshot implementation + snapshot/duplicate tests | MATCH |
 
-## Implementation
+No implementation divergence was found.
 
-Implemented:
+## EventBus handoff
 
-- `apps/desktop/electron/infrastructure/events/event-bus.ts`
-- `apps/desktop/electron/infrastructure/events/event-bus.test.ts`
+Created `EVENTBUS-HANDOFF.md` with the consumer contract for IA-04, IA-05, IA-06, IA-07 and IA-08.
 
-The implementation is intentionally isolated and does not integrate downstream consumers.
+Downstream integration remains intentionally deferred. No new event types were introduced.
+
+## Inbox gate
+
+Created `INBOX-IMPLEMENTATION-GATE.md`.
+
+`INBOX_V1 = NOT_READY` because IA-01 has not yet supplied the canonical persistence contract required for durable intake, uniqueness and transaction ownership, and IA-07 ACK integration must be explicit.
 
 ## Validation
 
-The deterministic EventBus validation executed against the reconstructed branch sources with Node's TypeScript stripping runtime support:
+Prior branch validation record: 10 EventBus tests passed with 0 failures, 0 cancellations and 0 skips.
 
-- 10 tests passed;
-- 0 failures;
-- 0 cancellations;
-- 0 skipped.
+Fresh re-execution requested in this phase was **not completed** because the current environment does not have `tsx` installed and package retrieval was unavailable. Therefore this phase does not claim a new test run.
 
-The repository's standard desktop test runner was not changed because its script configuration is outside IA-03 scope; the EventBus test file was executed directly with `node --experimental-strip-types --test` in the validation environment.
+Remote status lookup for the current branch head returned zero statuses; `REMOTE_CI_STATUS = NOT_VERIFIED`.
 
 ## Non-goals preserved
 
-Inbox, Outbox, JobQueue, AuditLog, WSS, Device Auth, replay, reconciliation, dead-letter handling, durable retry and SQLite persistence were not implemented.
+Inbox, Outbox, JobQueue, AuditLog, WSS, Device Auth, replay, reconciliation, dead-letter handling, durable retry and SQLite persistence were not implemented in this phase.
 
 ## Global contracts preserved
 
