@@ -55,6 +55,19 @@ function json(response, status, body) {
   response.end(payload);
 }
 
+function markMigrationApplied(database, id, checksum) {
+  database.prepare(
+    "INSERT INTO _migration_runtime(id, checksum, applied_at) VALUES (?, ?, ?)"
+  ).run(id, checksum, new Date().toISOString());
+}
+
+function conversationHasExternalThreadId(database) {
+  return database
+    .prepare("PRAGMA table_info(conversation)")
+    .all()
+    .some((column) => column.name === "external_thread_id");
+}
+
 function ensureMigrations(database, migrationsPath) {
   database.exec("PRAGMA foreign_keys = ON");
   database.pragma("journal_mode = WAL");
@@ -77,10 +90,13 @@ function ensureMigrations(database, migrationsPath) {
     if (previous) continue;
 
     const transaction = database.transaction(() => {
+      if (id === "0005_add_conversation_external_thread_id" && conversationHasExternalThreadId(database)) {
+        markMigrationApplied(database, id, checksum);
+        return;
+      }
+
       database.exec(sql.toString("utf8"));
-      database.prepare(
-        "INSERT INTO _migration_runtime(id, checksum, applied_at) VALUES (?, ?, ?)"
-      ).run(id, checksum, new Date().toISOString());
+      markMigrationApplied(database, id, checksum);
     });
     transaction();
   }
