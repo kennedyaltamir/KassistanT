@@ -8,11 +8,12 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import pino from 'pino';
 import qrcode from 'qrcode-terminal';
+import { persistWhatsAppMessage } from './persistence-client.mjs';
 
 /** @typedef {'DISCONNECTED' | 'CONNECTING' | 'PAIRING' | 'CONNECTED' | 'RECONNECTING' | 'ERROR'} ConnectionState */
 /** @typedef {'INBOUND' | 'OUTBOUND'} MessageDirection */
 /** @typedef {'UNKNOWN' | 'RECEIVED'} MessageStatus */
-/** @typedef {{ id: string, jid: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus }} MessageSnapshot */
+/** @typedef {{ id: string, jid: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus, push_name?: string | null }} MessageSnapshot */
 /** @typedef {{ connection: ConnectionState, qr: string | null, me: { id: string, name: string | null } | null, lastError: string | null, messageCount: number }} GatewayStatus */
 /** @typedef {{ type: 'connection', status: GatewayStatus } | { type: 'message', message: MessageSnapshot }} GatewayEvent */
 /** @typedef {(event: GatewayEvent) => void} EventListener */
@@ -104,6 +105,7 @@ function snapshotMessage(message, direction) {
     text,
     timestamp: Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)),
     status: direction === 'INBOUND' ? 'RECEIVED' : 'UNKNOWN',
+    push_name: typeof message.pushName === 'string' ? message.pushName : null,
   };
 }
 
@@ -129,6 +131,26 @@ export function recordMessage(snapshot) {
 
   emit({ type: 'message', message: snapshot });
   return true;
+}
+
+/** @param {MessageSnapshot} snapshot */
+async function persistSnapshot(snapshot) {
+  try {
+    const result = await persistWhatsAppMessage({
+      message: {
+        ...snapshot,
+        external_message_id: snapshot.id,
+      },
+    });
+    if (!result.persisted) {
+      console.warn(`[KassisT Persistence] duplicate or already persisted message ${snapshot.id}`);
+    }
+  } catch (error) {
+    console.error(
+      `[KassisT Persistence] failed to persist WhatsApp message ${snapshot.id}:`,
+      error instanceof Error ? error.message : error
+    );
+  }
 }
 
 async function clearAuthState() {
@@ -202,7 +224,10 @@ async function startSocket() {
   socket.ev.on('messages.upsert', ({ messages }) => {
     for (const message of messages) {
       const snapshot = snapshotMessage(message, message.key?.fromMe ? 'OUTBOUND' : 'INBOUND');
-      recordMessage(snapshot);
+      void (async () => {
+        await persistSnapshot(snapshot);
+        recordMessage(snapshot);
+      })();
     }
   });
 }
@@ -265,6 +290,7 @@ export async function sendText(to, text) {
   const result = await socket.sendMessage(jid, { text: body });
   if (!result) throw new Error('WhatsApp transport did not return a message');
   const snapshot = snapshotMessage(result, 'OUTBOUND');
+  await persistSnapshot(snapshot);
   recordMessage(snapshot);
   return snapshot;
 }
