@@ -8,7 +8,8 @@ const Database = require("better-sqlite3");
 const MIGRATION_FILES = [
   "0001_bootstrap.sql",
   "0003_first_sale_core.sql",
-  "0004_first_sale_order_modifiers.sql"
+  "0004_first_sale_order_modifiers.sql",
+  "0005_add_conversation_external_thread_id.sql"
 ];
 
 function defaultDatabasePath() {
