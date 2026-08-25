@@ -12,21 +12,12 @@ export interface MigrationDefinition {
 
 const MIGRATION_PATTERN = /^(\d{4}_[a-z0-9][a-z0-9_-]*)\.sql$/i;
 
-/**
- * Historical migration preserved for provenance but intentionally excluded
- * from executable migration discovery. It predates the authoritative
- * first-sale schema and conflicts with the canonical Product/Order shape.
- */
 const HISTORICAL_NON_AUTHORITATIVE = new Set(["0002_c1_product_order"]);
 
-/**
- * The execution baseline is fail-closed: only migrations explicitly admitted
- * to the current release may execute. A new migration must be added to this
- * allowlist deliberately rather than becoming executable by filename alone.
- */
 const AUTHORITATIVE_MIGRATIONS = new Set([
   "0001_bootstrap",
-  "0003_first_sale_core"
+  "0003_first_sale_core",
+  "0004_first_sale_order_modifiers"
 ]);
 
 export async function discoverMigrations(directory: string): Promise<MigrationDefinition[]> {
@@ -45,9 +36,7 @@ export async function discoverMigrations(directory: string): Promise<MigrationDe
       throw new Error(`Invalid migration filename: ${entry.name}`);
     }
 
-    if (HISTORICAL_NON_AUTHORITATIVE.has(migrationId)) {
-      continue;
-    }
+    if (HISTORICAL_NON_AUTHORITATIVE.has(migrationId)) continue;
 
     if (!AUTHORITATIVE_MIGRATIONS.has(migrationId)) {
       throw new Error(
