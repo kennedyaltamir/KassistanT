@@ -7,6 +7,7 @@ test.afterEach(() => {
   globalThis.fetch = originalFetch;
   delete process.env.KASSIST_AI_AUTOREPLY;
   delete process.env.KASSIST_AI_PERSIST_CONFIG;
+  delete process.env.KASSIST_LLM_PROVIDER;
   delete process.env.KASSIST_LLM_URL;
   delete process.env.KASSIST_LLM_MODEL;
   delete process.env.KASSIST_LLM_TIMEOUT_MS;
@@ -16,6 +17,7 @@ test.afterEach(() => {
 test('local LLM status is disabled by default', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'false';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  delete process.env.KASSIST_LLM_PROVIDER;
   delete process.env.KASSIST_LLM_URL;
   delete process.env.KASSIST_LLM_MODEL;
   delete process.env.KASSIST_LLM_TIMEOUT_MS;
@@ -23,14 +25,30 @@ test('local LLM status is disabled by default', async () => {
 
   const { getLlmStatus } = await import('../src/llm.mjs?test=default-disabled');
   const status = getLlmStatus();
+  assert.equal(status.provider, 'ollama_local');
   assert.equal(status.enabled, false);
   assert.equal(status.baseUrl, 'http://127.0.0.1:11434');
   assert.equal(typeof status.systemPrompt, 'string');
 });
 
+test('LLM status exposes a selected external provider without exposing credentials', async () => {
+  process.env.KASSIST_AI_AUTOREPLY = 'false';
+  process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'groq';
+  process.env.KASSIST_LLM_MODEL = 'openai/gpt-oss-20b';
+
+  const { getLlmStatus } = await import('../src/llm.mjs?test=groq-status');
+  const status = getLlmStatus();
+  assert.equal(status.provider, 'groq');
+  assert.equal(status.baseUrl, 'https://api.groq.com/openai/v1');
+  assert.equal(status.model, 'openai/gpt-oss-20b');
+  assert.equal(Object.prototype.hasOwnProperty.call(status, 'apiKey'), false);
+});
+
 test('generateReply calls Ollama chat API and returns assistant content', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'ollama_local';
   process.env.KASSIST_LLM_MODEL = 'test-model';
 
   globalThis.fetch = async (url, options) => {
@@ -55,6 +73,7 @@ test('generateReply calls Ollama chat API and returns assistant content', async 
 test('generateReply applies a per-conversation system prompt override', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'ollama_local';
   process.env.KASSIST_LLM_MODEL = 'test-model';
 
   globalThis.fetch = async (_url, options) => {
@@ -75,6 +94,7 @@ test('generateReply applies a per-conversation system prompt override', async ()
 test('generateReply surfaces Ollama HTTP errors', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'ollama_local';
   globalThis.fetch = async () => new Response(JSON.stringify({ error: 'model not found' }), {
     status: 404,
     headers: { 'content-type': 'application/json' },
