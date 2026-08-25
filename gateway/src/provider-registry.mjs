@@ -1,12 +1,21 @@
-/** @typedef {{ provider: string, label: string, credentialKeys: readonly string[], availability: 'AVAILABLE' | 'UNAVAILABLE', validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} ProviderDefinition */
+/** @typedef {{ provider: string, label: string, credentialKeys: readonly string[], availability: 'AVAILABLE' | 'UNAVAILABLE', runtimeCapability: 'CHAT' | 'CREDENTIAL_VALIDATION_ONLY', validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} ProviderDefinition */
 
 /** @type {ProviderDefinition[]} */
 const PROVIDER_DEFINITIONS = [
+  {
+    provider: 'ollama_local',
+    label: 'Ollama Local',
+    credentialKeys: [],
+    availability: 'AVAILABLE',
+    runtimeCapability: 'CHAT',
+    validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
+  },
   {
     provider: 'nvidia',
     label: 'NVIDIA',
     credentialKeys: ['NVIDIA_API_KEY'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
   {
@@ -14,6 +23,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Groq',
     credentialKeys: ['GROQ_API_KEY'],
     availability: 'AVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'SUPPORTED', method: 'GET', endpoint: 'https://api.groq.com/openai/v1/models' },
   },
   {
@@ -21,6 +31,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Mistral',
     credentialKeys: ['MISTRAL_API_KEY'],
     availability: 'AVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'SUPPORTED', method: 'GET', endpoint: 'https://api.mistral.ai/v1/models' },
   },
   {
@@ -28,6 +39,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Cohere',
     credentialKeys: ['COHERE_API_KEY'],
     availability: 'AVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'SUPPORTED', method: 'POST', endpoint: 'https://api.cohere.com/v1/check-api-key' },
   },
   {
@@ -35,6 +47,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Cerebras',
     credentialKeys: ['CEREBRAS_API_KEY'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
   {
@@ -42,6 +55,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Hugging Face',
     credentialKeys: ['HUGGINGFACE_API_KEY'],
     availability: 'AVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'SUPPORTED', method: 'GET', endpoint: 'https://huggingface.co/api/whoami-v2' },
   },
   {
@@ -49,6 +63,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'PenRouter',
     credentialKeys: ['PENROUTER_API_KEY'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
   {
@@ -56,6 +71,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'ModelScope',
     credentialKeys: ['MODELSCOPE_API_KEY'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
   {
@@ -63,6 +79,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Cloudflare',
     credentialKeys: ['CLOUDFLARE_API_KEY', 'CLOUDFLARE_ACCOUNT_ID'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
   {
@@ -70,6 +87,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'GitHub',
     credentialKeys: ['GITHUB_TOKEN'],
     availability: 'AVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'SUPPORTED', method: 'GET', endpoint: 'https://api.github.com/user' },
   },
   {
@@ -77,6 +95,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'SambaNova',
     credentialKeys: ['SAMBANOVA_API_KEY'],
     availability: 'UNAVAILABLE',
+    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
     validation: { capability: 'UNAVAILABLE', method: null, endpoint: null },
   },
 ];
