@@ -4,13 +4,16 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '..', 'data', 'ai-config.json');
+const PROVIDERS = new Set(['ollama_local', 'groq']);
 const LOCAL_OLLAMA_URLS = new Set(['http://127.0.0.1:11434', 'http://localhost:11434']);
+const GROQ_BASE_URL = 'https://api.groq.com/openai/v1';
 
-/** @typedef {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number, contextMessages: number, cooldownMs: number, systemPrompt: string }} AiConfig */
+/** @typedef {{ provider: 'ollama_local' | 'groq', enabled: boolean, baseUrl: string, model: string, timeoutMs: number, contextMessages: number, cooldownMs: number, systemPrompt: string }} AiConfig */
 /** @typedef {Partial<AiConfig>} AiConfigPatch */
 
 /** @type {AiConfig} */
 const DEFAULT_CONFIG = {
+  provider: 'ollama_local',
   enabled: false,
   baseUrl: 'http://127.0.0.1:11434',
   model: 'qwen3:14b',
@@ -27,6 +30,7 @@ let persisted = null;
 /** @returns {AiConfig} */
 function envConfig() {
   return {
+    provider: String(process.env.KASSIST_LLM_PROVIDER ?? DEFAULT_CONFIG.provider),
     enabled: String(process.env.KASSIST_AI_AUTOREPLY ?? '').toLowerCase() === 'true',
     baseUrl: String(process.env.KASSIST_LLM_URL ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, ''),
     model: String(process.env.KASSIST_LLM_MODEL ?? DEFAULT_CONFIG.model),
@@ -39,8 +43,15 @@ function envConfig() {
 
 /** @param {AiConfigPatch} value @returns {AiConfig} */
 function normalize(value = {}) {
-  const baseUrl = String(value.baseUrl ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, '');
-  if (!LOCAL_OLLAMA_URLS.has(baseUrl)) {
+  const provider = String(value.provider ?? DEFAULT_CONFIG.provider).trim();
+  if (!PROVIDERS.has(provider)) throw new Error(`Unsupported LLM provider: ${provider}`);
+
+  const requestedBaseUrl = String(value.baseUrl ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, '');
+  const baseUrl = provider === 'groq'
+    ? GROQ_BASE_URL
+    : requestedBaseUrl;
+
+  if (provider === 'ollama_local' && !LOCAL_OLLAMA_URLS.has(baseUrl)) {
     throw new Error('Local LLM URL must point to localhost:11434');
   }
 
@@ -51,6 +62,7 @@ function normalize(value = {}) {
   if (systemPrompt.length > 12000) throw new Error('System prompt exceeds 12000 characters');
 
   return {
+    provider: /** @type {'ollama_local' | 'groq'} */ (provider),
     enabled: Boolean(value.enabled),
     baseUrl,
     model,
@@ -98,4 +110,4 @@ export function getAiConfigPath() {
   return CONFIG_PATH;
 }
 
-export { DEFAULT_CONFIG };
+export { DEFAULT_CONFIG, GROQ_BASE_URL };
