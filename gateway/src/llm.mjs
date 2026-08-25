@@ -1,5 +1,6 @@
 import { getCredential } from './credentials.mjs';
 import { getAiConfig } from './ai-config.mjs';
+import { generateGroqReply } from './llm-groq.mjs';
 
 const MODEL_UPDATE_TIMEOUT_MS = 300000;
 let updateInProgress = false;
@@ -11,7 +12,7 @@ let updateInProgress = false;
 /** @typedef {{ name: string, identifier: string, runtime: 'ollama', status: 'INSTALLED', available: true, sizeBytes: number | null, digest: string | null, modifiedAt: string | null, details: ModelDetails | null }} NormalizedModel */
 /** @typedef {{ runtime: 'ollama', available: boolean, status: 'READY' | 'UNAVAILABLE', models: NormalizedModel[], error: string | null }} ModelInventory */
 /** @typedef {{ systemPrompt?: string | undefined }} GenerateReplyOptions */
-/** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, choices?: Array<{ message?: { content?: unknown } }>, error?: unknown, status?: unknown }} LlmResponseBody */
+/** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, error?: unknown, status?: unknown }} OllamaResponseBody */
 
 /** @param {RawOllamaModel} model @returns {NormalizedModel | null} */
 function normalizeModel(model) {
@@ -75,7 +76,7 @@ export async function getLocalModelInventory() {
 
   try {
     const response = await ollamaRequest('/api/tags');
-    /** @type {LlmResponseBody} */
+    /** @type {OllamaResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(body?.models)) {
       return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: `HTTP ${response.status}` };
@@ -120,7 +121,7 @@ async function updateLocalModelInternal(name) {
     method: 'POST',
     body: JSON.stringify({ model: name, stream: false }),
   }, MODEL_UPDATE_TIMEOUT_MS);
-  /** @type {LlmResponseBody} */
+  /** @type {OllamaResponseBody} */
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
@@ -184,47 +185,29 @@ export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
   if (!value.enabled) throw new Error('LLM auto-reply is disabled');
 
+  const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
+    ? options.systemPrompt.trim()
+    : value.systemPrompt;
+  const sanitizedMessages = messages.filter((message) => message.role !== 'system');
+  const finalMessages = [{ role: 'system', content: systemPrompt }, ...sanitizedMessages];
+
+  if (value.provider === 'groq') {
+    const credential = getCredential('GROQ_API_KEY');
+    return generateGroqReply({
+      credential,
+      model: value.model,
+      messages: finalMessages,
+      timeoutMs: value.timeoutMs,
+    });
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), value.timeoutMs);
 
   try {
-    const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
-      ? options.systemPrompt.trim()
-      : value.systemPrompt;
-    const sanitizedMessages = messages.filter((message) => message.role !== 'system');
-
-    if (value.provider === 'groq') {
-      const credential = getCredential('GROQ_API_KEY');
-      if (!credential) throw new Error('Groq API key is not configured');
-
-      const payload = {
-        model: value.model,
-        messages: [{ role: 'system', content: systemPrompt }, ...sanitizedMessages],
-        stream: false,
-      };
-
-      const response = await fetch(`${value.baseUrl}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          accept: 'application/json',
-          authorization: `Bearer ${credential}`,
-        },
-        body: JSON.stringify(payload),
-        signal: controller.signal,
-      });
-
-      /** @type {LlmResponseBody} */
-      const body = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(`Groq LLM request failed (${response.status})${body && typeof body.error === 'object' && body.error && typeof body.error.message === 'string' ? `: ${body.error.message}` : ''}`);
-      const content = body?.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || !content.trim()) throw new Error('Groq LLM returned an empty response');
-      return content.trim();
-    }
-
     const payload = {
       model: value.model,
-      messages: [{ role: 'system', content: systemPrompt }, ...sanitizedMessages],
+      messages: finalMessages,
       stream: false,
       think: false,
     };
@@ -236,7 +219,7 @@ export async function generateReply(messages, options = {}) {
       signal: controller.signal,
     });
 
-    /** @type {LlmResponseBody} */
+    /** @type {OllamaResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(`Local LLM request failed (${response.status})${body && typeof body.error === 'string' ? `: ${body.error}` : ''}`);
     const content = body?.message?.content;
