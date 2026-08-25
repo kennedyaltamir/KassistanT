@@ -9,6 +9,14 @@ import { getLlmSettings, updateLlmSettings } from './llm-settings.mjs';
 import { deleteCredential, listCredentialStatus, setCredential } from './credentials.mjs';
 import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCredential } from './credential-validation.mjs';
 
+/** @typedef {import('node:http').IncomingMessage} IncomingMessage */
+/** @typedef {import('node:http').ServerResponse<IncomingMessage>} ServerResponse */
+/** @typedef {Record<string, unknown>} RequestBody */
+/** @typedef {Record<string, unknown>} SseEvent */
+/** @typedef {{ ok: boolean }} ReadinessResult */
+/** @typedef {() => boolean | ReadinessResult | Promise<boolean | ReadinessResult>} ReadinessCheck */
+
+/** @param {ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
   const body = JSON.stringify(payload);
   response.writeHead(statusCode, {
@@ -19,11 +27,13 @@ function json(response, statusCode, payload) {
   response.end(body);
 }
 
+/** @param {IncomingMessage} request @returns {string} */
 function correlationId(request) {
   const supplied = request.headers['x-correlation-id'];
   return typeof supplied === 'string' && supplied.length > 0 ? supplied : randomUUID();
 }
 
+/** @param {IncomingMessage} request @returns {Promise<RequestBody>} */
 function parseBody(request) {
   return new Promise((resolve, reject) => {
     let raw = '';
@@ -48,14 +58,17 @@ function parseBody(request) {
   });
 }
 
+/** @param {ServerResponse} response @param {SseEvent} event */
 function writeSse(response, event) {
-  response.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+  response.write(`event: ${String(event.type)}\ndata: ${JSON.stringify(event)}\n\n`);
 }
 
+/** @param {unknown} error @returns {string} */
 function sanitizedError(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
+/** @param {{ readinessChecks?: Record<string, ReadinessCheck> }} options */
 export function createHttpServer({ readinessChecks = {} } = {}) {
   const checkReadiness = createReadinessChecker(readinessChecks);
 

@@ -1,3 +1,6 @@
+/** @typedef {Record<string, unknown> & { protocol_version?: unknown, message_id?: unknown, message_type?: unknown, device_id?: unknown, timestamp_utc?: unknown, payload?: unknown, event_id?: unknown, correlation_id?: unknown, causation_id?: unknown, sequence?: unknown }} WssEnvelope */
+/** @typedef {{ valid: true, code?: undefined } | { valid: false, code: string }} WssValidationResult */
+
 const MESSAGE_TYPES = new Set([
   "CONNECT",
   "AUTH",
@@ -23,54 +26,59 @@ const MESSAGE_TYPES = new Set([
 
 const PROTOCOL_VERSION = "1.0";
 
+/** @param {unknown} value @returns {value is string} */
 function isNonEmptyString(value) {
   return typeof value === "string" && value.length > 0;
 }
 
+/** @param {unknown} message @returns {WssValidationResult} */
 export function validateWssEnvelope(message) {
   if (message === null || typeof message !== "object" || Array.isArray(message)) {
     return { valid: false, code: "invalid_envelope" };
   }
 
-  if (message.protocol_version !== PROTOCOL_VERSION) {
+  const envelope = /** @type {WssEnvelope} */ (message);
+
+  if (envelope.protocol_version !== PROTOCOL_VERSION) {
     return { valid: false, code: "invalid_protocol_version" };
   }
 
-  if (!isNonEmptyString(message.message_id)) {
+  if (!isNonEmptyString(envelope.message_id)) {
     return { valid: false, code: "invalid_message_id" };
   }
 
-  if (!MESSAGE_TYPES.has(message.message_type)) {
+  if (typeof envelope.message_type !== 'string' || !MESSAGE_TYPES.has(envelope.message_type)) {
     return { valid: false, code: "invalid_message_type" };
   }
 
-  if (!isNonEmptyString(message.device_id)) {
+  if (!isNonEmptyString(envelope.device_id)) {
     return { valid: false, code: "invalid_device_id" };
   }
 
-  if (!isNonEmptyString(message.timestamp_utc)) {
+  if (!isNonEmptyString(envelope.timestamp_utc)) {
     return { valid: false, code: "invalid_timestamp" };
   }
 
-  if (!("payload" in message)) {
+  if (!("payload" in envelope)) {
     return { valid: false, code: "missing_payload" };
   }
 
   for (const field of ["event_id", "correlation_id", "causation_id"]) {
-    if (field in message && !isNonEmptyString(message[field])) {
+    if (field in envelope && !isNonEmptyString(envelope[field])) {
       return { valid: false, code: `invalid_${field}` };
     }
   }
 
-  if ("sequence" in message && typeof message.sequence !== "number") {
+  if ("sequence" in envelope && typeof envelope.sequence !== "number") {
     return { valid: false, code: "invalid_sequence" };
   }
 
-  if (message.message_type === "ACK") {
+  if (envelope.message_type === "ACK") {
+    const payload = envelope.payload;
     if (
-      message.payload === null ||
-      typeof message.payload !== "object" ||
-      !isNonEmptyString(message.payload.event_id)
+      payload === null ||
+      typeof payload !== "object" ||
+      !isNonEmptyString(/** @type {{ event_id?: unknown }} */ (payload).event_id)
     ) {
       return { valid: false, code: "invalid_ack_payload" };
     }

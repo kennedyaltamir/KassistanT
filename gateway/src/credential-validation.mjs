@@ -4,10 +4,15 @@ import { fileURLToPath } from 'node:url';
 import { getCredential } from './credentials.mjs';
 import { getProviderForCredential } from './provider-registry.mjs';
 
+/** @typedef {'VALID' | 'INVALID' | 'UNAVAILABLE' | 'ERROR' | 'UNKNOWN'} ValidationStatus */
+/** @typedef {{ validationStatus: ValidationStatus, lastValidatedAt: string | null, error: string | null }} ValidationRecord */
+/** @typedef {{ provider: string, validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} CredentialProvider */
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const STATUS_PATH = path.join(__dirname, '..', 'data', 'credential-validation.json');
 const TIMEOUT_MS = 8000;
 
+/** @returns {Record<string, ValidationRecord>} */
 function loadState() {
   try {
     const value = JSON.parse(fs.readFileSync(STATUS_PATH, 'utf8'));
@@ -17,12 +22,14 @@ function loadState() {
   }
 }
 
+/** @param {Record<string, ValidationRecord>} value */
 function saveState(value) {
   fs.mkdirSync(path.dirname(STATUS_PATH), { recursive: true });
   const tempPath = `${STATUS_PATH}.tmp`;
   fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
+/** @param {number} status @returns {Exclude<ValidationStatus, 'UNKNOWN'>} */
 export function classifyHttp(status) {
   if (status === 401 || status === 403 || status === 498) return 'INVALID';
   if (status === 429 || status >= 500) return 'UNAVAILABLE';
@@ -30,16 +37,18 @@ export function classifyHttp(status) {
   return 'VALID';
 }
 
+/** @param {CredentialProvider} provider @param {string} credential @returns {Promise<Exclude<ValidationStatus, 'UNKNOWN'>>} */
 async function request(provider, credential) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
+    /** @type {Record<string, string>} */
     const headers = {
       accept: 'application/json',
       authorization: `Bearer ${credential}`,
     };
     if (provider.provider === 'github') headers['X-GitHub-Api-Version'] = '2022-11-28';
-    const response = await fetch(provider.validation.endpoint, {
+    const response = await fetch(provider.validation.endpoint ?? '', {
       method: provider.validation.method ?? 'GET',
       headers,
       signal: controller.signal,
@@ -48,24 +57,26 @@ async function request(provider, credential) {
     if (provider.provider === 'cohere' && response.ok && body?.valid === false) return 'INVALID';
     return classifyHttp(response.status);
   } catch (error) {
-    if (error && typeof error === 'object' && error.name === 'AbortError') return 'UNAVAILABLE';
+    if (error instanceof Error && error.name === 'AbortError') return 'UNAVAILABLE';
     return 'ERROR';
   } finally {
     clearTimeout(timer);
   }
 }
 
+/** @returns {Record<string, ValidationRecord>} */
 export function getCredentialValidationStatuses() {
   const state = loadState();
   return Object.fromEntries(Object.entries(state).map(([key, value]) => [key, {
-    validationStatus: value?.validationStatus ?? 'UNKNOWN',
-    lastValidatedAt: typeof value?.lastValidatedAt === 'string' ? value.lastValidatedAt : null,
-    error: value?.error ?? null,
+    validationStatus: value.validationStatus ?? 'UNKNOWN',
+    lastValidatedAt: typeof value.lastValidatedAt === 'string' ? value.lastValidatedAt : null,
+    error: value.error ?? null,
   }]));
 }
 
+/** @param {string} key @param {string | null | undefined} credential @returns {Promise<{ key: string, provider: string, validationStatus: ValidationStatus, lastValidatedAt: string | null, error: string | null }>} */
 export async function validateCredentialValue(key, credential) {
-  const provider = getProviderForCredential(key);
+  const provider = /** @type {CredentialProvider | null} */ (getProviderForCredential(key));
   if (!provider) throw new Error('Unsupported credential');
   if (provider.validation.capability !== 'SUPPORTED') {
     return {
@@ -98,6 +109,7 @@ export async function validateCredentialValue(key, credential) {
   return { key, provider: provider.provider, validationStatus, lastValidatedAt, error };
 }
 
+/** @param {string} key */
 export async function validateCredential(key) {
   const result = await validateCredentialValue(key, getCredential(key));
   const state = loadState();
@@ -115,6 +127,7 @@ export async function validateCredential(key) {
   return result;
 }
 
+/** @param {string} key */
 export function invalidateCredentialStatus(key) {
   const state = loadState();
   delete state[key];

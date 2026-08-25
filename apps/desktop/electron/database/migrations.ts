@@ -12,6 +12,14 @@ export interface MigrationDefinition {
 
 const MIGRATION_PATTERN = /^(\d{4}_[a-z0-9][a-z0-9_-]*)\.sql$/i;
 
+const HISTORICAL_NON_AUTHORITATIVE = new Set(["0002_c1_product_order"]);
+
+const AUTHORITATIVE_MIGRATIONS = new Set([
+  "0001_bootstrap",
+  "0003_first_sale_core",
+  "0004_first_sale_order_modifiers"
+]);
+
 export async function discoverMigrations(directory: string): Promise<MigrationDefinition[]> {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = entries
@@ -26,6 +34,15 @@ export async function discoverMigrations(directory: string): Promise<MigrationDe
     const migrationId = match[1];
     if (!migrationId) {
       throw new Error(`Invalid migration filename: ${entry.name}`);
+    }
+
+    if (HISTORICAL_NON_AUTHORITATIVE.has(migrationId)) continue;
+
+    if (!AUTHORITATIVE_MIGRATIONS.has(migrationId)) {
+      throw new Error(
+        `Unauthorized migration discovered: ${migrationId}. ` +
+          "Add it to the authoritative migration allowlist only after explicit approval."
+      );
     }
 
     const filePath = path.join(directory, entry.name);

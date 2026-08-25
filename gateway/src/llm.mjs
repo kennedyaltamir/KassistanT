@@ -4,10 +4,19 @@ const MODEL_UPDATE_TIMEOUT_MS = 300000;
 let updateInProgress = false;
 
 /** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
+/** @typedef {{ format?: unknown, family?: unknown, parameter_size?: unknown, quantization_level?: unknown }} RawOllamaModelDetails */
+/** @typedef {{ name: string, size: number | null, digest?: unknown, modified_at?: unknown, details?: RawOllamaModelDetails }} RawOllamaModel */
+/** @typedef {{ format: string | null, family: string | null, parameterSize: string | null, quantizationLevel: string | null }} ModelDetails */
+/** @typedef {{ name: string, identifier: string, runtime: 'ollama', status: 'INSTALLED', available: true, sizeBytes: number | null, digest: string | null, modifiedAt: string | null, details: ModelDetails | null }} NormalizedModel */
+/** @typedef {{ runtime: 'ollama', available: boolean, status: 'READY' | 'UNAVAILABLE', models: NormalizedModel[], error: string | null }} ModelInventory */
+/** @typedef {{ systemPrompt?: string | undefined }} GenerateReplyOptions */
+/** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, error?: unknown, status?: unknown }} OllamaResponseBody */
 
+/** @param {RawOllamaModel} model @returns {NormalizedModel | null} */
 function normalizeModel(model) {
   const name = typeof model?.name === 'string' ? model.name.trim() : '';
   if (!name) return null;
+  const details = model.details;
   return {
     name,
     identifier: name,
@@ -17,17 +26,18 @@ function normalizeModel(model) {
     sizeBytes: Number.isFinite(Number(model.size)) ? Number(model.size) : null,
     digest: typeof model.digest === 'string' ? model.digest : null,
     modifiedAt: typeof model.modified_at === 'string' ? model.modified_at : null,
-    details: model.details && typeof model.details === 'object'
+    details: details && typeof details === 'object'
       ? {
-          format: typeof model.details.format === 'string' ? model.details.format : null,
-          family: typeof model.details.family === 'string' ? model.details.family : null,
-          parameterSize: typeof model.details.parameter_size === 'string' ? model.details.parameter_size : null,
-          quantizationLevel: typeof model.details.quantization_level === 'string' ? model.details.quantization_level : null,
+          format: typeof details.format === 'string' ? details.format : null,
+          family: typeof details.family === 'string' ? details.family : null,
+          parameterSize: typeof details.parameter_size === 'string' ? details.parameter_size : null,
+          quantizationLevel: typeof details.quantization_level === 'string' ? details.quantization_level : null,
         }
       : null,
   };
 }
 
+/** @param {string} path @param {RequestInit} options @param {number} timeoutMs @returns {Promise<Response>} */
 async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   const value = getAiConfig();
   const controller = new AbortController();
@@ -54,9 +64,11 @@ export function getLlmStatus() {
   };
 }
 
+/** @returns {Promise<ModelInventory>} */
 export async function getLocalModelInventory() {
   try {
     const response = await ollamaRequest('/api/tags');
+    /** @type {OllamaResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(body?.models)) {
       return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: `HTTP ${response.status}` };
@@ -65,7 +77,7 @@ export async function getLocalModelInventory() {
       runtime: 'ollama',
       available: true,
       status: 'READY',
-      models: body.models.map(normalizeModel).filter(Boolean),
+      models: body.models.map(normalizeModel).filter((model) => model !== null),
       error: null,
     };
   } catch (error) {
@@ -74,7 +86,7 @@ export async function getLocalModelInventory() {
       available: false,
       status: 'UNAVAILABLE',
       models: [],
-      error: error && typeof error === 'object' && error.name === 'AbortError'
+      error: error instanceof Error && error.name === 'AbortError'
         ? 'Ollama request timed out'
         : 'Ollama unavailable',
     };
@@ -83,7 +95,7 @@ export async function getLocalModelInventory() {
 
 export async function getLlmProviderStatus() {
   const inventory = await getLocalModelInventory();
-  const names = inventory.models.map(model => model.name);
+  const names = inventory.models.map((model) => model.name);
   const value = getAiConfig();
   return {
     reachable: inventory.available,
@@ -94,11 +106,13 @@ export async function getLlmProviderStatus() {
   };
 }
 
+/** @param {string} name @returns {Promise<{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }>} */
 async function updateLocalModelInternal(name) {
   const response = await ollamaRequest('/api/pull', {
     method: 'POST',
     body: JSON.stringify({ model: name, stream: false }),
   }, MODEL_UPDATE_TIMEOUT_MS);
+  /** @type {OllamaResponseBody} */
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
@@ -108,6 +122,7 @@ async function updateLocalModelInternal(name) {
   return { model: name, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
 }
 
+/** @param {string} model */
 export async function updateLocalModel(model) {
   const name = String(model ?? '').trim();
   if (!name) throw new Error('Model name is required');
@@ -129,7 +144,9 @@ export async function updateAllLocalModels() {
     const inventory = await getLocalModelInventory();
     if (!inventory.available) throw new Error(inventory.error || 'Ollama unavailable');
 
+    /** @type {{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }[]} */
     const updated = [];
+    /** @type {{ model: string, status: 'FAILED', error: string }[]} */
     const failed = [];
     for (const item of inventory.models) {
       try {
@@ -149,6 +166,7 @@ export function isModelUpdateInProgress() {
   return updateInProgress;
 }
 
+/** @param {ChatMessage[]} messages @param {GenerateReplyOptions} options */
 export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
   if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
@@ -162,7 +180,7 @@ export async function generateReply(messages, options = {}) {
       : value.systemPrompt;
     const payload = {
       model: value.model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages.filter(message => message.role !== 'system')],
+      messages: [{ role: 'system', content: systemPrompt }, ...messages.filter((message) => message.role !== 'system')],
       stream: false,
       think: false,
     };
@@ -174,6 +192,7 @@ export async function generateReply(messages, options = {}) {
       signal: controller.signal,
     });
 
+    /** @type {OllamaResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(`Local LLM request failed (${response.status})${body && typeof body.error === 'string' ? `: ${body.error}` : ''}`);
     const content = body?.message?.content;
