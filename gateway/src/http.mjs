@@ -6,6 +6,7 @@ import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatu
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, updateLocalModel } from './llm.mjs';
 import { getLlmSettings, updateLlmSettings } from './llm-settings.mjs';
+import { PROVIDER_REGISTRY } from './provider-registry.mjs';
 import { deleteCredential, listCredentialStatus, setCredential } from './credentials.mjs';
 import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCredential } from './credential-validation.mjs';
 
@@ -90,6 +91,22 @@ export function createHttpServer({ readinessChecks = {} } = {}) {
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') return json(response, 200, getStatus());
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/status') return json(response, 200, getAutoReplyStatus());
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/provider') return json(response, 200, await getLlmProviderStatus());
+      if (request.method === 'GET' && url.pathname === '/api/llm/providers') {
+        return json(response, 200, {
+          providers: PROVIDER_REGISTRY.map(provider => ({
+            provider: provider.provider,
+            label: provider.label,
+            availability: provider.availability,
+            runtimeCapability: provider.runtimeCapability,
+            credentialKeys: provider.credentialKeys,
+            validation: {
+              capability: provider.validation.capability,
+              method: provider.validation.method,
+              endpoint: provider.validation.endpoint,
+            },
+          })),
+        });
+      }
 
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/config') {
         const config = getAiConfig();
