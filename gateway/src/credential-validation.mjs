@@ -74,7 +74,6 @@ export function getCredentialValidationStatuses() {
   }]));
 }
 
-/** @param {string} key @param {string} credential */
 /** @param {string} key @param {string | null | undefined} credential @returns {Promise<{ key: string, provider: string, validationStatus: ValidationStatus, lastValidatedAt: string | null, error: string | null }>} */
 export async function validateCredentialValue(key, credential) {
   const provider = /** @type {CredentialProvider | null} */ (getProviderForCredential(key));
@@ -110,6 +109,7 @@ export async function validateCredentialValue(key, credential) {
   return { key, provider: provider.provider, validationStatus, lastValidatedAt, error };
 }
 
+/** @param {string} key */
 export async function validateCredential(key) {
   const result = await validateCredentialValue(key, getCredential(key));
   const state = loadState();
