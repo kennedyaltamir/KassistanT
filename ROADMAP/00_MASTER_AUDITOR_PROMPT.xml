@@ -84,6 +84,7 @@
     <required>git diff --check</required>
     <rule>Nunca inventar testes ou scripts inexistentes.</rule>
     <rule>Testes direcionados podem complementar a suíte completa.</rule>
+    <rule>Runtime real deve ser validado quando a tarefa envolver integração, transporte, persistência ou LLM.</rule>
   </testing>
 
   <logs>
@@ -101,10 +102,22 @@
 
   <architecture>
     <reference_flow>WhatsApp inbound -&gt; Gateway -&gt; Inbox/dedup -&gt; Core service -&gt; Customer/Conversation/Message -&gt; Product/Order Draft/Address/Payment/Availability/Pricing -&gt; Confirm -&gt; Commercial Result -&gt; DomainOutbox -&gt; Gateway worker -&gt; WhatsApp outbound</reference_flow>
-    <rule>O fluxo acima é referência arquitetural; não prova implementação existente.</rule>
+    <assistant_flow>Assistant Configuration + Customer + Conversation + Business Data -&gt; Context Policy -&gt; Context Builder -&gt; LLM Runtime -&gt; Response -&gt; WhatsApp</assistant_flow>
+    <rule>Fluxos de referência não provam implementação existente.</rule>
     <rule>Verificar cada etapa no código real antes de afirmar cobertura.</rule>
-    <rule>Separar responsabilidades de domínio, persistência e transporte.</rule>
+    <rule>Separar responsabilidades de domínio, persistência, configuração, contexto e transporte.</rule>
   </architecture>
+
+  <assistant_platform>
+    <rule>A aba Atendente configura identidade e políticas de interação, mas não ganha autoridade comercial.</rule>
+    <rule>Horário de atendimento é dado determinístico e deve ser avaliado pelo Core.</rule>
+    <rule>Dados do cliente entram no contexto somente segundo política persistida.</rule>
+    <rule>LLM nunca acessa SQLite, repositories ou secrets diretamente.</rule>
+    <rule>Providers de LLM devem ser adapters reais e possuir status verificável.</rule>
+    <rule>Materiais importados geram conhecimento/candidatos e devem preservar origem e revisão.</rule>
+    <rule>Mensagens em massa precisam de preview, aprovação, idempotência, rate limit e outbox.</rule>
+    <rule>Notificação de venda só pode nascer de evento comercial confirmado pelo Core.</rule>
+  </assistant_platform>
 
   <persistence>
     <rule>Arquivo SQL existente não prova que uma migration é aplicada.</rule>
@@ -123,12 +136,14 @@
   <security>
     <rule>Nunca expor segredos, tokens, cookies, credenciais ou arquivos de autenticação.</rule>
     <rule>Não desabilitar segurança para fazer testes passarem.</rule>
+    <rule>Credenciais de LLM devem ficar na boundary de credentials/secure storage disponível.</rule>
   </security>
 
   <documentation>
     <rule>Toda mudança arquitetural relevante deve ser registrada.</rule>
     <rule>Toda decisão relevante deve ter motivo e evidência.</rule>
     <rule>ROADMAP deve refletir estado real, não estado desejado.</rule>
+    <rule>Novas capacidades devem ser registradas em documentos numerados e ter critérios de aceite.</rule>
   </documentation>
 
   <response>
@@ -142,10 +157,23 @@
     <condition>Validações executadas.</condition>
     <condition>Diff verificado.</condition>
     <condition>Git verificado.</condition>
+    <condition>Runtime verificado quando aplicável.</condition>
     <condition>GitHub conferido quando publicado.</condition>
     <condition>ROADMAP atualizado.</condition>
     <condition>Incertezas relevantes declaradas.</condition>
   </completion>
+
+  <roadmap>
+    <document>12_ATTENDANT_CONFIGURATION.md</document>
+    <document>13_LLM_PROVIDER_CONFIGURATION.md</document>
+    <document>14_KNOWLEDGE_INGESTION_AND_CATALOG.md</document>
+    <document>15_BULK_MESSAGING_CSV.md</document>
+    <document>16_SALE_NOTIFICATIONS.md</document>
+    <document>17_BUSINESS_HOURS_AND_SERVICE_POLICY.md</document>
+    <document>18_CUSTOMER_CONTEXT_POLICY.md</document>
+    <document>19_MVP_UI_NAVIGATION.md</document>
+    <document>20_MVP_EVOLUTION_BACKLOG.md</document>
+  </roadmap>
 
   <final_instruction>
     Antes de agir, verificar. Antes de afirmar, provar. Antes de alterar, entender.
