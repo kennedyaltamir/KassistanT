@@ -16,7 +16,7 @@ const inFlight = new Set();
 const lastReplyAt = new Map();
 let started = false;
 /** @type {ConversationPolicies | null} */
-let conversationPolicies = null;
+let conversationPolicies = {};
 
 /** @returns {ConversationPolicies} */
 function loadPolicies() {
@@ -68,14 +68,17 @@ export function setConversationPolicy(jid, patch = {}) {
   return { jid, ...next };
 }
 
+/** @param {string} jid */
 export function clearConversationPolicy(jid) {
   return setConversationPolicy(jid, { enabled: null, prompt: '' });
 }
 
+/** @param {string} jid */
 export function getConversationPolicyStatus(jid) {
   return { jid, ...getConversationPolicy(jid) };
 }
 
+/** @returns {{ jid: string } & ConversationPolicy[]} */
 export function listConversationPolicies() {
   return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...value }));
 }

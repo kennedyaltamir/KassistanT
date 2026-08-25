@@ -1,7 +1,9 @@
+/** @param {Record<string, () => unknown | Promise<unknown>>} checks */
 export function createReadinessChecker(checks = {}) {
   const entries = Object.entries(checks);
 
   return async function checkReadiness() {
+    /** @type {Record<string, { ok: boolean }>} */
     const results = {};
     let ready = true;
 

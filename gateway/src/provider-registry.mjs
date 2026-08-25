@@ -1,4 +1,4 @@
-/** @typedef {{ provider: string, label: string, credentialKeys: string[], availability: 'AVAILABLE' | 'UNAVAILABLE', validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} ProviderDefinition */
+/** @typedef {{ provider: string, label: string, credentialKeys: readonly string[], availability: 'AVAILABLE' | 'UNAVAILABLE', validation: { capability: 'SUPPORTED' | 'UNAVAILABLE', method: string | null, endpoint: string | null } }} ProviderDefinition */
 
 /** @type {ProviderDefinition[]} */
 const PROVIDER_DEFINITIONS = [

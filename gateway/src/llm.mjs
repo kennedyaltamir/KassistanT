@@ -11,6 +11,7 @@ let updateInProgress = false;
 /** @typedef {{ systemPrompt?: string | undefined }} GenerateReplyOptions */
 /** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, error?: unknown, status?: unknown }} OllamaResponseBody */
 
+/** @param {RawOllamaModel} model @returns {NormalizedModel | null} */
 function normalizeModel(model) {
   const name = typeof model?.name === 'string' ? model.name.trim() : '';
   if (!name) return null;
@@ -104,6 +105,7 @@ export async function getLlmProviderStatus() {
 }
 
 /** @param {string} name */
+/** @param {string} name @returns {Promise<{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }>} */
 async function updateLocalModelInternal(name) {
   const response = await ollamaRequest('/api/pull', {
     method: 'POST',
@@ -141,7 +143,9 @@ export async function updateAllLocalModels() {
     const inventory = await getLocalModelInventory();
     if (!inventory.available) throw new Error(inventory.error || 'Ollama unavailable');
 
+    /** @type {{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }[]} */
     const updated = [];
+    /** @type {{ model: string, status: 'FAILED', error: string }[]} */
     const failed = [];
     for (const item of inventory.models) {
       try {

@@ -47,7 +47,7 @@ export function validateWssEnvelope(message) {
     return { valid: false, code: "invalid_message_id" };
   }
 
-  if (!MESSAGE_TYPES.has(envelope.message_type)) {
+  if (typeof envelope.message_type !== 'string' || !MESSAGE_TYPES.has(envelope.message_type)) {
     return { valid: false, code: "invalid_message_type" };
   }
 

@@ -29,7 +29,7 @@ function saveState(value) {
   fs.writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
 }
 
-/** @param {number} status @returns {ValidationStatus} */
+/** @param {number} status @returns {Exclude<ValidationStatus, 'UNKNOWN'>} */
 export function classifyHttp(status) {
   if (status === 401 || status === 403 || status === 498) return 'INVALID';
   if (status === 429 || status >= 500) return 'UNAVAILABLE';
@@ -75,6 +75,7 @@ export function getCredentialValidationStatuses() {
 }
 
 /** @param {string} key @param {string} credential */
+/** @param {string} key @param {string | null | undefined} credential @returns {Promise<{ key: string, provider: string, validationStatus: ValidationStatus, lastValidatedAt: string | null, error: string | null }>} */
 export async function validateCredentialValue(key, credential) {
   const provider = /** @type {CredentialProvider | null} */ (getProviderForCredential(key));
   if (!provider) throw new Error('Unsupported credential');
@@ -126,6 +127,7 @@ export async function validateCredential(key) {
   return result;
 }
 
+/** @param {string} key */
 export function invalidateCredentialStatus(key) {
   const state = loadState();
   delete state[key];
