@@ -18,6 +18,11 @@ export interface DatabaseHealth {
   integrity: "ok" | "failed";
 }
 
+export interface SQLiteRunResult {
+  changes: number;
+  lastInsertRowid: number | bigint;
+}
+
 export function getDefaultDatabasePath(): string {
   const base = process.env.APPDATA ?? process.env.XDG_DATA_HOME ?? path.join(os.homedir(), ".config");
   return path.join(base, "KassisT", "database", "kassist.sqlite");
@@ -54,15 +59,19 @@ export class SQLiteDatabase {
     }
   }
 
-  execute(sql: string, ...parameters: unknown[]): void {
+  execute(sql: string, ...parameters: unknown[]): SQLiteRunResult {
     try {
-      this.connection.prepare(sql).run(...parameters);
+      const result = this.connection.prepare(sql).run(...parameters);
+      return {
+        changes: Number(result.changes),
+        lastInsertRowid: result.lastInsertRowid
+      };
     } catch (error) {
       throw new DatabaseError("DATABASE_QUERY_FAILED", "SQLite statement failed", error);
     }
   }
 
-  query<T extends Record<string, unknown>>(sql: string, ...parameters: unknown[]): T[] {
+  query<T>(sql: string, ...parameters: unknown[]): T[] {
     try {
       return this.connection.prepare(sql).all(...parameters) as T[];
     } catch (error) {
