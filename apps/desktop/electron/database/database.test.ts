@@ -8,11 +8,12 @@ import { discoverMigrations } from "./migrations.js";
 import { applyMigrations, readAppliedMigrations } from "./migration-runner.js";
 import { SQLiteDatabase } from "./sqlite-database.js";
 
-test("migration discovery excludes historical 0002 and fails closed on unknown future migrations", async () => {
+test("migration discovery excludes legacy migrations and fails closed on unknown future migrations", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "kassist-migrations-"));
   await writeFile(path.join(directory, "0001_bootstrap.sql"), "CREATE TABLE first(id INTEGER);\n");
   await writeFile(path.join(directory, "0002_c1_product_order.sql"), "CREATE TABLE historical(id INTEGER);\n");
   await writeFile(path.join(directory, "0003_first_sale_core.sql"), "CREATE TABLE core(id INTEGER);\n");
+  await writeFile(path.join(directory, "0005_add_conversation_external_thread_id.sql"), "ALTER TABLE conversation ADD COLUMN external_thread_id TEXT;\n");
 
   const migrations = await discoverMigrations(directory);
   assert.deepEqual(migrations.map((migration) => migration.id), ["0001_bootstrap", "0003_first_sale_core"]);
