@@ -34,10 +34,7 @@ export type {
   ConfirmOrderSuccess,
   OrderConfirmedEvent
 } from "./confirm-order.js";
-export {
-  ORDER_DOMAIN_ERRORS,
-  orderDomainError
-} from "./order-errors.js";
+export { ORDER_DOMAIN_ERRORS, orderDomainError } from "./order-errors.js";
 export type { OrderDomainError, OrderDomainErrorCode } from "./order-errors.js";
 export { Order } from "./order.js";
-export type { OrderItem, OrderItemModifier, OrderProps } from "./order.js";
+export type { OrderDraftContext, OrderItem, OrderItemModifier, OrderProps } from "./order.js";
