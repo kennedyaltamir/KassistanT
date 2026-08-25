@@ -13,6 +13,8 @@ import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCr
 /** @typedef {import('node:http').ServerResponse<IncomingMessage>} ServerResponse */
 /** @typedef {Record<string, unknown>} RequestBody */
 /** @typedef {Record<string, unknown>} SseEvent */
+/** @typedef {{ ok: boolean }} ReadinessResult */
+/** @typedef {boolean | ReadinessResult | Promise<boolean | ReadinessResult>} ReadinessCheck */
 
 /** @param {ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
@@ -66,7 +68,7 @@ function sanitizedError(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** @param {{ readinessChecks?: Record<string, () => unknown | Promise<unknown>> }} options */
+/** @param {{ readinessChecks?: Record<string, ReadinessCheck> }} options */
 export function createHttpServer({ readinessChecks = {} } = {}) {
   const checkReadiness = createReadinessChecker(readinessChecks);
 
