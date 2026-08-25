@@ -14,7 +14,7 @@ import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCr
 /** @typedef {Record<string, unknown>} RequestBody */
 /** @typedef {Record<string, unknown>} SseEvent */
 /** @typedef {{ ok: boolean }} ReadinessResult */
-/** @typedef {boolean | ReadinessResult | Promise<boolean | ReadinessResult>} ReadinessCheck */
+/** @typedef {() => boolean | ReadinessResult | Promise<boolean | ReadinessResult>} ReadinessCheck */
 
 /** @param {ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
