@@ -188,11 +188,23 @@ export async function generateReply(messages, options = {}) {
   const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
     ? options.systemPrompt.trim()
     : value.systemPrompt;
-  const sanitizedMessages = messages.filter((message) => message.role !== 'system');
-  const finalMessages = [{ role: 'system', content: systemPrompt }, ...sanitizedMessages];
+  const sanitizedMessages = messages.filter(
+    (message) => message.role !== 'system'
+  );
+
+  /** @type {ChatMessage[]} */
+  const finalMessages = [
+    { role: 'system', content: systemPrompt },
+    ...sanitizedMessages,
+  ];
 
   if (value.provider === 'groq') {
     const credential = getCredential('GROQ_API_KEY');
+
+    if (!credential) {
+      throw new Error('Groq API key is not configured');
+    }
+
     return generateGroqReply({
       credential,
       model: value.model,

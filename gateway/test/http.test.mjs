@@ -81,7 +81,7 @@ test("GET /api/llm/providers exposes runtime capability without secrets", async 
 
     const groq = body.providers.find((provider) => provider.provider === "groq");
     assert.ok(groq);
-    assert.equal(groq.runtimeCapability, "CREDENTIAL_VALIDATION_ONLY");
+    assert.equal(groq.runtimeCapability, "CHAT");
     assert.deepEqual(groq.credentialKeys, ["GROQ_API_KEY"]);
     assert.equal(Object.prototype.hasOwnProperty.call(groq, "secret"), false);
   });

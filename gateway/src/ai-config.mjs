@@ -29,8 +29,12 @@ let persisted = null;
 
 /** @returns {AiConfig} */
 function envConfig() {
+  const provider = String(
+    process.env.KASSIST_LLM_PROVIDER ?? DEFAULT_CONFIG.provider
+  ).trim();
+
   return {
-    provider: String(process.env.KASSIST_LLM_PROVIDER ?? DEFAULT_CONFIG.provider),
+    provider: /** @type {'ollama_local' | 'groq'} */ (provider),
     enabled: String(process.env.KASSIST_AI_AUTOREPLY ?? '').toLowerCase() === 'true',
     baseUrl: String(process.env.KASSIST_LLM_URL ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, ''),
     model: String(process.env.KASSIST_LLM_MODEL ?? DEFAULT_CONFIG.model),
