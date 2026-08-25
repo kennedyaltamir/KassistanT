@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PROVIDER_REGISTRY, getCredentialDefinitions, getProviderDefinition } from '../src/provider-registry.mjs';
 
-test('provider registry contains every required provider', () => {
+test('provider registry contains every required provider plus the real local chat runtime', () => {
   assert.deepEqual(
     PROVIDER_REGISTRY.map(item => item.provider),
-    ['nvidia', 'groq', 'mistral', 'cohere', 'cerebras', 'huggingface', 'penrouter', 'modelscope', 'cloudflare', 'github', 'sambanova']
+    ['ollama_local', 'nvidia', 'groq', 'mistral', 'cohere', 'cerebras', 'huggingface', 'penrouter', 'modelscope', 'cloudflare', 'github', 'sambanova']
   );
 });
 
@@ -26,6 +26,13 @@ test('provider credential fields are canonical', () => {
   ]);
   assert.equal(getProviderDefinition('cloudflare').credentialKeys.length, 2);
   assert.equal(getCredentialDefinitions().find(item => item.key === 'CLOUDFLARE_ACCOUNT_ID').secret, false);
+});
+
+test('runtime capability distinguishes chat inference from credential validation', () => {
+  assert.equal(getProviderDefinition('ollama_local').runtimeCapability, 'CHAT');
+  for (const provider of ['groq', 'mistral', 'cohere', 'huggingface', 'github']) {
+    assert.equal(getProviderDefinition(provider).runtimeCapability, 'CREDENTIAL_VALIDATION_ONLY');
+  }
 });
 
 test('unverified providers remain explicitly unavailable', () => {
