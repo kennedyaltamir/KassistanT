@@ -6,6 +6,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = path.join(__dirname, '..', 'data', 'ai-config.json');
 const LOCAL_OLLAMA_URLS = new Set(['http://127.0.0.1:11434', 'http://localhost:11434']);
 
+/** @typedef {{ enabled: boolean, baseUrl: string, model: string, timeoutMs: number, contextMessages: number, cooldownMs: number, systemPrompt: string }} AiConfig */
+/** @typedef {Partial<AiConfig>} AiConfigPatch */
+
+/** @type {AiConfig} */
 const DEFAULT_CONFIG = {
   enabled: false,
   baseUrl: 'http://127.0.0.1:11434',
@@ -17,8 +21,10 @@ const DEFAULT_CONFIG = {
     'Você é o assistente de atendimento do KassisT. Responda em português do Brasil, de forma curta, clara e educada. Não invente preços, disponibilidade, horários, pedidos ou políticas. Se a informação não estiver disponível no contexto, peça os dados necessários ou diga que precisa verificar. Não confirme ações que o sistema não executou.',
 };
 
+/** @type {AiConfig | null} */
 let persisted = null;
 
+/** @returns {AiConfig} */
 function envConfig() {
   return {
     enabled: String(process.env.KASSIST_AI_AUTOREPLY ?? '').toLowerCase() === 'true',
@@ -31,6 +37,7 @@ function envConfig() {
   };
 }
 
+/** @param {AiConfigPatch} value @returns {AiConfig} */
 function normalize(value = {}) {
   const baseUrl = String(value.baseUrl ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, '');
   if (!LOCAL_OLLAMA_URLS.has(baseUrl)) {
@@ -54,6 +61,7 @@ function normalize(value = {}) {
   };
 }
 
+/** @returns {AiConfig | null} */
 function loadPersisted() {
   if (persisted) return persisted;
   try {
@@ -75,6 +83,7 @@ export function getAiConfig() {
   return normalize(fromFile ? { ...fromEnv, ...fromFile } : fromEnv);
 }
 
+/** @param {AiConfigPatch} patch @returns {AiConfig} */
 export function updateAiConfig(patch = {}) {
   const next = normalize({ ...getAiConfig(), ...patch });
   fs.mkdirSync(path.dirname(CONFIG_PATH), { recursive: true });

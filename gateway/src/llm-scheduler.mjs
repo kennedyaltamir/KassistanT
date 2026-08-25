@@ -1,3 +1,12 @@
+/** @typedef {{ autoUpdateEnabled: boolean, intervalHours: number }} LlmSettings */
+/** @typedef {{ updated: unknown[], failed: unknown[] }} UpdateResult */
+/** @typedef {() => LlmSettings} GetSettings */
+/** @typedef {() => Promise<UpdateResult>} UpdateAllLocalModels */
+/** @typedef {(message: string) => void} LogHandler */
+/** @typedef {(callback: () => void | Promise<void>, delay: number) => ReturnType<typeof setTimeout>} SetTimer */
+/** @typedef {(timer: ReturnType<typeof setTimeout>) => void} ClearTimer */
+
+/** @param {{ getSettings: GetSettings, updateAllLocalModels: UpdateAllLocalModels, onLog?: LogHandler, onError?: LogHandler, setTimer?: SetTimer, clearTimer?: ClearTimer }} options */
 export function createLlmUpdateScheduler({
   getSettings,
   updateAllLocalModels,
@@ -6,6 +15,7 @@ export function createLlmUpdateScheduler({
   setTimer = setTimeout,
   clearTimer = clearTimeout,
 }) {
+  /** @type {ReturnType<typeof setTimeout> | null} */
   let timer = null;
   let running = false;
   let stopped = false;
