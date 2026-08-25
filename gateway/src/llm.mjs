@@ -4,7 +4,8 @@ const MODEL_UPDATE_TIMEOUT_MS = 300000;
 let updateInProgress = false;
 
 /** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
-/** @typedef {{ name: string, size: number | null, digest?: unknown, modified_at?: unknown, details?: unknown }} RawOllamaModel */
+/** @typedef {{ format?: unknown, family?: unknown, parameter_size?: unknown, quantization_level?: unknown }} RawOllamaModelDetails */
+/** @typedef {{ name: string, size: number | null, digest?: unknown, modified_at?: unknown, details?: RawOllamaModelDetails }} RawOllamaModel */
 /** @typedef {{ format: string | null, family: string | null, parameterSize: string | null, quantizationLevel: string | null }} ModelDetails */
 /** @typedef {{ name: string, identifier: string, runtime: 'ollama', status: 'INSTALLED', available: true, sizeBytes: number | null, digest: string | null, modifiedAt: string | null, details: ModelDetails | null }} NormalizedModel */
 /** @typedef {{ runtime: 'ollama', available: boolean, status: 'READY' | 'UNAVAILABLE', models: NormalizedModel[], error: string | null }} ModelInventory */
@@ -15,6 +16,7 @@ let updateInProgress = false;
 function normalizeModel(model) {
   const name = typeof model?.name === 'string' ? model.name.trim() : '';
   if (!name) return null;
+  const details = model.details;
   return {
     name,
     identifier: name,
@@ -24,12 +26,12 @@ function normalizeModel(model) {
     sizeBytes: Number.isFinite(Number(model.size)) ? Number(model.size) : null,
     digest: typeof model.digest === 'string' ? model.digest : null,
     modifiedAt: typeof model.modified_at === 'string' ? model.modified_at : null,
-    details: model.details && typeof model.details === 'object'
+    details: details && typeof details === 'object'
       ? {
-          format: typeof model.details.format === 'string' ? model.details.format : null,
-          family: typeof model.details.family === 'string' ? model.details.family : null,
-          parameterSize: typeof model.details.parameter_size === 'string' ? model.details.parameter_size : null,
-          quantizationLevel: typeof model.details.quantization_level === 'string' ? model.details.quantization_level : null,
+          format: typeof details.format === 'string' ? details.format : null,
+          family: typeof details.family === 'string' ? details.family : null,
+          parameterSize: typeof details.parameter_size === 'string' ? details.parameter_size : null,
+          quantizationLevel: typeof details.quantization_level === 'string' ? details.quantization_level : null,
         }
       : null,
   };
@@ -104,7 +106,6 @@ export async function getLlmProviderStatus() {
   };
 }
 
-/** @param {string} name */
 /** @param {string} name @returns {Promise<{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }>} */
 async function updateLocalModelInternal(name) {
   const response = await ollamaRequest('/api/pull', {
