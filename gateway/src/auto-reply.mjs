@@ -15,12 +15,12 @@ const POLICY_PATH = path.join(__dirname, '..', 'data', 'ai-conversations.json');
 const inFlight = new Set();
 const lastReplyAt = new Map();
 let started = false;
-/** @type {ConversationPolicies | null} */
+/** @type {ConversationPolicies} */
 let conversationPolicies = {};
 
 /** @returns {ConversationPolicies} */
 function loadPolicies() {
-  if (conversationPolicies) return conversationPolicies;
+  if (Object.keys(conversationPolicies).length > 0) return conversationPolicies;
   try {
     const raw = fs.readFileSync(POLICY_PATH, 'utf8');
     const parsed = JSON.parse(raw);
@@ -78,7 +78,7 @@ export function getConversationPolicyStatus(jid) {
   return { jid, ...getConversationPolicy(jid) };
 }
 
-/** @returns {{ jid: string } & ConversationPolicy[]} */
+/** @returns {Array<{ jid: string } & ConversationPolicy>} */
 export function listConversationPolicies() {
   return Object.entries(loadPolicies()).map(([jid, value]) => ({ jid, ...value }));
 }
