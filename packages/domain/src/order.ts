@@ -53,8 +53,8 @@ export class Order {
     return Order.create({
       id: generateUuidV7(),
       store_id: storeId,
-      customer_id: context.customer_id,
-      conversation_id: context.conversation_id,
+      ...(context.customer_id !== undefined ? { customer_id: context.customer_id } : {}),
+      ...(context.conversation_id !== undefined ? { conversation_id: context.conversation_id } : {}),
       status: "DRAFT",
       items,
       total
