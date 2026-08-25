@@ -64,6 +64,29 @@ test("GET /ready returns 503 when a configured check fails", async () => {
   });
 });
 
+test("GET /api/llm/providers exposes runtime capability without secrets", async () => {
+  const server = createHttpServer();
+
+  await withServer(server, async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/api/llm/providers`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.ok(Array.isArray(body.providers));
+
+    const ollama = body.providers.find((provider) => provider.provider === "ollama_local");
+    assert.ok(ollama);
+    assert.equal(ollama.runtimeCapability, "CHAT");
+    assert.deepEqual(ollama.credentialKeys, []);
+
+    const groq = body.providers.find((provider) => provider.provider === "groq");
+    assert.ok(groq);
+    assert.equal(groq.runtimeCapability, "CREDENTIAL_VALIDATION_ONLY");
+    assert.deepEqual(groq.credentialKeys, ["GROQ_API_KEY"]);
+    assert.equal(Object.prototype.hasOwnProperty.call(groq, "secret"), false);
+  });
+});
+
 test("unknown routes preserve the canonical error envelope", async () => {
   const server = createHttpServer();
 
