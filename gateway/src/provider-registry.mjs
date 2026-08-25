@@ -23,7 +23,7 @@ const PROVIDER_DEFINITIONS = [
     label: 'Groq',
     credentialKeys: ['GROQ_API_KEY'],
     availability: 'AVAILABLE',
-    runtimeCapability: 'CREDENTIAL_VALIDATION_ONLY',
+    runtimeCapability: 'CHAT',
     validation: { capability: 'SUPPORTED', method: 'GET', endpoint: 'https://api.groq.com/openai/v1/models' },
   },
   {
