@@ -10,6 +10,7 @@ const jsTests = [];
 for (const file of walkFiles(path.join(root, "tests"))) {
   if (file.endsWith(".test.mjs")) jsTests.push(file);
 }
+jsTests.push(path.join(desktop, "electron", "database", "runtime.test.cjs"));
 
 const tsTests = [
   path.join(domain, "src", "foundation.test.ts"),
