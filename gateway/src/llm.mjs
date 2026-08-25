@@ -1,3 +1,4 @@
+import { getCredential } from './credentials.mjs';
 import { getAiConfig } from './ai-config.mjs';
 
 const MODEL_UPDATE_TIMEOUT_MS = 300000;
@@ -10,7 +11,7 @@ let updateInProgress = false;
 /** @typedef {{ name: string, identifier: string, runtime: 'ollama', status: 'INSTALLED', available: true, sizeBytes: number | null, digest: string | null, modifiedAt: string | null, details: ModelDetails | null }} NormalizedModel */
 /** @typedef {{ runtime: 'ollama', available: boolean, status: 'READY' | 'UNAVAILABLE', models: NormalizedModel[], error: string | null }} ModelInventory */
 /** @typedef {{ systemPrompt?: string | undefined }} GenerateReplyOptions */
-/** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, error?: unknown, status?: unknown }} OllamaResponseBody */
+/** @typedef {{ models?: RawOllamaModel[], message?: { content?: unknown }, choices?: Array<{ message?: { content?: unknown } }>, error?: unknown, status?: unknown }} LlmResponseBody */
 
 /** @param {RawOllamaModel} model @returns {NormalizedModel | null} */
 function normalizeModel(model) {
@@ -56,6 +57,7 @@ async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
 export function getLlmStatus() {
   const value = getAiConfig();
   return {
+    provider: value.provider,
     enabled: value.enabled,
     baseUrl: value.baseUrl,
     model: value.model,
@@ -66,9 +68,14 @@ export function getLlmStatus() {
 
 /** @returns {Promise<ModelInventory>} */
 export async function getLocalModelInventory() {
+  const value = getAiConfig();
+  if (value.provider !== 'ollama_local') {
+    return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: 'Local model inventory is unavailable for the selected external provider' };
+  }
+
   try {
     const response = await ollamaRequest('/api/tags');
-    /** @type {OllamaResponseBody} */
+    /** @type {LlmResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(body?.models)) {
       return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: `HTTP ${response.status}` };
@@ -94,15 +101,16 @@ export async function getLocalModelInventory() {
 }
 
 export async function getLlmProviderStatus() {
+  const value = getAiConfig();
   const inventory = await getLocalModelInventory();
   const names = inventory.models.map((model) => model.name);
-  const value = getAiConfig();
   return {
-    reachable: inventory.available,
-    error: inventory.error,
+    provider: value.provider,
+    reachable: value.provider === 'ollama_local' ? inventory.available : true,
+    error: value.provider === 'ollama_local' ? inventory.error : null,
     models: names,
     inventory: inventory.models,
-    selectedModelAvailable: names.includes(value.model),
+    selectedModelAvailable: value.provider === 'ollama_local' ? names.includes(value.model) : null,
   };
 }
 
@@ -112,7 +120,7 @@ async function updateLocalModelInternal(name) {
     method: 'POST',
     body: JSON.stringify({ model: name, stream: false }),
   }, MODEL_UPDATE_TIMEOUT_MS);
-  /** @type {OllamaResponseBody} */
+  /** @type {LlmResponseBody} */
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
@@ -124,6 +132,9 @@ async function updateLocalModelInternal(name) {
 
 /** @param {string} model */
 export async function updateLocalModel(model) {
+  const value = getAiConfig();
+  if (value.provider !== 'ollama_local') throw new Error('Local model updates require the ollama_local provider');
+
   const name = String(model ?? '').trim();
   if (!name) throw new Error('Model name is required');
   if (updateInProgress) throw new Error('Another model update is already running');
@@ -138,6 +149,8 @@ export async function updateLocalModel(model) {
 }
 
 export async function updateAllLocalModels() {
+  const value = getAiConfig();
+  if (value.provider !== 'ollama_local') throw new Error('Local model updates require the ollama_local provider');
   if (updateInProgress) throw new Error('Another model update is already running');
   updateInProgress = true;
   try {
@@ -169,7 +182,7 @@ export function isModelUpdateInProgress() {
 /** @param {ChatMessage[]} messages @param {GenerateReplyOptions} options */
 export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
-  if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
+  if (!value.enabled) throw new Error('LLM auto-reply is disabled');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), value.timeoutMs);
@@ -178,9 +191,40 @@ export async function generateReply(messages, options = {}) {
     const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
       ? options.systemPrompt.trim()
       : value.systemPrompt;
+    const sanitizedMessages = messages.filter((message) => message.role !== 'system');
+
+    if (value.provider === 'groq') {
+      const credential = getCredential('GROQ_API_KEY');
+      if (!credential) throw new Error('Groq API key is not configured');
+
+      const payload = {
+        model: value.model,
+        messages: [{ role: 'system', content: systemPrompt }, ...sanitizedMessages],
+        stream: false,
+      };
+
+      const response = await fetch(`${value.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          accept: 'application/json',
+          authorization: `Bearer ${credential}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      /** @type {LlmResponseBody} */
+      const body = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(`Groq LLM request failed (${response.status})${body && typeof body.error === 'object' && body.error && typeof body.error.message === 'string' ? `: ${body.error.message}` : ''}`);
+      const content = body?.choices?.[0]?.message?.content;
+      if (typeof content !== 'string' || !content.trim()) throw new Error('Groq LLM returned an empty response');
+      return content.trim();
+    }
+
     const payload = {
       model: value.model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages.filter((message) => message.role !== 'system')],
+      messages: [{ role: 'system', content: systemPrompt }, ...sanitizedMessages],
       stream: false,
       think: false,
     };
@@ -192,7 +236,7 @@ export async function generateReply(messages, options = {}) {
       signal: controller.signal,
     });
 
-    /** @type {OllamaResponseBody} */
+    /** @type {LlmResponseBody} */
     const body = await response.json().catch(() => null);
     if (!response.ok) throw new Error(`Local LLM request failed (${response.status})${body && typeof body.error === 'string' ? `: ${body.error}` : ''}`);
     const content = body?.message?.content;
