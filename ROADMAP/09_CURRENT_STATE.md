@@ -7,9 +7,11 @@ Este documento é uma fotografia de estado e deve ser atualizado após mudanças
 ## Ponto de referência confirmado
 
 **Repository:** `kennedyaltamir/KassistanT`  
-**Branch:** `fix/windows-gateway-spawn`  
-**SHA confirmado no checkout informado:** `e336bc36b5955081b3d6e6136db1f9571548fe97`  
-**Working tree:** limpa no último estado informado  
+**Branch em implementação:** `feat/attendant-configuration`  
+**Base:** `fix/windows-gateway-spawn`  
+**SHA GitHub confirmado antes da implementação:** `6ddcbf879350e9c2e03bd0b476ff22443abcf097`  
+**Último SHA da branch de implementação:** `6aeca6d72010fea918d61e6818b9563633c345e0`  
+**Working tree:** não verificável deste ambiente; checkout local deve ser reconferido antes dos testes finais.
 
 ## Runtime confirmado anteriormente
 
@@ -18,39 +20,42 @@ Este documento é uma fotografia de estado e deve ser atualizado após mudanças
 - Gateway inicia em `127.0.0.1:3210`.
 - WhatsApp chegou ao estado `CONNECTED` no runtime observado.
 - Correção da migration `external_thread_id` foi validada no ciclo local posterior.
-- `pnpm build` passou.
-- Suítes de domínio e gateway passaram no ciclo final informado.
+- `pnpm build` passou no último ciclo informado.
+- Suítes de domínio e gateway passaram no último ciclo informado.
 
-## Capacidades recentemente especificadas no ROADMAP
+## Capacidades normativas e estado atual
 
-| Capacidade | Estado atual |
+| Capacidade | Estado |
 |---|---|
-| Atendente / Assistant Configuration | NOT_IMPLEMENTED |
-| Horário de atendimento determinístico | NOT_IMPLEMENTED |
-| Política de dados do cliente | NOT_IMPLEMENTED |
+| Atendente / Assistant Configuration | IMPLEMENTED_PENDING_VERIFICATION |
+| Persistência da configuração por loja | IMPLEMENTED_PENDING_VERIFICATION |
+| Validação da configuração | IMPLEMENTED_PENDING_VERIFICATION |
+| IPC Electron da configuração | IMPLEMENTED_PENDING_VERIFICATION |
+| Superfície UI Atendente | IMPLEMENTED_PENDING_VERIFICATION |
+| Horário de atendimento determinístico | PARTIAL — armazenamento/UI preparados; Core `isOpen()` ainda pendente |
+| Política de dados do cliente | PARTIAL — persistência preparada; Context Builder ainda pendente |
 | Multi-provider LLM | PARTIAL / EXISTING PROVIDER INFRASTRUCTURE |
 | Ingestão de materiais | NOT_IMPLEMENTED |
 | Auto-preenchimento de catálogo por candidatos | NOT_IMPLEMENTED |
 | Mensagens via CSV | NOT_IMPLEMENTED |
-| Notificação administrativa de venda | NOT_IMPLEMENTED |
-| Navegação das novas abas | PARTIAL |
+| Notificação administrativa de venda | PARTIAL — política persistida; evento/worker ainda pendentes |
+| Navegação das novas abas | PARTIAL — Atendente é adicionada pela superfície renderer |
 
-## Arquivos normativos adicionados
+## Implementação A1 criada
 
-- `12_ATTENDANT_CONFIGURATION.md`
-- `13_LLM_PROVIDER_CONFIGURATION.md`
-- `14_KNOWLEDGE_INGESTION_AND_CATALOG.md`
-- `15_BULK_MESSAGING_CSV.md`
-- `16_SALE_NOTIFICATIONS.md`
-- `17_BUSINESS_HOURS_AND_SERVICE_POLICY.md`
-- `18_CUSTOMER_CONTEXT_POLICY.md`
-- `19_MVP_UI_NAVIGATION.md`
-- `20_MVP_EVOLUTION_BACKLOG.md`
+- `apps/desktop/database/migrations/0006_assistant_configuration.sql`
+- `apps/desktop/electron/assistant-configuration.cjs`
+- `apps/desktop/electron/database/assistant-configuration.test.cjs`
+- `apps/desktop/src/assistant-settings.js`
+- `apps/desktop/electron/main.cjs` — IPC `assistant.config.*`
+- `apps/desktop/electron/preload.cjs` — boundary segura do renderer
+- `apps/desktop/electron/database/migrations.ts` — migration 0006 autorizada
+- `apps/desktop/electron/database/runtime.cjs` — migration 0006 aplicada no runtime legado
+
+## Critério de conclusão da A1
+
+Ainda não marcar `IMPLEMENTED`. Exige checkout local sincronizado, teste direcionado, `pnpm test`, `pnpm build`, `git diff --check`, execução do desktop e conferência visual/funcional da aba Atendente.
 
 ## Próximo passo oficial
 
-Implementar a Fase 1 do `20_MVP_EVOLUTION_BACKLOG.md`: Assistant Configuration persistente, mantendo as separações entre UI, backend, Core, Context Builder, LLM e persistência.
-
-## Critério de atualização
-
-Nunca registrar `IMPLEMENTED` sem comprovação do caminho de execução real, testes, build e runtime quando aplicável.
+Validar A1 no checkout e, após aprovação, implementar A2 — Business Hours determinístico — e A3 — Customer Context Policy.
