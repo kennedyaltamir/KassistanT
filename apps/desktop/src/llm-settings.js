@@ -169,7 +169,7 @@
             <input id="llm-interval" type="number" min="1" max="168" value="${Number(state.settings.intervalHours || 24)}" />
           </div>
         </div>
-        <div class="notice">O KassisT não marca um modelo como atualizado apenas pelo nome. O update real é executado por `POST /api/pull` do Ollama.</div>
+        <div class="notice">O KassisT não marca um modelo como atualizado apenas pelo nome. O update real é executado por POST /api/pull do Ollama.</div>
         <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" id="llm-auto-save">Salvar política de atualização</button></div>
       </section>
 
@@ -312,18 +312,9 @@
     if (!isSettingsPage() || rendering) return;
     rendering = true;
     try { render(); } finally { rendering = false; }
-    if (!state.credentials.length && !state.loading) load();
   }
 
-  function start() {
-    if (window.__kassistLlmSettingsStarted) return;
-    window.__kassistLlmSettingsStarted = true;
-    const main = document.querySelector('#main');
-    if (!main) return;
-    document.querySelectorAll('.nav button').forEach(button => button.addEventListener('click', () => setTimeout(mount, 0)));
-    setTimeout(mount, 0);
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
-  else start();
+  new MutationObserver(mount).observe(document.body, { childList: true, subtree: true, attributes: true });
+  window.addEventListener('kassist:settings-page', mount);
+  mount();
 })();
