@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld("kassist", {
 window.addEventListener("DOMContentLoaded", () => {
   if (window.__kassistAiPanelLoader) return;
   window.__kassistAiPanelLoader = true;
-  const scripts = ["./ai-panel.js", "./llm-settings.js", "./assistant-settings.js"];
+  const scripts = ["./ai-panel.js", "./llm-settings.js", "./llm-provider-settings.js", "./assistant-settings.js"];
   for (const source of scripts) {
     const script = document.createElement("script");
     script.src = new URL(source, window.location.href).href;
