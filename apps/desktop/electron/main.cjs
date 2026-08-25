@@ -1,11 +1,22 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn } = require("node:child_process");
 const { startPersistenceServer } = require("./database/runtime.cjs");
+const { AssistantConfigurationStore } = require("./assistant-configuration.cjs");
 
 let persistence = null;
 let gatewayProcess = null;
+let assistantStore = null;
+
+function registerAssistantIpc() {
+  if (!persistence?.database) throw new Error("PERSISTENCE_NOT_READY");
+  assistantStore = new AssistantConfigurationStore(persistence.database);
+
+  ipcMain.handle("assistant.config.get", () => assistantStore.ensure());
+  ipcMain.handle("assistant.config.validate", (_event, input) => assistantStore.validate(input));
+  ipcMain.handle("assistant.config.save", (_event, input) => assistantStore.save(input));
+}
 
 function createMainWindow() {
   const window = new BrowserWindow({
@@ -75,6 +86,7 @@ function shutdownRuntime() {
     gatewayProcess.kill();
     gatewayProcess = null;
   }
+  assistantStore = null;
   if (persistence) {
     persistence.close();
     persistence = null;
@@ -84,6 +96,7 @@ function shutdownRuntime() {
 app.whenReady().then(() => {
   try {
     persistence = startPersistenceServer();
+    registerAssistantIpc();
     startGateway();
   } catch (error) {
     console.error(
