@@ -28,9 +28,16 @@ export interface OrderItem {
 export interface OrderProps {
   readonly id: string;
   readonly store_id: string;
+  readonly customer_id?: string;
+  readonly conversation_id?: string;
   readonly status: OrderStatus;
   readonly items: readonly OrderItem[];
   readonly total: Money;
+}
+
+export interface OrderDraftContext {
+  readonly customer_id?: string;
+  readonly conversation_id?: string;
 }
 
 export class Order {
@@ -39,12 +46,15 @@ export class Order {
   static createDraft(
     storeId: string,
     items: readonly OrderItem[] = [],
-    total: Money = createMoney(0)
+    total: Money = createMoney(0),
+    context: OrderDraftContext = {}
   ): Order {
     const id = generateUuidV7();
     return Order.create({
       id,
       store_id: storeId,
+      customer_id: context.customer_id,
+      conversation_id: context.conversation_id,
       status: "DRAFT",
       items,
       total
@@ -66,6 +76,14 @@ export class Order {
 
   get storeId(): string {
     return this.props.store_id;
+  }
+
+  get customerId(): string | undefined {
+    return this.props.customer_id;
+  }
+
+  get conversationId(): string | undefined {
+    return this.props.conversation_id;
   }
 
   get status(): OrderStatus {
@@ -103,6 +121,12 @@ function assertOrderProps(props: OrderProps): void {
   }
   if (props.store_id.trim().length === 0) {
     throw new TypeError("Order store_id is required");
+  }
+  if (props.customer_id !== undefined && props.customer_id.trim().length === 0) {
+    throw new TypeError("Order customer_id must not be empty");
+  }
+  if (props.conversation_id !== undefined && props.conversation_id.trim().length === 0) {
+    throw new TypeError("Order conversation_id must not be empty");
   }
   if (!isOrderStatus(props.status)) {
     throw new TypeError("Unsupported Order status");
