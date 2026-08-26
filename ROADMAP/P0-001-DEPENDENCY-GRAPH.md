@@ -3,10 +3,28 @@
 **Status:** CANONICAL / ACTIVE  
 **Baseline:** `MVP2`
 
+## Contract dependency closure
+
+`D-010 — Inbox/Outbox Persistence Boundary` was approved by **Kennedy Altamir + Esdras Ribeiro** on **2026-08-25 23:11:44 America/Sao_Paulo (UTC−03:00)**.
+
+D-010 closes the P0-001B contract dependency:
+
+- `INBOX-V1` = FROZEN
+- `OUTBOX-V1` = FROZEN
+- `CONTRACT-001` = RESOLVED
+- IA-01 = canonical SQLite schema/migration owner
+- IA-03 ↔ IA-01 = explicit, versioned, SQLite-independent persistence boundary
+- no physical DLQ in P0-001B; `FAILED_TERMINAL` is the terminal failure state
+
+D-010 satisfies the **contract prerequisite** for P0-001B. It does not itself satisfy implementation, testing or verification gates.
+
 ## Execution chain
 
 ```text
 P0-001A — IA-06 Device Authentication Runtime
+        |
+        v
+D-010 — Inbox/Outbox Persistence Boundary (contract prerequisite satisfied)
         |
         v
 P0-001B — IA-03 Inbox/Outbox Runtime Integration
@@ -30,9 +48,10 @@ Operational delegation does not merge technical namespaces or authorize cross-te
 ## Rules
 
 - P0-001A and P0-001B are independent dependency implementation tasks.
+- P0-001B may begin implementation only against the frozen D-010 boundary and its exact task packet.
 - P0-001 MUST NOT bypass IA-06 or IA-03 ownership to unblock itself.
 - P0-005 MUST NOT report PASS until P0-001 is implemented and testable.
-- Dependency completion requires evidence and QAOPS verification; an implementation claim alone is insufficient.
+- Dependency completion requires implementation evidence and QAOPS verification; an implementation claim alone is insufficient.
 - All tasks follow `GOVERNANCE/IMPLEMENTATION_BASELINE.md`.
 - A dependency must reach at least `READY_FOR_REVIEW` before it can unlock P0-001.
 
