@@ -50,7 +50,7 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = defau
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
       if (request.method === 'GET' && url.pathname === '/health') return json(response, 200, { status: 'ok', correlation_id: id });
       if (request.method === 'GET' && url.pathname === '/ready') {
-        const result = await checkReadiness(readinessChecks);
+        const result = await checkReadiness();
         return result.ready ? json(response, 200, { status: 'ready', checks: result.checks, correlation_id: id }) : json(response, 503, { error: { code: 'not_ready', message: 'Gateway dependencies are not ready.', retryable: true, correlation_id: id }, checks: result.checks });
       }
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') return json(response, 200, getStatus());
