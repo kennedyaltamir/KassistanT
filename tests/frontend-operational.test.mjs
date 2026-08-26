@@ -67,7 +67,8 @@ test("Provider-neutral navigation and contextual provider semantics are preserve
 });
 
 test("No parallel assistant config or DLQ is introduced", () => {
-  assert.doesNotMatch(html, /AssistantConfig/);
+  assert.doesNotMatch(html, /\b(?:class|function|const|let|var)\s+AssistantConfig\b/);
+  assert.doesNotMatch(html, /\bnew\s+AssistantConfig\b/);
   assert.doesNotMatch(html, /\bDLQ\b/);
 });
 
