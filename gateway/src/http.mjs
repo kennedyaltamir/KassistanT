@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadinessChecker } from './readiness.mjs';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
-import { createBatchDispatchRuntime } from './batch-dispatch.mjs';
+import { createBatchDispatchRuntime, isDispatchPreview } from './batch-dispatch.mjs';
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, updateLocalModel } from './llm.mjs';
@@ -50,7 +50,7 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = defau
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
       if (request.method === 'GET' && url.pathname === '/health') return json(response, 200, { status: 'ok', correlation_id: id });
       if (request.method === 'GET' && url.pathname === '/ready') {
-        const result = await checkReadiness();
+        const result = await checkReadiness(readinessChecks);
         return result.ready ? json(response, 200, { status: 'ready', checks: result.checks, correlation_id: id }) : json(response, 503, { error: { code: 'not_ready', message: 'Gateway dependencies are not ready.', retryable: true, correlation_id: id }, checks: result.checks });
       }
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') return json(response, 200, getStatus());
@@ -72,8 +72,12 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = defau
 
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/batches') return json(response, 200, { batches: await dispatchRuntime.listBatches() });
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/batches') {
-        try { const body = await parseBody(request); const batch = await dispatchRuntime.createDraft(body.preview, { correlationId: id, batchId: typeof body.batch_id === 'string' ? body.batch_id : undefined }); return json(response, 201, { batch }); }
-        catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
+        try {
+          const body = await parseBody(request);
+          if (!isDispatchPreview(body.preview)) throw new Error('A valid PREVIEW is required');
+          const batch = await dispatchRuntime.createDraft(body.preview, { correlationId: id, batchId: typeof body.batch_id === 'string' ? body.batch_id : undefined });
+          return json(response, 201, { batch });
+        } catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
       }
       const batchMatch = url.pathname.match(/^\/api\/whatsapp\/dispatch\/batches\/([^/]+)$/);
       if (batchMatch) {
