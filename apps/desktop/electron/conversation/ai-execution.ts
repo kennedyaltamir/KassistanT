@@ -140,12 +140,14 @@ export class AIExecutionService {
   ) {}
 
   public async execute(request: AIExecutionRequest): Promise<AIExecutionResult> {
-    const context = await this.contextPort.assemble({
+    const contextInput: Parameters<ConversationContextPort["assemble"]>[0] = {
       conversationId: request.conversationId,
-      customerId: request.customerId,
-      messageId: request.messageId,
-      signal: request.signal
-    });
+      ...(request.customerId !== undefined ? { customerId: request.customerId } : {}),
+      ...(request.messageId !== undefined ? { messageId: request.messageId } : {}),
+      ...(request.signal !== undefined ? { signal: request.signal } : {})
+    };
+
+    const context = await this.contextPort.assemble(contextInput);
 
     const resolvedPrompt = request.prompt ?? (await this.promptResolver.resolve());
     validatePromptResolution(resolvedPrompt);
@@ -164,11 +166,24 @@ export class AIExecutionService {
 
     for (let index = 0; index < profiles.length; index += 1) {
       const profile = profiles[index];
+      if (!profile) continue;
+
       const attemptRequestId = index === 0 ? request.requestId : `${request.requestId}:fallback:${index}`;
       attemptRequestIds.push(attemptRequestId);
       modelProfileIds.push(profile.id);
 
       try {
+        const promptProvenance = {
+          prompt_id: resolvedPrompt.promptId,
+          prompt_version: resolvedPrompt.promptVersion,
+          configuration_version: resolvedPrompt.configurationVersion,
+          model_profile_id: profile.id,
+          resolved_at: new Date().toISOString(),
+          ...(resolvedPrompt.contextVersion !== undefined
+            ? { context_version: resolvedPrompt.contextVersion }
+            : {})
+        };
+
         const response = await executeProviderChat(
           this.provider,
           {
@@ -176,14 +191,7 @@ export class AIExecutionService {
             messages,
             model_profile: profile,
             context: contextReferences,
-            prompt_provenance: {
-              prompt_id: resolvedPrompt.promptId,
-              prompt_version: resolvedPrompt.promptVersion,
-              configuration_version: resolvedPrompt.configurationVersion,
-              model_profile_id: profile.id,
-              resolved_at: new Date().toISOString(),
-              context_version: resolvedPrompt.contextVersion
-            },
+            prompt_provenance: promptProvenance,
             response_format:
               request.responseFormat.type === "json"
                 ? {
@@ -194,7 +202,7 @@ export class AIExecutionService {
                 : { type: "text" },
             timeout_ms: request.timeoutMs
           },
-          { signal: request.signal }
+          { ...(request.signal !== undefined ? { signal: request.signal } : {}) }
         );
 
         const parsed = validateOutput(response, request.responseFormat);
@@ -206,14 +214,16 @@ export class AIExecutionService {
           };
         }
 
+        const authorizationContextBase: ToolAuthorizationContext = {
+          executionId: request.executionId,
+          requestId: attemptRequestId,
+          conversationId: request.conversationId,
+          ...(request.actorId !== undefined ? { actorId: request.actorId } : {})
+        };
+
         const authorization = parsed.toolIntents.map((intent) => ({
           intent,
-          decision: this.authorizer.authorize(intent, {
-            executionId: request.executionId,
-            requestId: attemptRequestId,
-            conversationId: request.conversationId,
-            actorId: request.actorId
-          })
+          decision: this.authorizer.authorize(intent, authorizationContextBase)
         }));
 
         const denied = authorization.find((item) => item.decision.decision !== "ALLOW");
@@ -232,14 +242,7 @@ export class AIExecutionService {
 
         const receipts: EffectReceipt[] = [];
         for (const intent of parsed.toolIntents) {
-          receipts.push(
-            await this.effectApplier.apply(intent, {
-              executionId: request.executionId,
-              requestId: attemptRequestId,
-              conversationId: request.conversationId,
-              actorId: request.actorId
-            })
-          );
+          receipts.push(await this.effectApplier.apply(intent, authorizationContextBase));
         }
 
         return {
