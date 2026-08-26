@@ -10,7 +10,7 @@ const html = readFileSync(
 test("AppShell exposes current C1 navigation surfaces", () => {
   for (const page of [
     "Dashboard",
-    "WhatsApp",
+    "Conversas",
     "Pedidos",
     "Produtos",
     "Clientes",
@@ -22,6 +22,12 @@ test("AppShell exposes current C1 navigation surfaces", () => {
   assert.match(html, /data-page="dashboard"/);
   assert.match(html, /data-page="whatsapp"/);
   assert.match(html, /aria-label="Navegação principal"/);
+});
+
+test("Conversation navigation follows canonical terminology", () => {
+  assert.match(html, /<button data-page="whatsapp" class="active">Conversas<\/button>/);
+  assert.match(html, /const pages=\{[^}]*whatsapp:'Conversas'/);
+  assert.doesNotMatch(html, /<button data-page="whatsapp"[^>]*>WhatsApp<\/button>/);
 });
 
 test("WhatsApp renderer exposes real Gateway integration", () => {
