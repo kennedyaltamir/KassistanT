@@ -87,8 +87,8 @@ function encodeFrame(opcode, payload = Buffer.alloc(0)) {
 /** @param {Buffer} buffer @returns {{ frame: { fin: boolean, opcode: number, payload: Buffer }, remaining: Buffer }|null} */
 function tryDecodeFrame(buffer) {
   if (buffer.length < 2) return null;
-  const first = buffer[0];
-  const second = buffer[1];
+  const first = buffer[0] ?? 0;
+  const second = buffer[1] ?? 0;
   const fin = (first & 0x80) !== 0;
   const rsv = first & 0x70;
   const opcode = first & 0x0f;
@@ -117,7 +117,9 @@ function tryDecodeFrame(buffer) {
   const mask = buffer.subarray(offset, offset + 4);
   offset += 4;
   const payload = Buffer.from(buffer.subarray(offset, offset + length));
-  for (let index = 0; index < payload.length; index += 1) payload[index] ^= mask[index % 4] ?? 0;
+  for (let index = 0; index < payload.length; index += 1) {
+    payload[index] = (payload[index] ?? 0) ^ (mask[index % 4] ?? 0);
+  }
   return { frame: { fin, opcode, payload }, remaining: buffer.subarray(offset + length) };
 }
 
@@ -273,7 +275,8 @@ export function attachWssTransport(server, options = {}) {
     socket.write(['HTTP/1.1 101 Switching Protocols', 'Upgrade: websocket', 'Connection: Upgrade', `Sec-WebSocket-Accept: ${websocketAccept(key)}`, '\r\n'].join('\r\n'));
     let buffer = head.length ? Buffer.from(head) : Buffer.alloc(0);
     socket.on('data', async (chunk) => {
-      buffer = Buffer.concat([buffer, chunk]);
+      const chunkBuffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+      buffer = Buffer.concat([buffer, chunkBuffer]);
       try {
         while (buffer.length) {
           const decoded = tryDecodeFrame(buffer);
@@ -311,7 +314,7 @@ export function attachWssTransport(server, options = {}) {
   return {
     states: STATES,
     getActiveSessionCount: () => sessions.size,
-    getSessionState: (deviceId) => [...sessions].find(session => session.deviceId === deviceId)?.state ?? STATES.DISCONNECTED,
+    getSessionState: (/** @type {string} */ deviceId) => [...sessions].find(session => session.deviceId === deviceId)?.state ?? STATES.DISCONNECTED,
     close() {
       server.off('upgrade', acceptUpgrade);
       for (const session of sessions) close(session, CLOSE_NORMAL, 'shutdown');
