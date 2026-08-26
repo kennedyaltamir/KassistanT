@@ -1,99 +1,57 @@
-# KassisT — Implementation Backlog v1.0
+# KassisT — Implementation Backlog v1.1
 
-**Status:** PRE-IMPLEMENTATION / CONTRACT-FIRST  
-**Source:** D-001 through D-006 + Master Audit v1.0  
+**Status:** P0 IMPLEMENTATION READY  
+**Source:** D-001 through D-007 + Master Audit v1.0 + frozen P0 contract set  
+**Task packets:** `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`  
 **Rule:** no implementation task may bypass unresolved contract or governance blockers.
 
 ## 1. Execution sequence
 
 `DECISIONS → CONTRACTS → IMPLEMENTATION → TESTS → EVIDENCE → AUDIT → RELEASE`
 
-## 2. Work package WP-01 — Governance synchronization
+## 2. P0 implementation wave
 
-### TASK-GOV-001 — Permission Matrix rollout
-**Owner:** `AG-QAOPS-01`  
-**Territory:** governance/release process  
-**Inputs:** `GOVERNANCE/PERMISSION_MATRIX.md`  
-**Deliverables:** per-agent capability mapping; task authorization template; conflict/escalation rule.  
-**Forbidden:** silently changing governance policy.
+The first implementation wave is authorized only for the task packets in `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`.
 
-### TASK-GOV-002 — Agent/territory mappings
-**Owner:** Governance / human administrators  
-**Inputs:** `agents/REGISTRY.md`, D-001  
-**Deliverables:** explicit operational-to-technical mapping where evidence exists.  
-**Forbidden:** inventing ownership mappings.
-
-## 3. Work package WP-02 — WSS / Gateway contracts
-
-### TASK-WSS-001 — Freeze WSS contract set
+### P0-001 — WSS Runtime Transport
 **Owner:** `AG-ENG-01`  
-**Primary technical territory:** `IA-07`  
-**Dependencies:** `IA-03`, `IA-06`, `IA-08`  
-**Required contracts:** transport lifecycle, authentication/device identity, envelope, message types, correlation, ACK, error semantics, reconnect/idempotency, Inbox/Outbox integration.  
-**Deliverable:** versioned WSS contract documents and acceptance criteria.  
-**Forbidden:** implementing runtime before contracts are accepted.
+**Territory:** `IA-07 — Gateway + WSS`  
+**Dependencies:** `IA-06` device authentication contract; `IA-03` Inbox/Outbox/event integration; `IA-08` Desktop integration support.  
+**Status:** READY_FOR_IMPLEMENTATION
 
-### TASK-WSS-002 — Implement WSS transport
-**Owner:** `AG-ENG-01`  
-**Territory:** `agents/07-gateway-wss/`  
-**Depends on:** TASK-WSS-001  
-**Quality gate:** contract tests + integration tests + end-to-end evidence.
-
-### TASK-WSS-003 — WSS verification
-**Owner:** `AG-QAOPS-01`  
-**Depends on:** TASK-WSS-002  
-**Scope:** protocol correctness, auth boundary, correlation, reconnect/idempotency, failure behavior and evidence package.
-
-## 4. Work package WP-03 — AI contracts
-
-### TASK-AI-001 — LLMProvider contract
+### P0-002 — AI Provider Contract Implementation
 **Owner:** `AG-AI-01`  
-**Technical territory:** `IA-05`  
-**Required:** typed input/output boundary, provider isolation, error semantics, model profile, provenance.  
-**Forbidden:** provider-specific logic leaking into domain/core.
+**Territory:** `IA-05 — Conversation + LLM`  
+**Dependencies:** frozen `AI-V1`; provider isolation; model profile/provenance boundary.  
+**Status:** READY_FOR_IMPLEMENTATION
 
-### TASK-AI-002 — AIExecution contract
+### P0-003 — AI Execution + Structured Output + Tool Authorization
 **Owner:** `AG-AI-01`  
-**Dependencies:** TASK-AI-001  
-**Required:** execution lifecycle, structured output, context assembly, persistence/event boundaries, fallback/recovery.  
-**Rule:** model output remains untrusted input and cannot mutate business state directly.
+**Territory:** `IA-05 — Conversation + LLM`  
+**Depends on:** P0-002.  
+**Status:** READY_AFTER_P0_002
 
-### TASK-AI-003 — Tool Authorization
-**Owner:** `AG-AI-01` + security review by `AG-QAOPS-01`  
-**Required:** separate interpretation from authorization; deterministic policy boundary; auditable denial/fallback semantics.
-
-## 5. Work package WP-04 — UX / terminology
-
-### TASK-UX-001 — Apply D-006 terminology
-**Owner:** `AG-UX-01`  
-**Inputs:** `GOVERNANCE/TERMINOLOGY.md`  
-**Scope:** navigation, renderer labels, product documentation vocabulary.  
-**Forbidden:** changing domain contracts without a linked contract task.
-
-### TASK-UX-002 — Validate provider-neutral conversation model in UI
-**Owner:** `AG-UX-01` with `AG-AI-01` and `AG-ENG-01` collaboration where contracts cross boundaries  
-**Acceptance:** UI terminology matches canonical domain terminology and provider-specific labels remain contextual.
-
-## 6. Work package WP-05 — QA / Release
-
-### TASK-QA-001 — CI/release gate adoption
+### P0-004 — Quality Gate Automation Baseline
 **Owner:** `AG-QAOPS-01`  
-**Inputs:** `GOVERNANCE/QUALITY_GATES.md`  
-**Deliverables:** executable checklist, evidence template, release verdict format.  
-**Forbidden:** approving own release unilaterally.
+**Territory:** QA/release operations.  
+**Shared configuration:** `.github/**` only with explicit integration authority.  
+**Status:** READY_FOR_IMPLEMENTATION
 
-### TASK-QA-002 — Baseline verification
+### P0-005 — Cross-Territory WSS Integration Verification
 **Owner:** `AG-QAOPS-01`  
-**Scope:** branch/SHA, lint, typecheck, unit, integration, build, security, CI status, evidence.  
-**Output states:** `TESTED`, `VERIFIED`, `READY_FOR_REVIEW`.
+**Supporting agents:** `AG-ENG-01`, with IA-03/IA-06/IA-08 owner collaboration as required.  
+**Depends on:** P0-001 + required dependency contracts.  
+**Status:** READY_AFTER_P0_001
 
-## 7. Work package WP-06 — Growth
+## 3. Deferred work packages
 
-### TASK-GROWTH-001 — Scope-aligned growth work
-**Owner:** `AG-GROWTH-01`  
-**Rule:** only tasks explicitly present in approved product scope and roadmap may enter implementation. Growth output must not redefine product scope, architecture or governance.
+### UX / terminology
+`AG-UX-01` may implement D-006 terminology tasks only after the canonical terminology artifact is frozen and the change is explicitly scoped. These tasks are not part of the first P0 runtime wave.
 
-## 8. Standard implementation task contract
+### Growth
+`AG-GROWTH-01` receives implementation work only when an approved product/roadmap task is explicitly assigned. Growth does not redefine product scope, architecture or governance.
+
+## 4. Standard implementation task contract
 
 Every implementation task must declare:
 
@@ -111,7 +69,9 @@ Every implementation task must declare:
 - `HANDOFF`
 - `APPROVAL_GATE`
 
-## 9. Start gate
+The complete P0 packets are the canonical task definitions.
+
+## 5. Start gate
 
 Implementation may begin only when:
 
@@ -123,12 +83,16 @@ Implementation may begin only when:
 6. test/evidence requirements exist;
 7. dependencies are not unresolved blockers.
 
-## 10. Current blockers
+## 6. Current P0 status
 
-- WSS runtime: P0 until contract set is frozen and implementation completed.
-- Permission Matrix rollout: required before broad write delegation.
-- CI/release evidence: required before readiness/release claims.
+- D-001 through D-007: recorded.
+- Permission Matrix: canonical/active.
+- Quality Gates: canonical/active.
+- WSS Runtime Contract: frozen for implementation.
+- AI-V1 Contract: frozen for implementation.
+- P0 task packets: created.
+- Code implementation: not yet started by this backlog update.
 
-## 11. Human governance rule
+## 7. Human governance rule
 
-Agents may implement only tasks explicitly authorized by the current roadmap, contracts and Permission Matrix. A recommendation is not an authorization. A dry run is not an implementation instruction.
+Agents may implement only tasks explicitly authorized by the current roadmap, contracts and Permission Matrix. A recommendation is not an authorization. A dry run is not an implementation instruction. `APPROVED` and `RELEASED` remain human-only states.
