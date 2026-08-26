@@ -222,7 +222,7 @@ Um agente não pode promover sozinho um estado para `APPROVED` ou `RELEASED`.
 
 **Responsabilidade:**
 
-`AG-QAOPS-01` é o owner operacional de qualidade/release evidence. Cada território técnico continua responsável por produzir testes pertinentes ao próprio código. Aprovação final permanece humana.
+`AG-QAOPS-01` é o owner operacional de quality/release evidence. Cada território técnico continua responsável por produzir testes pertinentes ao próprio código. Aprovação final permanece humana.
 
 **Alternativas consideradas:**
 
@@ -267,6 +267,53 @@ UX, IA e Engenharia devem compartilhar a mesma semântica de `Conversation`/`Mes
 **Próxima validação:**
 
 Registrar o vocabulário no artefato canônico de terminologia e aplicar a nomenclatura aos próximos contratos.
+
+## 2026-08-25 — D-007: P0 Technical Contract Closure
+
+**Branch:** `MVP2`
+
+**Contexto:**
+
+Após D-001–D-006, a fase de implementação permanecia bloqueada até que os contratos técnicos P0 fossem fechados e rastreáveis. O registry existente classificava WSS-V1 e AI-V1 como parciais e não implementados.
+
+**Evidências:**
+
+- `packages/contracts/src/wss.ts` define o wire envelope v1.0 e os tipos de mensagem, mas não fecha o runtime lifecycle.
+- `agents/07-gateway-wss/OWNERSHIP.md` estabelece IA-07 como proprietário de `gateway/**` e trata o WSS runtime como não comprovado.
+- `agents/05-conversation-llm/OWNERSHIP.md` estabelece IA-05 como proprietário da conversation/LLM runtime e preserva fronteiras compartilhadas.
+- `GOVERNANCE/PERMISSION_MATRIX.md` define ausência de permissão explícita como ausência de autorização.
+- `GOVERNANCE/QUALITY_GATES.md` exige evidência antes de `READY_FOR_REVIEW` e aprovação humana antes de `APPROVED`/`RELEASED`.
+
+**Decisão:**
+
+Fechar dois contratos P0 como **FROZEN_FOR_IMPLEMENTATION**:
+
+1. `WSS-RUNTIME-V1` em `docs/protocols/wss-runtime-contract-v1.md` — fecha lifecycle, handshake, autenticação, envelope, ACK, correlation/causation, sequencing/deduplication, reconnect/resume, state sync e transport errors.
+2. `AI-V1` em `docs/ai/AI-V1-CONTRACTS.md` — fecha LLMProvider, AIExecution, structured output, tool authorization boundary, prompt provenance/versioning, model profiles, context provenance, persistence/events boundary, fallback/recovery e segurança.
+
+A implementação continua proibida fora dos territórios explicitamente autorizados e não inclui alterações aos contratos compartilhados sem o processo de integração.
+
+**Alternativas consideradas:**
+
+1. Liberar código com contratos `PARTIAL` — rejeitada.
+2. Fechar somente interfaces e deixar comportamento implícito — rejeitada.
+3. Congelar contratos comportamentais mínimos e implementar dentro das fronteiras — **aprovada**.
+
+**Motivo:**
+
+Eliminar ambiguidade suficiente para implementação profissional sem fingir que contratos secundários já estão resolvidos.
+
+**Impacto:**
+
+- IA-07 pode iniciar implementação do WSS runtime dentro de `gateway/**`, respeitando dependências.
+- IA-05 pode iniciar implementação do AI runtime dentro das áreas autorizadas.
+- IA-03, IA-06 e IA-08 permanecem owners das dependências correspondentes.
+- WSS-RUNTIME-V1 e AI-V1 exigem testes específicos e evidências conforme os quality gates.
+- Contratos ainda AMBIGUOUS ou PARTIAL não relacionados diretamente a esses pacotes P0 continuam bloqueadores onde forem dependências do fluxo.
+
+**Próxima validação:**
+
+Criar/atualizar implementation tasks com os IDs de contrato, ownership, allowed paths, forbidden areas, dependencies, acceptance criteria, tests e evidence requirements.
 
 ## Regra
 
