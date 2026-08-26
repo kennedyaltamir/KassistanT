@@ -1,12 +1,12 @@
 import {
   LLMProviderError,
-  executeProviderChat,
   type LLMContextReference,
   type LLMMessage,
   type LLMModelProfile,
   type LLMProvider,
   type LLMResponse
-} from "../providers/llm/index.js";
+} from "../providers/llm/contracts.js";
+import { executeProviderChat } from "../providers/llm/provider-runtime.js";
 
 export type AIExecutionStatus =
   | "COMPLETED"
@@ -96,7 +96,7 @@ export interface AIExecutionRequest {
   readonly messageId?: string;
   readonly actorId?: string;
   readonly modelProfileId: string;
-  readonly prompt: PromptResolution;
+  readonly prompt?: PromptResolution;
   readonly responseFormat: {
     readonly type: "text" | "json";
     readonly schemaId?: string;
@@ -157,7 +157,7 @@ export class AIExecutionService {
 
     const messages = assembleMessages(resolvedPrompt.systemPrompt, context);
     const contextReferences = context.map((item) => item.reference);
-    const profiles = [initialProfile, ...await resolveFallbackProfiles(initialProfile, this.modelResolver)];
+    const profiles = [initialProfile, ...(await resolveFallbackProfiles(initialProfile, this.modelResolver))];
     const attemptRequestIds: string[] = [];
     const modelProfileIds: string[] = [];
     const errors: string[] = [];
@@ -392,7 +392,7 @@ function validateOutput(
   if (envelope.tool_intents === undefined) {
     return {
       ok: true,
-      assistantOutput: envelope.assistant_output as string | undefined ?? null,
+      assistantOutput: (envelope.assistant_output as string | undefined) ?? null,
       toolIntents: []
     };
   }
@@ -412,7 +412,7 @@ function validateOutput(
 
   return {
     ok: true,
-    assistantOutput: envelope.assistant_output as string | undefined ?? null,
+    assistantOutput: (envelope.assistant_output as string | undefined) ?? null,
     toolIntents
   };
 }
@@ -423,13 +423,24 @@ function normalizeExecutionError(error: unknown): {
   readonly retryable: boolean;
 } {
   if (error instanceof LLMProviderError) {
-    return { code: error.code === "TIMEOUT" ? "TIMEOUT" : error.code === "CANCELLED" ? "CANCELLED" : error.code === "UNAVAILABLE" ? "UNAVAILABLE" : "PROVIDER_ERROR", message: error.message, retryable: error.retryable };
+    return {
+      code:
+        error.code === "TIMEOUT"
+          ? "TIMEOUT"
+          : error.code === "CANCELLED"
+            ? "CANCELLED"
+            : error.code === "UNAVAILABLE"
+              ? "UNAVAILABLE"
+              : "PROVIDER_ERROR",
+      message: error.message,
+      retryable: error.retryable
+    };
   }
 
   const message = error instanceof Error ? error.message : "Unknown AI execution error";
   return { code: "UNKNOWN", message, retryable: false };
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
