@@ -28,6 +28,14 @@ Registrar decisões técnicas, arquiteturais e operacionais relevantes.
 
 **Próxima validação:**
 
+## Nota de cronologia
+
+As decisões abaixo devem ser interpretadas segundo a data em que foram efetivamente registradas. Uma decisão posterior não possui efeito retroativo sobre uma task ou execução iniciada antes de sua data.
+
+A entrada D-008 está registrada em **2026-08-26** e, portanto, é considerada uma decisão posterior aos dry runs e execuções documentadas em 2026-08-25. Ela não deve ser usada como autoridade retroativa para justificar ações anteriores à sua data.
+
+A entrada D-009 abaixo registra uma delegação operacional feita em **2026-08-25**. Essa delegação não altera ownership técnico: IA-03 e IA-06 continuam sendo territórios técnicos independentes.
+
 ## 2026-08-25 — D-001: AG-AI-01 ↔ IA-05
 
 **Branch:** `MVP2`  
@@ -268,7 +276,56 @@ UX, IA e Engenharia devem compartilhar a mesma semântica de `Conversation`/`Mes
 
 Registrar o vocabulário no artefato canônico de terminologia e aplicar a nomenclatura aos próximos contratos.
 
+## 2026-08-25 — D-009: P0-001A/P0-001B Operational Delegation
+
+**Branch:** `MVP2`
+**Commit:** `6c693bfba75754e17da86ffa9042eb255114e145`
+**PR:** direto em `MVP2`
+
+**Contexto:**
+
+P0-001 exige dependências técnicas em IA-06 (Device Authentication) e IA-03 (Inbox/Outbox). O Agent Registry operacional não possui agentes separados para esses dois territórios técnicos.
+
+**Problema:**
+
+Era necessário atribuir execução operacional para que P0-001A e P0-001B pudessem começar sem transferir ownership técnico para IA-07.
+
+**Evidências:**
+
+- P0-001-DEPENDENCY-GRAPH.md define P0-001A e P0-001B como tarefas independentes e exige handoff formal para P0-001.
+- Issues #54 e #55 definem IA-06 e IA-03 como territórios técnicos independentes e indicam handoff para AG-ENG-01.
+- D-003 mantém IA-03, IA-06 e IA-07 como territórios distintos.
+
+**Decisão:**
+
+`AG-ENG-01` recebe **responsabilidade operacional delegada** para executar e coordenar P0-001A e P0-001B.
+
+Isso **não** redefine os namespaces técnicos:
+
+`AG-ENG-01 ≠ IA-06`
+
+`AG-ENG-01 ≠ IA-03`
+
+Os caminhos e permissões de IA-06 e IA-03 permanecem independentes e devem ser respeitados conforme a Permission Matrix.
+
+**Regras:**
+
+1. O agente pode atuar em múltiplos territórios quando houver delegação operacional explícita.
+2. A delegação não autoriza edição fora dos caminhos permitidos da task.
+3. Dependências cruzadas devem ser documentadas por handoff e evidência.
+4. Uma dependência só desbloqueia P0-001 após atingir pelo menos `READY_FOR_REVIEW` com evidências.
+
+**Impacto:**
+
+P0-001A e P0-001B passam a ter owner operacional verificável sem alterar ownership técnico.
+
+**Próxima validação:**
+
+AG-ENG-01 executar as tasks de dependência em branches próprias e fornecer evidências para AG-QAOPS-01 e P0-001.
+
 ## 2026-08-26 — D-008: P0 Implementation Wave Authorization
+
+**Temporalidade:** decisão posterior aos dry runs e às execuções iniciadas em 2026-08-25. Não retroativa.
 
 **Branch:** `MVP2`  
 **Commit:** ver commit desta atualização  
@@ -280,26 +337,13 @@ D-001 through D-007 were recorded; the Permission Matrix, Quality Gates, WSS Run
 
 **Decisão:**
 
-Authorize the first P0 implementation wave only through the task packets in `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`:
+Authorize the first P0 implementation wave only through the task packets in `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`.
 
-- P0-001 WSS Runtime Transport — `AG-ENG-01` / `IA-07`.
-- P0-002 LLMProvider — `AG-AI-01` / `IA-05`.
-- P0-003 AIExecution + Structured Output + Tool Authorization — `AG-AI-01` / `IA-05`, after P0-002.
-- P0-004 Quality Gate Automation Baseline — `AG-QAOPS-01`.
-- P0-005 Cross-Territory WSS Integration Verification — `AG-QAOPS-01`, after P0-001.
-- P0-006 Canonical Conversation/Message terminology — `AG-UX-01`.
-
-The task packets are the implementation authority for this wave, subject to the Permission Matrix and frozen contracts.
-
-No task grants merge, release, governance, ownership or policy authority.
-
-**Required state progression:** `IMPLEMENTED → TESTED → VERIFIED → READY_FOR_REVIEW`; only humans may transition to `APPROVED → RELEASED`.
-
-**Impact:**
+**Impacto:**
 
 The KassisT project moves from contract-first preparation to controlled P0 implementation. Cross-territory changes remain explicit; missing dependencies remain blockers.
 
-**Next validation:**
+**Próxima validação:**
 
 Owners execute their assigned P0 packets and return evidence packages. `AG-QAOPS-01` verifies quality gates; P0-005 verifies WSS end-to-end after P0-001.
 
