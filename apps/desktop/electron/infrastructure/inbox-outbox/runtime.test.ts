@@ -196,3 +196,39 @@ test("missing persistence records fail explicitly", async () => {
   const { runtime } = createRuntime();
   await assert.rejects(() => runtime.markProcessing("missing"), /Unknown outbound idempotency key/);
 });
+
+test("malformed inbound and outbound identities are rejected", async () => {
+  const { runtime } = createRuntime();
+
+  await assert.rejects(
+    () => runtime.acceptInbound({ identity: { provider: "", externalEventId: "evt" }, payload: {} }),
+    /provider must not be empty/,
+  );
+  await assert.rejects(
+    () => runtime.acceptInbound({ identity: { provider: "test", externalEventId: "" }, payload: {} }),
+    /external event id must not be empty/,
+  );
+  await assert.rejects(
+    () => runtime.stageOutbound({ idempotencyKey: "", payload: {} }),
+    /idempotency key must not be empty/,
+  );
+});
+
+test("consumer boundary remains persistence-provider based", async () => {
+  const persistence = new MemoryPersistence();
+  const { runtime } = createRuntime(persistence);
+
+  const accepted = await runtime.acceptInbound({
+    identity: { provider: "consumer", externalEventId: "evt-consumer" },
+    payload: { source: "consumer-contract" },
+  });
+  const staged = await runtime.stageOutbound({
+    idempotencyKey: "consumer-outbox-1",
+    payload: { source: "consumer-contract" },
+  });
+
+  assert.equal(accepted.accepted, true);
+  assert.equal(staged.state, "PENDING");
+  assert.equal(persistence.inbound.size, 1);
+  assert.equal(persistence.outbound.size, 1);
+});
