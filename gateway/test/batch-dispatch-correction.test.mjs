@@ -37,6 +37,10 @@ test('processing timeout preserves identity and blocks blind retry', async () =>
   const statePath = await tempStatePath();
   const clock = clockController();
   const timers = [];
+  let timerRegisteredResolve;
+  const timerRegistered = new Promise((resolve) => {
+    timerRegisteredResolve = resolve;
+  });
   let sends = 0;
   const runtime = new BatchDispatchRuntime({
     statePath,
@@ -47,6 +51,7 @@ test('processing timeout preserves identity and blocks blind retry', async () =>
     },
     setTimeoutImpl: (callback, delay) => {
       timers.push({ callback, delay });
+      timerRegisteredResolve();
       return Symbol('timer');
     },
     clearTimeoutImpl: () => {},
@@ -56,7 +61,8 @@ test('processing timeout preserves identity and blocks blind retry', async () =>
   const draft = await runtime.createDraft(preview(), { batchId: 'batch-timeout', correlationId: 'corr-timeout' });
   await runtime.confirmBatch(draft.batchId, { fingerprint: draft.preview.fingerprint, recipientCount: 1, correlationId: 'corr-timeout' });
   const queuePromise = runtime.queueBatch(draft.batchId);
-  await new Promise((resolve) => setImmediate(resolve));
+
+  await timerRegistered;
 
   const timeout = timers.find((entry) => entry.delay === PROCESSING_TIMEOUT_MS);
   assert.ok(timeout);
