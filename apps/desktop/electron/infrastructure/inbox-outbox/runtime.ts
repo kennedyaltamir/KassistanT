@@ -68,7 +68,9 @@ export type InboundAcceptance<TPayload = unknown> =
   | { accepted: true; duplicate: false; record: InboxRecord<TPayload> }
   | { accepted: false; duplicate: true; record: InboxRecord<TPayload> };
 
-export type RetrySchedule = readonly [30_000, 60_000, 120_000, 240_000];
+export type RetrySchedule =
+  readonly [30_000, 60_000, 120_000, 240_000] &
+  { readonly [index: number]: number };
 
 export const INBOX_MAX_ATTEMPTS = 5;
 export const OUTBOX_MAX_ATTEMPTS = 5;
@@ -193,13 +195,7 @@ export class InboxOutboxRuntime {
     if (nextAttemptAt === undefined) {
       return this.persistence.recordInboundFailure(identity, failureCode, failureMessage, timestamp, timestamp);
     }
-    return this.persistence.recordInboundRetry(
-      identity,
-      nextAttemptAt,
-      failureCode,
-      failureMessage,
-      timestamp,
-    );
+    return this.persistence.recordInboundRetry(identity, nextAttemptAt, failureCode, failureMessage, timestamp);
   }
 
   async recordInboundFailure(
@@ -282,13 +278,7 @@ export class InboxOutboxRuntime {
     if (nextAttemptAt === undefined) {
       return this.persistence.recordOutboundFailure(idempotencyKey, failureCode, failureMessage, timestamp, timestamp);
     }
-    return this.persistence.recordOutboundRetry(
-      idempotencyKey,
-      nextAttemptAt,
-      failureCode,
-      failureMessage,
-      timestamp,
-    );
+    return this.persistence.recordOutboundRetry(idempotencyKey, nextAttemptAt, failureCode, failureMessage, timestamp);
   }
 
   async recordOutboundFailure(
@@ -309,40 +299,30 @@ export class InboxOutboxRuntime {
 
   private async requireInbound(identity: InboxIdentity): Promise<InboxRecord> {
     const record = await this.persistence.getInbound(identity);
-    if (!record) {
-      throw new Error(`Unknown inbound identity: ${identity.provider}:${identity.externalEventId}`);
-    }
+    if (!record) throw new Error(`Unknown inbound identity: ${identity.provider}:${identity.externalEventId}`);
     return record;
   }
 
   private async requireOutbound(idempotencyKey: string): Promise<OutboxRecord> {
     const record = await this.persistence.getOutbound(idempotencyKey);
-    if (!record) {
-      throw new Error(`Unknown outbound idempotency key: ${idempotencyKey}`);
-    }
+    if (!record) throw new Error(`Unknown outbound idempotency key: ${idempotencyKey}`);
     return record;
   }
 }
 
 function calculateNextAttemptAt(attempts: number, now: Date): string | undefined {
-  if (!Number.isInteger(attempts) || attempts < 1 || attempts >= INBOX_MAX_ATTEMPTS) {
-    return undefined;
-  }
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts >= INBOX_MAX_ATTEMPTS) return undefined;
   return new Date(now.getTime() + RETRY_BACKOFF_MS[attempts - 1]).toISOString();
 }
 
-function validateInbound<TPayload>(
-  input: Omit<InboxRecord<TPayload>, "state" | "attempts" | "createdAt" | "updatedAt">,
-): void {
+function validateInbound<TPayload>(input: Omit<InboxRecord<TPayload>, "state" | "attempts" | "createdAt" | "updatedAt">): void {
   validateIdentity(input.identity);
   if (input.failureCode !== undefined || input.failureMessage !== undefined || input.failedAt !== undefined) {
     throw new Error("INBOUND_FAILURE_METADATA_REQUIRES_FAILURE_STATE");
   }
 }
 
-function validateOutbound<TPayload>(
-  input: Omit<OutboxRecord<TPayload>, "state" | "attempts" | "createdAt" | "updatedAt">,
-): void {
+function validateOutbound<TPayload>(input: Omit<OutboxRecord<TPayload>, "state" | "attempts" | "createdAt" | "updatedAt">): void {
   validateIdempotencyKey(input.idempotencyKey);
   if (input.eventId.trim().length === 0) throw new Error("event id must not be empty");
   if (input.eventType.trim().length === 0) throw new Error("event type must not be empty");
@@ -355,9 +335,7 @@ function validateOutbound<TPayload>(
 
 function validateIdentity(identity: InboxIdentity): void {
   if (identity.provider.trim().length === 0) throw new Error("provider must not be empty");
-  if (identity.externalEventId.trim().length === 0) {
-    throw new Error("external event id must not be empty");
-  }
+  if (identity.externalEventId.trim().length === 0) throw new Error("external event id must not be empty");
 }
 
 function validateIdempotencyKey(idempotencyKey: string): void {
