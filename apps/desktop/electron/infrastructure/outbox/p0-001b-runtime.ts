@@ -27,7 +27,7 @@ export interface OutboundPersistencePort {
 export class P0_001BOutboxRuntime {
   public constructor(private readonly persistence: OutboundPersistencePort) {}
 
-  public stage(event: OutboundEventEnvelope) {
+  public async stage(event: OutboundEventEnvelope) {
     if (!event.idempotencyKey || !event.eventType) {
       throw new Error("INVALID_OUTBOUND_IDENTITY");
     }
