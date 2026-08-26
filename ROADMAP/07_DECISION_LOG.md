@@ -222,7 +222,7 @@ Um agente não pode promover sozinho um estado para `APPROVED` ou `RELEASED`.
 
 **Responsabilidade:**
 
-`AG-QAOPS-01` é o owner operacional de quality/release evidence. Cada território técnico continua responsável por produzir testes pertinentes ao próprio código. Aprovação final permanece humana.
+`AG-QAOPS-01` é o owner operacional de qualidade/release evidence. Cada território técnico continua responsável por produzir testes pertinentes ao próprio código. Aprovação final permanece humana.
 
 **Alternativas consideradas:**
 
@@ -268,52 +268,40 @@ UX, IA e Engenharia devem compartilhar a mesma semântica de `Conversation`/`Mes
 
 Registrar o vocabulário no artefato canônico de terminologia e aplicar a nomenclatura aos próximos contratos.
 
-## 2026-08-25 — D-007: P0 Technical Contract Closure
+## 2026-08-26 — D-008: P0 Implementation Wave Authorization
 
-**Branch:** `MVP2`
+**Branch:** `MVP2`  
+**Commit:** ver commit desta atualização  
+**PR:** direto em `MVP2`
 
 **Contexto:**
 
-Após D-001–D-006, a fase de implementação permanecia bloqueada até que os contratos técnicos P0 fossem fechados e rastreáveis. O registry existente classificava WSS-V1 e AI-V1 como parciais e não implementados.
-
-**Evidências:**
-
-- `packages/contracts/src/wss.ts` define o wire envelope v1.0 e os tipos de mensagem, mas não fecha o runtime lifecycle.
-- `agents/07-gateway-wss/OWNERSHIP.md` estabelece IA-07 como proprietário de `gateway/**` e trata o WSS runtime como não comprovado.
-- `agents/05-conversation-llm/OWNERSHIP.md` estabelece IA-05 como proprietário da conversation/LLM runtime e preserva fronteiras compartilhadas.
-- `GOVERNANCE/PERMISSION_MATRIX.md` define ausência de permissão explícita como ausência de autorização.
-- `GOVERNANCE/QUALITY_GATES.md` exige evidência antes de `READY_FOR_REVIEW` e aprovação humana antes de `APPROVED`/`RELEASED`.
+D-001 through D-007 were recorded; the Permission Matrix, Quality Gates, WSS Runtime Contract and AI-V1 Contract are canonical. The P0 task packet has been created and the first implementation wave must now be bounded by explicit ownership, paths, dependencies, acceptance criteria, tests and evidence.
 
 **Decisão:**
 
-Fechar dois contratos P0 como **FROZEN_FOR_IMPLEMENTATION**:
+Authorize the first P0 implementation wave only through the task packets in `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`:
 
-1. `WSS-RUNTIME-V1` em `docs/protocols/wss-runtime-contract-v1.md` — fecha lifecycle, handshake, autenticação, envelope, ACK, correlation/causation, sequencing/deduplication, reconnect/resume, state sync e transport errors.
-2. `AI-V1` em `docs/ai/AI-V1-CONTRACTS.md` — fecha LLMProvider, AIExecution, structured output, tool authorization boundary, prompt provenance/versioning, model profiles, context provenance, persistence/events boundary, fallback/recovery e segurança.
+- P0-001 WSS Runtime Transport — `AG-ENG-01` / `IA-07`.
+- P0-002 LLMProvider — `AG-AI-01` / `IA-05`.
+- P0-003 AIExecution + Structured Output + Tool Authorization — `AG-AI-01` / `IA-05`, after P0-002.
+- P0-004 Quality Gate Automation Baseline — `AG-QAOPS-01`.
+- P0-005 Cross-Territory WSS Integration Verification — `AG-QAOPS-01`, after P0-001.
+- P0-006 Canonical Conversation/Message terminology — `AG-UX-01`.
 
-A implementação continua proibida fora dos territórios explicitamente autorizados e não inclui alterações aos contratos compartilhados sem o processo de integração.
+The task packets are the implementation authority for this wave, subject to the Permission Matrix and frozen contracts.
 
-**Alternativas consideradas:**
+No task grants merge, release, governance, ownership or policy authority.
 
-1. Liberar código com contratos `PARTIAL` — rejeitada.
-2. Fechar somente interfaces e deixar comportamento implícito — rejeitada.
-3. Congelar contratos comportamentais mínimos e implementar dentro das fronteiras — **aprovada**.
+**Required state progression:** `IMPLEMENTED → TESTED → VERIFIED → READY_FOR_REVIEW`; only humans may transition to `APPROVED → RELEASED`.
 
-**Motivo:**
+**Impact:**
 
-Eliminar ambiguidade suficiente para implementação profissional sem fingir que contratos secundários já estão resolvidos.
+The KassisT project moves from contract-first preparation to controlled P0 implementation. Cross-territory changes remain explicit; missing dependencies remain blockers.
 
-**Impacto:**
+**Next validation:**
 
-- IA-07 pode iniciar implementação do WSS runtime dentro de `gateway/**`, respeitando dependências.
-- IA-05 pode iniciar implementação do AI runtime dentro das áreas autorizadas.
-- IA-03, IA-06 e IA-08 permanecem owners das dependências correspondentes.
-- WSS-RUNTIME-V1 e AI-V1 exigem testes específicos e evidências conforme os quality gates.
-- Contratos ainda AMBIGUOUS ou PARTIAL não relacionados diretamente a esses pacotes P0 continuam bloqueadores onde forem dependências do fluxo.
-
-**Próxima validação:**
-
-Criar/atualizar implementation tasks com os IDs de contrato, ownership, allowed paths, forbidden areas, dependencies, acceptance criteria, tests e evidence requirements.
+Owners execute their assigned P0 packets and return evidence packages. `AG-QAOPS-01` verifies quality gates; P0-005 verifies WSS end-to-end after P0-001.
 
 ## Regra
 
