@@ -288,7 +288,7 @@ export class BatchDispatchRuntime {
     await this.#save();
 
     const timerKey = `${batch.batchId}:${recipient.identity}:attempt:${attemptNumber}`;
-    const timeoutPromise = new Promise<never>((_, reject) => {
+    const timeoutPromise = new Promise((_, reject) => {
       const timer = this.setTimeoutImpl(() => {
         reject(Object.assign(new Error('PROCESSING timeout exceeded'), { code: 'PROCESSING_TIMEOUT' }));
       }, PROCESSING_TIMEOUT_MS);
