@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { createServer } from 'node:http';
 import { createReadinessChecker } from './readiness.mjs';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
+import { createBatchDispatchRuntime } from './batch-dispatch.mjs';
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, updateLocalModel } from './llm.mjs';
@@ -15,6 +16,8 @@ import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCr
 /** @typedef {Record<string, unknown>} SseEvent */
 /** @typedef {{ ok: boolean }} ReadinessResult */
 /** @typedef {() => boolean | ReadinessResult | Promise<boolean | ReadinessResult>} ReadinessCheck */
+
+const defaultBatchDispatchRuntime = createBatchDispatchRuntime();
 
 /** @param {ServerResponse} response @param {number} statusCode @param {unknown} payload */
 function json(response, statusCode, payload) {
@@ -68,8 +71,8 @@ function sanitizedError(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-/** @param {{ readinessChecks?: Record<string, ReadinessCheck> }} options */
-export function createHttpServer({ readinessChecks = {} } = {}) {
+/** @param {{ readinessChecks?: Record<string, ReadinessCheck>, dispatchRuntime?: ReturnType<typeof createBatchDispatchRuntime> }} options */
+export function createHttpServer({ readinessChecks = {}, dispatchRuntime = defaultBatchDispatchRuntime } = {}) {
   const checkReadiness = createReadinessChecker(readinessChecks);
 
   return createServer(async (request, response) => {
@@ -178,6 +181,46 @@ export function createHttpServer({ readinessChecks = {} } = {}) {
           return json(response, 200, clearConversationPolicy(url.searchParams.get('jid') ?? ''));
         } catch (error) {
           return json(response, 400, { error: sanitizedError(error) });
+        }
+      }
+
+      if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/batches') {
+        return json(response, 200, { batches: await dispatchRuntime.listBatches() });
+      }
+      if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/batches') {
+        try {
+          const body = await parseBody(request);
+          const batch = await dispatchRuntime.createDraft(body.preview, { correlationId: id, batchId: typeof body.batch_id === 'string' ? body.batch_id : undefined });
+          return json(response, 201, { batch });
+        } catch (error) {
+          return json(response, 400, { error: sanitizedError(error), correlation_id: id });
+        }
+      }
+
+      const batchMatch = url.pathname.match(/^\/api\/whatsapp\/dispatch\/batches\/([^/]+)$/);
+      if (batchMatch) {
+        const batchId = batchMatch[1];
+        if (request.method === 'GET') {
+          try { return json(response, 200, { batch: await dispatchRuntime.getBatch(batchId) }); }
+          catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); }
+        }
+        if (request.method === 'POST') {
+          try {
+            const actionBody = await parseBody(request);
+            const action = String(actionBody.action ?? '');
+            if (action === 'confirm') {
+              return json(response, 200, { batch: await dispatchRuntime.confirmBatch(batchId, { fingerprint: actionBody.fingerprint, recipientCount: actionBody.recipient_count, correlationId: id, confirmedAt: actionBody.confirmed_at }) });
+            }
+            if (action === 'queue') {
+              return json(response, 202, { batch: await dispatchRuntime.queueBatch(batchId, { causationId: id }) });
+            }
+            if (action === 'cancel') {
+              return json(response, 200, { batch: await dispatchRuntime.cancelBatch(batchId) });
+            }
+            return json(response, 400, { error: 'Unsupported dispatch action', correlation_id: id });
+          } catch (error) {
+            return json(response, 409, { error: sanitizedError(error), correlation_id: id });
+          }
         }
       }
 
