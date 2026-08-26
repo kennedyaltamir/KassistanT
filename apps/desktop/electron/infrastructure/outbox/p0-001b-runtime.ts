@@ -47,7 +47,7 @@ export class P0_001BOutboxRuntime {
     return this.persistence.markDelivered(idempotencyKey);
   }
 
-  public retry(idempotencyKey: string, attempt: number) {
+  public async retry(idempotencyKey: string, attempt: number) {
     if (!Number.isInteger(attempt) || attempt < 1) {
       throw new Error("INVALID_ATTEMPT");
     }
