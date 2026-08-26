@@ -32,7 +32,7 @@ class MemoryPersistence implements InboxOutboxPersistence {
   async stageOutbound<TPayload>(record: OutboxRecord<TPayload>): Promise<OutboxRecord<TPayload>> {
     if (this.failOutboundReads) throw new Error("persistence unavailable");
     const existing = this.outbound.get(record.idempotencyKey);
-    if (existing) return existing;
+    if (existing) return existing as OutboxRecord<TPayload>;
     this.outbound.set(record.idempotencyKey, record);
     return record;
   }
@@ -66,12 +66,12 @@ class MemoryPersistence implements InboxOutboxPersistence {
   async recordOutboundRetry(idempotencyKey: string, decision: RetryDecision): Promise<OutboxRecord> {
     const record = this.requireOutbound(idempotencyKey);
     assert.equal(decision.retry, true);
-    const updated = {
+    const updated: OutboxRecord = {
       ...record,
-      state: "RETRY_WAIT" as const,
+      state: "RETRY_WAIT",
       attemptCount: record.attemptCount + 1,
-      nextAttemptAt: decision.nextAttemptAt,
-      lastFailure: decision.failureReason,
+      ...(decision.nextAttemptAt !== undefined ? { nextAttemptAt: decision.nextAttemptAt } : {}),
+      ...(decision.failureReason !== undefined ? { lastFailure: decision.failureReason } : {}),
     };
     this.outbound.set(idempotencyKey, updated);
     return updated;
@@ -79,9 +79,9 @@ class MemoryPersistence implements InboxOutboxPersistence {
 
   async recordOutboundFailure(idempotencyKey: string, reason: string): Promise<OutboxRecord> {
     const record = this.requireOutbound(idempotencyKey);
-    const updated = {
+    const updated: OutboxRecord = {
       ...record,
-      state: "FAILED_TERMINAL" as const,
+      state: "FAILED_TERMINAL",
       attemptCount: record.attemptCount + 1,
       lastFailure: reason,
     };
