@@ -3,6 +3,7 @@ import { startAutoReply } from './auto-reply.mjs';
 import { getLlmSettings, registerLlmSettingsObserver } from './llm-settings.mjs';
 import { updateAllLocalModels } from './llm.mjs';
 import { createLlmUpdateScheduler } from './llm-scheduler.mjs';
+import { shutdown as shutdownWhatsApp } from './whatsapp.mjs';
 
 const host = process.env.KASSIST_GATEWAY_HOST ?? '127.0.0.1';
 const port = Number(process.env.KASSIST_GATEWAY_PORT ?? 3210);
@@ -30,12 +31,21 @@ server.listen(port, host, async () => {
   }
 });
 
+let shuttingDown = false;
+
 /** @param {NodeJS.Signals} signal */
-function shutdown(signal) {
+async function shutdown(signal) {
+  if (shuttingDown) return;
+  shuttingDown = true;
   scheduler.shutdown();
   console.log(`[KassisT WhatsApp Gateway] ${signal}; shutting down.`);
+  await shutdownWhatsApp();
   server.close(() => process.exit(0));
 }
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => {
+  void shutdown('SIGINT');
+});
+process.on('SIGTERM', () => {
+  void shutdown('SIGTERM');
+});
