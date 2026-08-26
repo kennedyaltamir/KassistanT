@@ -1,0 +1,14 @@
+{
+  "schema": 1,
+  "task": "P0-004",
+  "required": ["lint", "typecheck", "unit", "integration", "build", "security", "supply-chain"],
+  "commands": {
+    "lint": "pnpm lint",
+    "typecheck": "pnpm typecheck",
+    "unit": "pnpm test:unit",
+    "integration": "pnpm test:integration",
+    "build": "pnpm build",
+    "security": "pnpm audit --prod --audit-level=high",
+    "supply-chain": "pnpm audit --audit-level=high"
+  }
+}
