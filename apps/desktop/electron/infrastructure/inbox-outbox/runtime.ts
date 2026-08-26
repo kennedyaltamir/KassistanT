@@ -160,11 +160,20 @@ export class InboxOutboxRuntime {
 
   async markInboundProcessing(identity: InboxIdentity, now = new Date()): Promise<InboxRecord> {
     validateIdentity(identity);
+    const current = await this.requireInbound(identity);
+    if (current.state !== "PENDING" && current.state !== "RETRY_WAIT") {
+      throw new Error(`Inbound processing not allowed from ${current.state}`);
+    }
+    if (current.attempts >= INBOX_MAX_ATTEMPTS) {
+      throw new Error("MAX_ATTEMPTS_EXHAUSTED");
+    }
     return this.persistence.markInboundProcessing(identity, toUtcIso(now));
   }
 
   async markInboundProcessed(identity: InboxIdentity, now = new Date()): Promise<InboxRecord> {
     validateIdentity(identity);
+    const current = await this.requireInbound(identity);
+    assertProcessing(current.state, "Inbound processed requires PROCESSING state");
     const timestamp = toUtcIso(now);
     return this.persistence.markInboundProcessed(identity, timestamp, timestamp);
   }
@@ -179,16 +188,17 @@ export class InboxOutboxRuntime {
     validateFailure(failureCode, failureMessage);
     const current = await this.requireInbound(identity);
     assertProcessing(current.state, "Inbound retry requires PROCESSING state");
+    const timestamp = toUtcIso(now);
     const nextAttemptAt = calculateNextAttemptAt(current.attempts, now);
     if (nextAttemptAt === undefined) {
-      throw new Error("MAX_ATTEMPTS_EXHAUSTED");
+      return this.persistence.recordInboundFailure(identity, failureCode, failureMessage, timestamp, timestamp);
     }
     return this.persistence.recordInboundRetry(
       identity,
       nextAttemptAt,
       failureCode,
       failureMessage,
-      toUtcIso(now),
+      timestamp,
     );
   }
 
@@ -202,9 +212,6 @@ export class InboxOutboxRuntime {
     validateFailure(failureCode, failureMessage);
     const current = await this.requireInbound(identity);
     assertProcessing(current.state, "Inbound failure requires PROCESSING state");
-    if (current.attempts < INBOX_MAX_ATTEMPTS) {
-      throw new Error("FAILURE_REQUIRES_RETRY");
-    }
     const timestamp = toUtcIso(now);
     return this.persistence.recordInboundFailure(identity, failureCode, failureMessage, timestamp, timestamp);
   }
@@ -270,16 +277,17 @@ export class InboxOutboxRuntime {
     if (current.state !== "PROCESSING") {
       throw new Error(`Outbound retry requires PROCESSING state, got ${current.state}`);
     }
+    const timestamp = toUtcIso(now);
     const nextAttemptAt = calculateNextAttemptAt(current.attempts, now);
     if (nextAttemptAt === undefined) {
-      throw new Error("MAX_ATTEMPTS_EXHAUSTED");
+      return this.persistence.recordOutboundFailure(idempotencyKey, failureCode, failureMessage, timestamp, timestamp);
     }
     return this.persistence.recordOutboundRetry(
       idempotencyKey,
       nextAttemptAt,
       failureCode,
       failureMessage,
-      toUtcIso(now),
+      timestamp,
     );
   }
 
@@ -295,17 +303,8 @@ export class InboxOutboxRuntime {
     if (current.state !== "PROCESSING") {
       throw new Error(`Outbound failure requires PROCESSING state, got ${current.state}`);
     }
-    if (current.attempts < OUTBOX_MAX_ATTEMPTS) {
-      throw new Error("FAILURE_REQUIRES_RETRY");
-    }
     const timestamp = toUtcIso(now);
-    return this.persistence.recordOutboundFailure(
-      idempotencyKey,
-      failureCode,
-      failureMessage,
-      timestamp,
-      timestamp,
-    );
+    return this.persistence.recordOutboundFailure(idempotencyKey, failureCode, failureMessage, timestamp, timestamp);
   }
 
   private async requireInbound(identity: InboxIdentity): Promise<InboxRecord> {
