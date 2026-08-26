@@ -1,8 +1,11 @@
-import type { CorrelationMetadata } from "./types.js";
-
 export type InboxIdentity = {
   provider: string;
   externalEventId: string;
+};
+
+export type CorrelationMetadata = {
+  correlationId?: string;
+  causationId?: string;
 };
 
 export type InboxEvent<TPayload = unknown> = {
@@ -31,11 +34,6 @@ export type OutboxRecord<TPayload = unknown> = {
 export type InboundAcceptance<TPayload = unknown> =
   | { accepted: true; duplicate: false; event: InboxEvent<TPayload> }
   | { accepted: false; duplicate: true; event: InboxEvent<TPayload> };
-
-export type CorrelationMetadata = {
-  correlationId?: string;
-  causationId?: string;
-};
 
 export type RetryDecision = {
   retry: boolean;
