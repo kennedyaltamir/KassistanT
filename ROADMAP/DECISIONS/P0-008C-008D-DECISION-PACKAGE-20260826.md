@@ -42,7 +42,7 @@
 
 Use `CREATE NEW TABLE -> COPY -> VALIDATE -> SWAP`; never edit historical migrations.
 
-Abort on FK violations, canonical uniqueness violations, required-field NULLs, unknown enum values, malformed required payloads, or ambiguous legacy state mappings. No automatic repair, invented defaults, surrogate-ID replacement, or silent data loss.
+Abort on FK violations, canonical uniqueness violations, required-field NULLs, unknown enum values, malformed required payloads, or ambiguous legacy state mappings. No automatic repair, invented default, surrogate-ID replacement, or silent data loss.
 
 ## Authority
 
