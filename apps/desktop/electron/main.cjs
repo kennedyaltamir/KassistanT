@@ -43,7 +43,9 @@ function startGateway() {
     env: {
       ...process.env,
       KASSIST_PERSISTENCE_URL:
-        process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message"
+        process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message",
+      KASSIST_WA_AUTH_DIR:
+        process.env.KASSIST_WA_AUTH_DIR ?? path.join(app.getPath("userData"), "whatsapp", "auth")
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: false,
