@@ -55,13 +55,13 @@ test('processing timeout preserves identity and blocks blind retry', async () =>
   await runtime.ready;
   const draft = await runtime.createDraft(preview(), { batchId: 'batch-timeout', correlationId: 'corr-timeout' });
   await runtime.confirmBatch(draft.batchId, { fingerprint: draft.preview.fingerprint, recipientCount: 1, correlationId: 'corr-timeout' });
-  const queuePromise = runtime.queueBatch(draft.batchId);
+  await runtime.queueBatch(draft.batchId);
   await new Promise((resolve) => setImmediate(resolve));
 
   const timeout = timers.find((entry) => entry.delay === PROCESSING_TIMEOUT_MS);
   assert.ok(timeout);
   timeout.callback();
-  await queuePromise;
+  await new Promise((resolve) => setImmediate(resolve));
 
   const batch = await runtime.getBatch('batch-timeout');
   const recipient = batch.recipients['5511999990001'];
@@ -71,7 +71,7 @@ test('processing timeout preserves identity and blocks blind retry', async () =>
   assert.equal(recipient.attempts[0].recovery, 'PROCESSING_TIMEOUT');
   assert.equal(batch.recoveryRequired, true);
   assert.equal(batch.batchId, 'batch-timeout');
-  assert.equal(recipient.idempotencyIdentity, /^[0-9a-f]{64}$/.test(recipient.idempotencyIdentity) ? recipient.idempotencyIdentity : '');
+  assert.match(recipient.idempotencyIdentity, /^[0-9a-f]{64}$/);
   const beforeAttempts = recipient.attempts.length;
   await runtime.retryRecipient('batch-timeout', '5511999990001');
   const after = await runtime.getBatch('batch-timeout');
@@ -88,6 +88,7 @@ test('custom database path selects sibling dispatch journal directory', async ()
   try {
     const runtime = new BatchDispatchRuntime({ sendText: async () => ({ id: 'wa' }) });
     assert.equal(runtime.statePath, path.join(dbDir, 'dispatch', 'batches.json'));
+    await runtime.ready;
   } finally {
     if (previous === undefined) delete process.env.KASSIST_BATCH_STATE_PATH;
     else process.env.KASSIST_BATCH_STATE_PATH = previous;
