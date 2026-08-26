@@ -69,6 +69,7 @@ export class InboxOutboxRuntime {
   }
 
   async acceptInbound<TPayload>(event: InboxEvent<TPayload>): Promise<InboundAcceptance<TPayload>> {
+    validateInbound(event);
     return this.persistence.acceptInbound(event);
   }
 
@@ -77,6 +78,7 @@ export class InboxOutboxRuntime {
   }
 
   async stageOutbound<TPayload>(record: Omit<OutboxRecord<TPayload>, "state" | "attemptCount">): Promise<OutboxRecord<TPayload>> {
+    validateOutbound(record);
     return this.persistence.stageOutbound({
       ...record,
       state: "PENDING",
@@ -85,14 +87,19 @@ export class InboxOutboxRuntime {
   }
 
   async markProcessing(idempotencyKey: string): Promise<OutboxRecord> {
+    validateIdempotencyKey(idempotencyKey);
     return this.persistence.markOutboundProcessing(idempotencyKey);
   }
 
   async markDelivered(idempotencyKey: string): Promise<OutboxRecord> {
+    validateIdempotencyKey(idempotencyKey);
     return this.persistence.markOutboundDelivered(idempotencyKey);
   }
 
   async recordRetry(idempotencyKey: string, reason: string, now = new Date()): Promise<OutboxRecord> {
+    validateIdempotencyKey(idempotencyKey);
+    if (reason.trim().length === 0) throw new Error("retry reason must not be empty");
+
     const current = await this.requireOutbound(idempotencyKey);
     const nextAttemptCount = current.attemptCount + 1;
 
@@ -108,6 +115,8 @@ export class InboxOutboxRuntime {
   }
 
   async recordTerminalFailure(idempotencyKey: string, reason: string): Promise<OutboxRecord> {
+    validateIdempotencyKey(idempotencyKey);
+    if (reason.trim().length === 0) throw new Error("failure reason must not be empty");
     return this.persistence.recordOutboundFailure(idempotencyKey, reason);
   }
 
@@ -122,4 +131,19 @@ export class InboxOutboxRuntime {
     }
     return record;
   }
+}
+
+function validateInbound<TPayload>(event: InboxEvent<TPayload>): void {
+  if (event.identity.provider.trim().length === 0) throw new Error("provider must not be empty");
+  if (event.identity.externalEventId.trim().length === 0) {
+    throw new Error("external event id must not be empty");
+  }
+}
+
+function validateOutbound<TPayload>(record: Omit<OutboxRecord<TPayload>, "state" | "attemptCount">): void {
+  validateIdempotencyKey(record.idempotencyKey);
+}
+
+function validateIdempotencyKey(idempotencyKey: string): void {
+  if (idempotencyKey.trim().length === 0) throw new Error("idempotency key must not be empty");
 }
