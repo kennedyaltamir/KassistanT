@@ -46,11 +46,6 @@ test("P0-001B inbound boundary preserves duplicate result from persistence", asy
   };
 
   const runtime = new P0_001BInboxRuntime(persistence);
-  await assert.rejects(
-    () => Promise.reject(new Error("unreachable")),
-    /unreachable/,
-  ).catch(async () => {
-    const result = await runtime.acceptInbound({ provider: "whatsapp", externalEventId: "evt-1" });
-    assert.deepEqual(result, { kind: "duplicate", state: "PROCESSING" });
-  });
+  const result = await runtime.acceptInbound({ provider: "whatsapp", externalEventId: "evt-1" });
+  assert.deepEqual(result, { kind: "duplicate", state: "PROCESSING" });
 });
