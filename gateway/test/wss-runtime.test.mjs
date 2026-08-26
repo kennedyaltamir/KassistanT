@@ -125,7 +125,7 @@ test('WSS rejects authentication failure and never reaches READY', async () => {
     ws.send(envelope('CONNECT'));
     const response = await nextJson(ws);
     assert.equal(response.message_type, 'AUTH_FAILED');
-    assert.equal(runtime.getSessionState('device-1'), 'CONNECTING');
+    assert.equal(runtime.getSessionState('device-1'), 'CLOSING');
     ws.socket.destroy();
   });
 });
