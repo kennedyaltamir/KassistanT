@@ -10,6 +10,8 @@
     "test:integration": "pnpm -r test:integration",
     "test:e2e": "pnpm -r test:e2e",
     "build": "pnpm -r build",
+    "qa:gates": "node qa/quality-gates/run-gates.mjs",
+    "qa:gates:policy": "node qa/quality-gates/verify-policy.mjs",
     "dev": "pnpm --filter @kassist/desktop dev",
     "clean": "pnpm -r clean"
   },
@@ -18,8 +20,6 @@
     "typescript": "5.8.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "better-sqlite3"
-    ]
+    "onlyBuiltDependencies": ["better-sqlite3"]
   }
 }
