@@ -1,10 +1,19 @@
-# AG-QAOPS-01 — Implementation Task Packet v1.0
+# AG-QAOPS-01 — Implementation Task Packet v1.1
 
 **Agent:** `AG-QAOPS-01`
 **Territory:** QA, Security, DevOps & Release
 **Implementation state:** AUTHORIZED for P0-004; P0-005 is verification-only.
 
+## Baseline requirement
+
+- Baseline ref: `MVP2`.
+- Before any file change, record `BASELINE_SHA_AT_START`, task branch and task ID.
+- `main` is reference-only unless explicitly authorized.
+- If `GOVERNANCE/IMPLEMENTATION_BASELINE.md` or the authoritative task packet is unavailable on `MVP2`, report `BASELINE_MISMATCH` and stop.
+- Do not silently rebase, merge or switch refs when `MVP2` advances.
+
 ## Mission
+
 Turn the canonical quality policy into executable gates and produce reproducible evidence without becoming the release approver.
 
 ## P0-004 — Quality Gate Automation Baseline
@@ -16,6 +25,7 @@ Turn the canonical quality policy into executable gates and produce reproducible
 
 **Dependencies**
 - `GOVERNANCE/QUALITY_GATES.md`
+- `GOVERNANCE/IMPLEMENTATION_BASELINE.md`
 - Permission Matrix
 - current repository CI structure
 
@@ -35,7 +45,7 @@ Turn the canonical quality policy into executable gates and produce reproducible
 
 ## P0-005 — Cross-Territory WSS Verification
 
-**Depends on:** P0-001
+**Depends on:** P0-001 reaching the required implementation/test gate.
 
 **Scope:** test/evidence only for:
 `WhatsApp → Gateway → Inbox/Outbox → WSS → Desktop → ACK`
@@ -59,7 +69,9 @@ Turn the canonical quality policy into executable gates and produce reproducible
 - quality-gate verdict
 
 ## Additional release-discipline rule
+
 Do not approve the product, merge code, or release code as part of QAOPS work unless a human approval is explicitly recorded.
 
 ## Handoff
+
 Provide findings back to owning agents and human administrators. Preserve blockers instead of converting them into approval.
