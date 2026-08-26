@@ -302,16 +302,17 @@ export class BatchDispatchRuntime {
     batch.updatedAt = nowIso(this.clock);
 
     const timerKey = `${batch.batchId}:${recipient.identity}:${attemptNumber}`;
-    const timeoutPromise = new Promise((_, reject) => {
-      const timer = this.setTimeoutImpl(() => reject(Object.assign(new Error('PROCESSING timeout exceeded'), { code: 'PROCESSING_TIMEOUT' })), PROCESSING_TIMEOUT_MS);
-      this.#rememberTimer(timerKey, timer);
-    });
 
     await this.#save();
     attempt.phase = 'REQUEST_ATTEMPTED';
     attempt.requestedAt = nowIso(this.clock);
     attempt.effectStatus = 'IN_FLIGHT';
     await this.#save();
+
+    const timeoutPromise = new Promise((_, reject) => {
+      const timer = this.setTimeoutImpl(() => reject(Object.assign(new Error('PROCESSING timeout exceeded'), { code: 'PROCESSING_TIMEOUT' })), PROCESSING_TIMEOUT_MS);
+      this.#rememberTimer(timerKey, timer);
+    });
 
     try {
       const message = await Promise.race([this.sendText(recipient.identity, recipient.context), timeoutPromise]);
