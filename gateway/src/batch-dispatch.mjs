@@ -18,6 +18,9 @@ import { sendText as defaultSendText } from './whatsapp.mjs';
 /** @typedef {{sendText?:(to:string,text:string)=>Promise<unknown>,statePath?:string,clock?:()=>number,setTimeoutImpl?:(callback:()=>void,delay:number)=>TimerHandle,clearTimeoutImpl?:(handle:TimerHandle)=>void}} RuntimeOptions */
 /** @typedef {{kind:'RETRYABLE'|'TERMINAL',message:string}} FailureClassification */
 
+/** Serialize journal writes across all runtime instances sharing a state path. */
+const SAVE_QUEUES = new Map();
+
 export const BATCH_STATES = Object.freeze(['DRAFT','CONFIRMED','QUEUED','PROCESSING','COMPLETED','PARTIAL_FAILURE','FAILED','CANCELLED']);
 export const RECIPIENT_STATES = Object.freeze(['PENDING','PROCESSING','SUCCESS','RETRY_WAIT','FAILED_TERMINAL','CANCELLED']);
 export const EFFECT_PHASES = Object.freeze(['REQUEST_PREPARED','REQUEST_ATTEMPTED','PROVIDER_OBSERVED','UNKNOWN']);
@@ -108,8 +111,6 @@ export class BatchDispatchRuntime {
     this.state = makeInitialState();
     /** @type {Map<string, TimerHandle>} */
     this.retryTimers = new Map();
-    /** @type {Promise<void>} */
-    this.saveQueue = Promise.resolve();
     this.ready = this.#load();
   }
 
@@ -139,8 +140,9 @@ export class BatchDispatchRuntime {
       await fs.writeFile(tempPath, `${JSON.stringify(this.state, null, 2)}\n`, 'utf8');
       await fs.rename(tempPath, this.statePath);
     };
-    const next = this.saveQueue.then(write, write);
-    this.saveQueue = next.catch(() => {});
+    const previous = SAVE_QUEUES.get(this.statePath) ?? Promise.resolve();
+    const next = previous.then(write, write);
+    SAVE_QUEUES.set(this.statePath, next.catch(() => {}));
     return next;
   }
 
@@ -247,8 +249,9 @@ export class BatchDispatchRuntime {
     batch.state = 'QUEUED';
     batch.causationId = causationId;
     batch.updatedAt = nowIso(this.clock);
+    const processingPromise = this.processBatch(id);
     await this.#save();
-    return await this.processBatch(id);
+    return await processingPromise;
   }
 
   /** @param {string|undefined} batchId @returns {Promise<DispatchBatch>} */
