@@ -1,10 +1,18 @@
-# AG-GROWTH-01 — Implementation Task Packet v1.0
+# AG-GROWTH-01 — Implementation Task Packet v1.1
 
 **Agent:** `AG-GROWTH-01`
 **Territory:** Marketing, Growth, Tráfego & Conteúdo
 **Implementation state:** No product implementation P0 authorized in this wave.
 
+## Baseline requirement
+
+- Baseline ref: `MVP2`.
+- Before any implementation-adjacent file change, record exact starting SHA and task branch.
+- `main` is reference-only unless explicitly authorized.
+- If the baseline policy is unavailable on `MVP2`, report `BASELINE_MISMATCH` and stop before writing.
+
 ## Mission
+
 Keep Growth work strictly aligned with the approved product scope and roadmap. Growth may produce implementation-adjacent assets only when a concrete approved task exists; it may not redefine product, architecture, governance or technical contracts.
 
 ## Current task — GROWTH-001
@@ -43,6 +51,7 @@ Keep Growth work strictly aligned with the approved product scope and roadmap. G
 - unresolved decision list
 
 ## Future implementation gate
+
 No Growth implementation task should be started until it has:
 - TASK_ID
 - approved scope reference
@@ -61,3 +70,4 @@ No Growth implementation task should be started until it has:
 - implementing unapproved campaigns/features
 - altering release status
 - treating a recommendation as authorization
+- silently changing the implementation baseline
