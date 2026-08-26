@@ -35,7 +35,7 @@ export class P0_001BOutboxRuntime {
     return this.persistence.stageOutbound(event);
   }
 
-  public process(idempotencyKey: string) {
+  public async process(idempotencyKey: string) {
     if (!idempotencyKey) {
       throw new Error("INVALID_OUTBOUND_IDENTITY");
     }
