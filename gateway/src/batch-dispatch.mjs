@@ -252,7 +252,6 @@ export class BatchDispatchRuntime {
     if (!['QUEUED', 'PROCESSING'].includes(batch.state)) return batch;
     if (batch.state === 'QUEUED') batch.state = 'PROCESSING';
     batch.updatedAt = nowIso(this.clock);
-    await this.#save();
     for (const recipient of Object.values(batch.recipients)) {
       if (batch.cancellationRequested) break;
       if (recipient.state === 'PENDING' && !recipient.recoveryBlocked) await this.#processRecipient(batch, recipient);
@@ -292,17 +291,18 @@ export class BatchDispatchRuntime {
     });
     recipient.attempts.push(attempt);
     batch.updatedAt = nowIso(this.clock);
-    await this.#save();
-    attempt.phase = 'REQUEST_ATTEMPTED';
-    attempt.requestedAt = nowIso(this.clock);
-    attempt.effectStatus = 'IN_FLIGHT';
-    await this.#save();
 
     const timerKey = `${batch.batchId}:${recipient.identity}:${attemptNumber}`;
     const timeoutPromise = new Promise((_, reject) => {
       const timer = this.setTimeoutImpl(() => reject(Object.assign(new Error('PROCESSING timeout exceeded'), { code: 'PROCESSING_TIMEOUT' })), PROCESSING_TIMEOUT_MS);
       this.#rememberTimer(timerKey, timer);
     });
+
+    await this.#save();
+    attempt.phase = 'REQUEST_ATTEMPTED';
+    attempt.requestedAt = nowIso(this.clock);
+    attempt.effectStatus = 'IN_FLIGHT';
+    await this.#save();
 
     try {
       const message = await Promise.race([this.sendText(recipient.identity, recipient.context), timeoutPromise]);
