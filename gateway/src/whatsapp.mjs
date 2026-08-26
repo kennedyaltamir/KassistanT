@@ -178,9 +178,9 @@ async function startSocket() {
     syncFullHistory: false,
   });
 
-  socket.ev.on('creds.update', (update) => {
+  socket.ev.on('creds.update', () => {
     pendingCredsSave = pendingCredsSave
-      .then(() => saveCreds(update))
+      .then(() => saveCreds())
       .catch((error) => {
         console.error(
           '[KassisT WhatsApp] failed to persist auth credentials:',
