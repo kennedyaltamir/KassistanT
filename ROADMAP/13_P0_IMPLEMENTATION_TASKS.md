@@ -1,36 +1,195 @@
-# KassisT — P0 Implementation Task Packets v1.0
+# KassisT — P0 Implementation Task Packets v1.1
 
-**Status:** READY_FOR_IMPLEMENTATION
-**Baseline:** `MVP2`
-**Governance:** D-001 through D-007 approved; Permission Matrix v1.0 and Quality Gates v1.0 are canonical.
+**Status:** READY_FOR_IMPLEMENTATION  
+**Baseline:** `MVP2`  
+**Governance:** D-001 through D-009 recorded; Permission Matrix v1.0, Quality Gates v1.0 and Implementation Baseline v1.0 are canonical.  
 **Rule:** These task packets authorize implementation only within the declared scope. They do not authorize merge, release, governance changes, or silent cross-territory ownership.
 
 ## Global execution rules
 
-Every agent executing a task must follow `GOVERNANCE/PERMISSION_MATRIX.md` and `GOVERNANCE/QUALITY_GATES.md`.
+Every agent executing a task must follow:
+
+- `GOVERNANCE/IMPLEMENTATION_BASELINE.md`
+- `GOVERNANCE/PERMISSION_MATRIX.md`
+- `GOVERNANCE/QUALITY_GATES.md`
+- applicable frozen contracts
+- `ROADMAP/07_DECISION_LOG.md`
 
 Every implementation task must produce:
 
 - task ID and owner;
-- exact branch and starting SHA;
+- exact baseline ref and starting SHA;
+- task branch;
 - changed paths;
+- dependency SHAs/branches when applicable;
 - tests executed and results;
 - build/typecheck/lint results when applicable;
 - security checks when applicable;
 - evidence package;
 - handoff to QAOPS and the next dependent task.
 
-`IMPLEMENTED` does not mean `APPROVED` or `RELEASED`.
+`IMPLEMENTED` does not mean `TESTED`, `VERIFIED`, `READY_FOR_REVIEW`, `APPROVED` or `RELEASED`.
 
----
+`main` is not an implementation baseline for this wave.
+
+## P0-001A — Device Authentication Runtime
+
+**Owner:** `AG-ENG-01` — operationally delegated per D-009  
+**Technical territory:** `IA-06 — Device Authentication`  
+**Parent:** `P0-001 — WSS Runtime Transport`  
+**Issue:** `#54`
+
+### Contracts
+
+- `WSS-RUNTIME-V1`
+- device authentication/enrollment contracts
+- `GOVERNANCE/PERMISSION_MATRIX.md`
+- `GOVERNANCE/QUALITY_GATES.md`
+
+### Allowed paths
+
+- IA-06-owned device-authentication/runtime paths only;
+- IA-06 tests.
+
+### Protected paths
+
+- `gateway/src/device-auth/**` may only be changed according to the IA-06 task boundary; P0-001/IA-07 must not absorb this implementation;
+- `packages/contracts/**`;
+- frozen protocol documents;
+- unrelated agent territories;
+- root/shared configuration unless explicitly authorized.
+
+### Dependencies
+
+- WSS authentication boundary frozen;
+- existing identity/enrollment contracts verified;
+- baseline validated through `GOVERNANCE/IMPLEMENTATION_BASELINE.md`.
+
+### Acceptance criteria
+
+1. Enrollment/authentication lifecycle is deterministic and testable.
+2. Successful authentication produces explicit authenticated identity/session context for WSS consumers.
+3. Authentication failure is fail-closed and produces typed/explicit errors.
+4. Business authorization remains outside authentication.
+5. No secret material is hard-coded or logged.
+6. IA-07 can consume the boundary without owning IA-06 internals.
+
+### Required tests
+
+- success path;
+- invalid identity/credential;
+- expired/invalid credential;
+- replay/duplicate attempt;
+- unauthorized device;
+- error/timeout path;
+- no-secret-leakage checks;
+- consumer contract test for IA-07.
+
+### Evidence
+
+- starting SHA;
+- changed paths;
+- exact final SHA;
+- test output;
+- security checks;
+- consumer contract evidence;
+- unresolved limitations.
+
+### Handoff
+
+`P0-001A → AG-QAOPS-01` for verification and `P0-001` / `AG-ENG-01` for consumer integration.
+
+### Gate
+
+P0-001A must reach at least `READY_FOR_REVIEW` with evidence before it can satisfy a dependency of P0-001.
+
+## P0-001B — Inbox/Outbox Runtime Integration
+
+**Owner:** `AG-ENG-01` — operationally delegated per D-009  
+**Technical territory:** `IA-03 — Inbox/Outbox / Event Integration`  
+**Parent:** `P0-001 — WSS Runtime Transport`  
+**Issue:** `#55`
+
+### Contracts
+
+- `WSS-RUNTIME-V1`
+- Inbox/Outbox contracts
+- persistence/core contracts;
+- message/conversation terminology and outbox semantics;
+- `GOVERNANCE/PERMISSION_MATRIX.md`
+- `GOVERNANCE/QUALITY_GATES.md`
+
+### Allowed paths
+
+- IA-03-owned Inbox/Outbox/runtime integration paths only;
+- IA-03 tests.
+
+### Protected paths
+
+- `gateway/**` outside the explicit IA-03 integration boundary;
+- `packages/contracts/**`;
+- frozen protocol documents;
+- unrelated agent territories;
+- shared configuration unless explicitly authorized.
+
+### Dependencies
+
+- frozen WSS runtime contract;
+- existing persistence/core contracts;
+- baseline validated through `GOVERNANCE/IMPLEMENTATION_BASELINE.md`.
+
+### Acceptance criteria
+
+1. Inbound events can be durably accepted before downstream processing where required by the approved contract.
+2. Outbound commands/events are durably staged before transport dispatch where required.
+3. Idempotency/deduplication behavior is deterministic.
+4. Correlation/causation metadata is preserved.
+5. Retry/failure semantics are explicit and do not create uncontrolled duplicate business effects.
+6. Transport code does not become business-state authority.
+7. IA-07 can consume the boundary without owning IA-03 internals.
+
+### Required tests
+
+- inbound persistence;
+- outbound persistence;
+- duplicate/idempotency;
+- correlation/causation;
+- retry/failure;
+- persistence failure;
+- crash/restart recovery where supported;
+- consumer contract test for IA-07.
+
+### Evidence
+
+- starting SHA;
+- changed paths;
+- exact final SHA;
+- test output;
+- persistence/recovery evidence;
+- consumer contract evidence;
+- unresolved limitations.
+
+### Handoff
+
+`P0-001B → AG-QAOPS-01` for verification and `P0-001` / `AG-ENG-01` for consumer integration.
+
+### Gate
+
+P0-001B must reach at least `READY_FOR_REVIEW` with evidence before it can satisfy a dependency of P0-001.
 
 ## P0-001 — WSS Runtime Transport
 
-**Owner:** `AG-ENG-01`
-
+**Owner:** `AG-ENG-01`  
 **Primary technical territory:** `IA-07 — Gateway + WSS`
 
 **Supporting territories:** `IA-06` for device authentication; `IA-03` for Inbox/Outbox/event integration; `IA-08` for Desktop integration tests.
+
+**Dependencies:**
+
+1. `P0-001A` at least `READY_FOR_REVIEW` with evidence.
+2. `P0-001B` at least `READY_FOR_REVIEW` with evidence.
+3. `WSS-RUNTIME-V1` frozen.
+4. Current Gateway entry points verified.
 
 **Contracts:**
 
@@ -50,20 +209,11 @@ Every implementation task must produce:
 - `packages/contracts/**`
 - `docs/protocols/**`
 - `docs/domain/**`
-- `gateway/src/device-auth/**`
+- IA-03/IA-06 owned implementation paths
 - `.github/**`
 - root/shared configuration
 
-Changes to protected paths require explicit cross-territory authorization and must be recorded before modification.
-
-**Dependencies:**
-
-1. `WSS-RUNTIME-V1` frozen.
-2. `IA-06` device-auth contract available.
-3. `IA-03` Inbox/Outbox integration contract available.
-4. Current Gateway entry points verified.
-
-**Acceptance criteria:**
+### Acceptance criteria
 
 - `attachWssTransport()` no longer returns `not_implemented`.
 - WSS runtime binds to the approved Gateway lifecycle without bypassing Core authority.
@@ -74,7 +224,7 @@ Changes to protected paths require explicit cross-territory authorization and mu
 - protocol errors are explicit and do not mutate business state directly.
 - ownership boundaries remain intact.
 
-**Required tests:**
+### Required tests
 
 - WSS unit tests;
 - handshake/auth boundary tests;
@@ -85,19 +235,9 @@ Changes to protected paths require explicit cross-territory authorization and mu
 - integration test covering Gateway ↔ WSS boundary;
 - failure-path tests.
 
-**Evidence:**
+### Handoff
 
-- changed-path inventory;
-- exact commit SHA;
-- test output;
-- build/typecheck/lint output where applicable;
-- runtime evidence of WSS attach/listen lifecycle;
-- negative-path evidence;
-- unresolved risks.
-
-**Handoff:** `AG-QAOPS-01` for quality gate verification.
-
----
+`P0-001 → AG-QAOPS-01` for quality gate verification and `P0-005` once testable.
 
 ## P0-002 — AI Provider Contract Implementation
 
@@ -105,63 +245,38 @@ Changes to protected paths require explicit cross-territory authorization and mu
 
 **Technical territory:** `IA-05 — Conversation + LLM`
 
-**Contracts:**
-
-- `AI-V1`
-- `LLMProvider`
-- model profile/selection contract
-- prompt provenance/version contract
+**Contracts:** `AI-V1`, `LLMProvider`, model profile/selection, prompt provenance/version.
 
 **Allowed paths:**
 
 - `apps/desktop/electron/conversation/**`
 - `apps/desktop/electron/providers/llm/**`
-- tests directly belonging to IA-05
+- IA-05 tests.
 
-**Protected/shared paths:**
+**Dependencies:** `AI-V1` frozen and provider abstraction behind `LLMProvider`.
 
-- `packages/contracts/**`
-- `docs/protocols/**`
-- `docs/domain/**`
-- neighboring IA territory paths
-- root/shared configuration
+### Acceptance criteria
 
-**Dependencies:**
+- typed deterministic `LLMProvider`;
+- provider-specific behavior behind abstraction;
+- explicit model profile metadata;
+- auditable prompt provenance/version;
+- deterministic provider error/fallback semantics;
+- provider output treated as untrusted data;
+- no direct business-state mutation.
 
-1. `AI-V1` frozen.
-2. Provider abstraction remains behind `LLMProvider`.
-3. No concrete model is elevated to a normative product decision.
+### Required tests
 
-**Acceptance criteria:**
+- provider contract;
+- mock provider;
+- failure/timeout;
+- provenance/version;
+- model profile selection;
+- conversation regression.
 
-- `LLMProvider` has a typed, deterministic contract.
-- provider-specific behavior remains behind the abstraction.
-- model identity/profile is explicit in execution metadata.
-- prompt provenance/version is represented and auditable.
-- provider failures map to the frozen error/fallback semantics.
-- provider output remains untrusted data.
-- no provider can mutate business state directly.
+### Handoff
 
-**Required tests:**
-
-- provider contract tests;
-- mock provider tests;
-- failure/timeout tests;
-- provenance/version tests;
-- model-profile selection tests;
-- regression tests for existing conversation behavior.
-
-**Evidence:**
-
-- contract implementation diff;
-- representative provider test results;
-- failure-path evidence;
-- provenance evidence;
-- exact commit SHA.
-
-**Handoff:** `P0-003` and `AG-QAOPS-01`.
-
----
+`P0-002 → P0-003` and `AG-QAOPS-01`.
 
 ## P0-003 — AI Execution + Structured Output + Tool Authorization Boundary
 
@@ -169,149 +284,74 @@ Changes to protected paths require explicit cross-territory authorization and mu
 
 **Technical territory:** `IA-05 — Conversation + LLM`
 
-**Contracts:**
+**Dependencies:**
 
-- `AI-V1`
-- AIExecution
-- structured output envelope
-- tool interpretation / tool authorization separation
-- context provenance and persistence/event boundaries
+1. P0-002 implemented and test evidence available;
+2. AI-V1 frozen;
+3. Core/security authorization remains authoritative.
 
 **Allowed paths:**
 
 - `apps/desktop/electron/conversation/**`
 - `apps/desktop/electron/providers/llm/**`
-- IA-05 tests
+- IA-05 tests.
 
-**Dependencies:**
+### Acceptance criteria
 
-1. P0-002 complete or its provider interface accepted by tests.
-2. `AI-V1` frozen.
-3. Existing domain/core authorization boundary remains authoritative.
+- explicit AIExecution boundaries;
+- structured output validation before downstream use;
+- fail-closed invalid output;
+- separate tool interpretation from authorization;
+- deterministic authorization before execution;
+- no direct business-state persistence;
+- context provenance retained;
+- deterministic fallback/recovery.
 
-**Acceptance criteria:**
+### Required tests
 
-- AIExecution has explicit input/output boundaries.
-- structured output is validated before downstream use.
-- invalid model output fails closed.
-- tool calls are interpreted separately from authorization.
-- only deterministic authorization can permit execution.
-- AI cannot persist business state directly.
-- context provenance is retained for auditability.
-- failure/fallback/recovery semantics are deterministic.
-
-**Required tests:**
-
-- valid/invalid structured-output tests;
-- prompt-injection/tool-confusion tests;
-- unauthorized-tool tests;
-- malformed-output tests;
-- timeout/fallback tests;
-- context provenance tests;
-- persistence/event boundary tests.
-
-**Evidence:**
-
-- execution contract examples;
-- authorization denial cases;
-- structured-output validation results;
-- negative security tests;
-- exact commit SHA;
-- known limitations.
-
-**Handoff:** `AG-QAOPS-01` for security and quality verification.
-
----
+- valid/invalid structured output;
+- prompt-injection/tool-confusion;
+- unauthorized tools;
+- malformed output;
+- timeout/fallback;
+- context provenance;
+- persistence/event boundaries.
 
 ## P0-004 — Quality Gate Automation Baseline
 
 **Owner:** `AG-QAOPS-01`
 
-**Technical territory:** QA/Release operations with explicit shared-configuration authority per Permission Matrix.
+**Technical territory:** QA/Release operations.
 
-**Contracts/policies:**
+**Contracts/policies:** `GOVERNANCE/QUALITY_GATES.md`, Permission Matrix, repository CI policy.
 
-- `GOVERNANCE/QUALITY_GATES.md`
-- Permission Matrix
-- repository CI policy
+**Allowed paths:** QA/release docs, dedicated quality scripts/tests, and `.github/**` only where explicitly authorized.
 
-**Allowed paths:**
+### Acceptance criteria
 
-- QA/release documentation paths;
-- dedicated quality scripts/tests;
-- `.github/**` only where the task is explicitly authorized by human/integration authority.
+- required quality stages executable or their absence explicitly recorded;
+- lint/typecheck/unit/integration/build/security outcomes reported where applicable;
+- evidence tied to exact commit;
+- `READY_FOR_REVIEW` requires evidence package;
+- `APPROVED` and `RELEASED` remain human-only;
+- exceptions documented and reviewed.
 
-**Dependencies:**
+### Required tests
 
-1. `GOVERNANCE/QUALITY_GATES.md` frozen.
-2. Repository scripts and current CI structure audited.
-3. No weakening of existing gates.
-
-**Acceptance criteria:**
-
-- required quality stages are executable or their missing automation is explicitly recorded;
-- CI reports lint/typecheck/unit/integration/build/security outcomes where applicable;
-- evidence is associated with an exact commit;
-- `READY_FOR_REVIEW` cannot be claimed without the evidence package;
-- `APPROVED` and `RELEASED` remain human-only transitions;
-- exceptions require explicit documentation and reviewer acceptance.
-
-**Required tests:**
-
-- dry-run of the gate pipeline;
-- failure injection for at least one required stage;
-- verification that evidence points to the correct commit;
-- regression check that gates are not silently weakened.
-
-**Evidence:**
-
-- workflow/run references;
-- command outputs;
-- failure-path evidence;
-- gate mapping to policy;
-- reviewer notes.
-
-**Handoff:** all implementation agents; `AG-QAOPS-01` remains the evidence owner.
-
----
+- gate dry-run;
+- failure injection;
+- evidence/commit correlation;
+- silent-gate-weakening regression.
 
 ## P0-005 — Cross-Territory WSS Integration Verification
 
 **Owner:** `AG-QAOPS-01`
 
-**Supporting agents:** `AG-ENG-01`, with `IA-03`, `IA-06`, `IA-08` owners consulted where evidence crosses their boundaries.
+**Scope:** test/evidence only for `WhatsApp → Gateway → Inbox/Outbox → WSS → Desktop → ACK`.
 
-**Technical scope:** Integration verification of the approved path:
+**Dependencies:** P0-001 testable; IA-03/IA-06 contracts available; Desktop integration harness available.
 
-`WhatsApp → Gateway → Inbox/Outbox → WSS → Desktop → ACK`
-
-**Contracts:**
-
-- `WSS-RUNTIME-V1`
-- Inbox/Outbox contracts
-- device authentication/enrollment contracts
-- `Conversation` / `Message` terminology and relevant integration contracts
-- Quality Gates v1.0
-
-**Allowed paths:** test/evidence paths owned by QAOPS and approved integration-test locations.
-
-**Dependencies:**
-
-- P0-001 implemented and testable;
-- relevant IA-03/IA-06 contracts available;
-- Desktop integration harness available.
-
-**Acceptance criteria:**
-
-- end-to-end message path is demonstrated with traceable correlation IDs;
-- authentication boundary is enforced;
-- persistence/outbox semantics are observable;
-- WSS ACK is correlated to the originating event/command;
-- duplicate/retry behavior is deterministic;
-- failure recovery is observable;
-- no business-state mutation is performed by transport code outside approved boundaries.
-
-**Required tests:**
+### Required tests
 
 - happy path;
 - auth failure;
@@ -319,33 +359,79 @@ Changes to protected paths require explicit cross-territory authorization and mu
 - duplicate delivery;
 - reconnect/resume;
 - missing ACK;
-- out-of-order/sequence violation;
+- sequence violation;
 - persistence failure;
-- Gateway/WSS restart scenario.
+- Gateway/WSS restart.
 
-**Evidence:**
+## P0-006 — Canonical Conversation/Message Terminology
 
-- test report;
-- logs/traces/correlation IDs;
-- exact commit SHAs;
-- known limitations;
-- quality-gate verdict.
+**Owner:** `AG-UX-01`
 
-**Handoff:** human review before any `APPROVED` or `RELEASED` transition.
+**Technical territory:** UX/UI/Web.
 
----
+**Issue:** `#48`.
+
+**Decision basis:** D-006.
+
+### Canonical vocabulary
+
+- `Conversas` → UI/navigation experience;
+- `Conversation` → domain concept;
+- `Message` → domain concept;
+- `Contact` → domain concept;
+- `Channel/Provider` → integration concept;
+- `WhatsApp` → concrete channel/provider.
+
+### Dependencies
+
+- D-006 recorded;
+- `GOVERNANCE/TERMINOLOGY.md` available;
+- UI surface verified on `MVP2`.
+
+### Allowed paths
+
+- explicitly authorized UX/UI paths;
+- associated UX tests.
+
+### Protected paths
+
+- domain contracts;
+- IA-05, IA-07, IA-03, IA-06 and other agent territories;
+- governance and frozen contracts unless explicitly authorized.
+
+### Acceptance criteria
+
+- `Conversas` is the navigation/UI label where the generic message experience is presented;
+- provider-specific `WhatsApp` remains available when the channel context is specifically relevant;
+- no silent domain contract renaming;
+- terminology remains consistent with `GOVERNANCE/TERMINOLOGY.md`;
+- no unrelated product behavior is changed.
+
+### Required evidence
+
+- changed paths;
+- screenshots/runtime evidence where a UI surface exists;
+- regression tests where applicable;
+- exact branch and SHA;
+- limitations.
 
 ## Implementation gate
 
-The first implementation wave is released only for P0-001 through P0-004 after the task owner confirms the required dependencies are present. P0-005 is a verification task and does not authorize implementation outside its test/evidence territory.
+Only tasks with a valid `MVP2` baseline, explicit task packet, authorized territory, satisfied dependencies and required evidence may proceed.
 
-A task reaching `IMPLEMENTED` must immediately enter the Quality Gates workflow. No agent may self-promote to `APPROVED` or `RELEASED`.
+P0-005 is verification-only and does not authorize implementation outside QA/test/evidence paths.
+
+A task reaching `IMPLEMENTED` must immediately enter the Quality Gates workflow.
+
+No agent may self-promote to `APPROVED` or `RELEASED`.
 
 **Canonical references:**
 
+- `GOVERNANCE/IMPLEMENTATION_BASELINE.md`
 - `GOVERNANCE/PERMISSION_MATRIX.md`
 - `GOVERNANCE/QUALITY_GATES.md`
 - `docs/protocols/wss-runtime-contract-v1.md`
 - `docs/ai/AI-V1-CONTRACTS.md`
 - `docs/protocols/contract-registry.md`
 - `ROADMAP/07_DECISION_LOG.md`
+- `ROADMAP/P0-001-DEPENDENCY-GRAPH.md`
