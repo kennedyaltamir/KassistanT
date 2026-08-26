@@ -10,7 +10,7 @@ import pino from 'pino';
 import qrcode from 'qrcode-terminal';
 import { persistWhatsAppMessage } from './persistence-client.mjs';
 
-/** @typedef {'DISCONNECTED' | 'CONNECTING' | 'PAIRING' | 'CONNECTED' | 'RECONNECTING' | 'ERROR'} ConnectionState */
+/** @typedef {'DISCONNECTED' | 'CONNECTING' | 'PAIRING' | 'CONNECTED' | 'ERROR'} ConnectionState */
 /** @typedef {'INBOUND' | 'OUTBOUND'} MessageDirection */
 /** @typedef {'UNKNOWN' | 'RECEIVED'} MessageStatus */
 /** @typedef {{ id: string, jid: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus, push_name?: string | null }} MessageSnapshot */
@@ -35,6 +35,11 @@ const state = {
 let socket = null;
 /** @type {Promise<void> | null} */
 let connecting = null;
+/** @type {Promise<void>} */
+let pendingCredsSave = Promise.resolve();
+/** @type {NodeJS.Timeout | null} */
+let reconnectTimer = null;
+let shuttingDown = false;
 /** @type {Set<EventListener>} */
 let eventListeners = new Set();
 
@@ -173,7 +178,16 @@ async function startSocket() {
     syncFullHistory: false,
   });
 
-  socket.ev.on('creds.update', saveCreds);
+  socket.ev.on('creds.update', () => {
+    pendingCredsSave = pendingCredsSave
+      .then(() => saveCreds())
+      .catch((error) => {
+        console.error(
+          '[KassisT WhatsApp] failed to persist auth credentials:',
+          error instanceof Error ? error.message : error
+        );
+      });
+  });
 
   socket.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
     if (qr) {
@@ -200,18 +214,32 @@ async function startSocket() {
       const loggedOut = statusCode === DisconnectReason.loggedOut;
       const error = lastDisconnect?.error?.message ?? String(lastDisconnect?.error ?? 'Connection closed');
 
-      state.connection = loggedOut ? 'DISCONNECTED' : 'RECONNECTING';
-      state.lastError = error;
+      socket = null;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
+
+      if (shuttingDown) {
+        state.connection = 'DISCONNECTED';
+        state.qr = null;
+        state.lastError = null;
+        emit({ type: 'connection', status: getStatus() });
+        return;
+      }
+
+      state.connection = loggedOut ? 'DISCONNECTED' : 'CONNECTING';
+      state.lastError = loggedOut ? null : error;
       state.qr = null;
       emit({ type: 'connection', status: getStatus() });
 
-      socket = null;
       if (loggedOut) {
         console.log('[KassisT WhatsApp] Session logged out. Authentication state retained until explicit reset.');
         return;
       }
 
-      setTimeout(() => {
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
         connect().catch((reconnectError) => {
           state.connection = 'ERROR';
           state.lastError = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
@@ -233,6 +261,7 @@ async function startSocket() {
 }
 
 export async function connect() {
+  if (shuttingDown) return;
   if (connecting) return connecting;
   if (socket && state.connection === 'CONNECTED') return;
 
@@ -254,6 +283,32 @@ export async function connect() {
   })();
 
   return connecting;
+}
+
+export async function shutdown() {
+  shuttingDown = true;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  const activeSocket = socket;
+  socket = null;
+  if (activeSocket) {
+    try {
+      activeSocket.end(undefined);
+    } catch (error) {
+      console.error(
+        '[KassisT WhatsApp] failed to close socket cleanly:',
+        error instanceof Error ? error.message : error
+      );
+    }
+  }
+
+  await pendingCredsSave;
+  state.connection = 'DISCONNECTED';
+  state.qr = null;
+  emit({ type: 'connection', status: getStatus() });
 }
 
 export async function logout() {
@@ -296,11 +351,3 @@ export async function sendText(to, text) {
 }
 
 export { normalizeRecipient };
-
-process.on('SIGINT', async () => {
-  try {
-    if (socket) socket.end(undefined);
-  } finally {
-    process.exit(0);
-  }
-});
