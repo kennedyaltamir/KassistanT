@@ -13,6 +13,7 @@ import {
 class MemoryPersistence implements InboxOutboxPersistence {
   readonly inbound = new Map<string, InboxEvent>();
   readonly outbound = new Map<string, OutboxRecord>();
+  failOutboundReads = false;
 
   async acceptInbound<TPayload>(event: InboxEvent<TPayload>): Promise<InboundAcceptance<TPayload>> {
     const key = `${event.identity.provider}:${event.identity.externalEventId}`;
@@ -29,6 +30,7 @@ class MemoryPersistence implements InboxOutboxPersistence {
   }
 
   async stageOutbound<TPayload>(record: OutboxRecord<TPayload>): Promise<OutboxRecord<TPayload>> {
+    if (this.failOutboundReads) throw new Error("persistence unavailable");
     const existing = this.outbound.get(record.idempotencyKey);
     if (existing) return existing;
     this.outbound.set(record.idempotencyKey, record);
@@ -36,10 +38,12 @@ class MemoryPersistence implements InboxOutboxPersistence {
   }
 
   async getOutbound(idempotencyKey: string): Promise<OutboxRecord | null> {
+    if (this.failOutboundReads) throw new Error("persistence unavailable");
     return this.outbound.get(idempotencyKey) ?? null;
   }
 
   async listPendingOutbound(): Promise<OutboxRecord[]> {
+    if (this.failOutboundReads) throw new Error("persistence unavailable");
     return [...this.outbound.values()].filter((record) => record.state === "PENDING" || record.state === "RETRY_WAIT");
   }
 
@@ -92,7 +96,7 @@ class MemoryPersistence implements InboxOutboxPersistence {
   }
 }
 
-const runtime = (persistence = new MemoryPersistence()) => ({
+const createRuntime = (persistence = new MemoryPersistence()) => ({
   persistence,
   runtime: new InboxOutboxRuntime(persistence, {
     maxAttempts: 3,
@@ -101,7 +105,7 @@ const runtime = (persistence = new MemoryPersistence()) => ({
 });
 
 test("inbound duplicate delivery is idempotent", async () => {
-  const { persistence, runtime } = runtime();
+  const { persistence, runtime } = createRuntime();
   const event: InboxEvent = {
     identity: { provider: "test", externalEventId: "evt-1" },
     payload: { value: 1 },
@@ -117,7 +121,7 @@ test("inbound duplicate delivery is idempotent", async () => {
 });
 
 test("outbox keeps correlation/causation while staging a single logical effect", async () => {
-  const { persistence, runtime } = runtime();
+  const { persistence, runtime } = createRuntime();
   const record = await runtime.stageOutbound({
     idempotencyKey: "out-1",
     payload: { type: "notification" },
@@ -135,7 +139,7 @@ test("outbox keeps correlation/causation while staging a single logical effect",
 });
 
 test("outbox lifecycle is deterministic", async () => {
-  const { runtime } = runtime();
+  const { runtime } = createRuntime();
   await runtime.stageOutbound({ idempotencyKey: "out-2", payload: {} });
 
   assert.equal((await runtime.markProcessing("out-2")).state, "PROCESSING");
@@ -143,7 +147,7 @@ test("outbox lifecycle is deterministic", async () => {
 });
 
 test("retry is bounded and becomes terminal", async () => {
-  const { runtime } = runtime();
+  const { runtime } = createRuntime();
   await runtime.stageOutbound({ idempotencyKey: "out-3", payload: {} });
 
   await runtime.markProcessing("out-3");
@@ -161,30 +165,34 @@ test("retry is bounded and becomes terminal", async () => {
   assert.equal(terminal.state, "FAILED_TERMINAL");
 });
 
-test("terminal failure cannot be transformed into a retry by the runtime", async () => {
-  const { runtime } = runtime();
+test("terminal failure is not returned as pending", async () => {
+  const { runtime } = createRuntime();
   await runtime.stageOutbound({ idempotencyKey: "out-4", payload: {} });
   await runtime.recordTerminalFailure("out-4", "permanent");
 
-  const recovered = await runtime.recoverPendingOutbound();
-  assert.equal(recovered.length, 0);
+  assert.equal((await runtime.recoverPendingOutbound()).length, 0);
 });
 
 test("restart recovery delegates pending durable state to persistence", async () => {
-  const { persistence, runtime } = runtime();
+  const { persistence, runtime } = createRuntime();
   const inbound: InboxEvent = { identity: { provider: "test", externalEventId: "evt-2" }, payload: {} };
   await runtime.acceptInbound(inbound);
   await runtime.stageOutbound({ idempotencyKey: "out-5", payload: {} });
 
-  const recoveredInbound = await runtime.recoverPendingInbound();
-  const recoveredOutbound = await runtime.recoverPendingOutbound();
-
-  assert.equal(recoveredInbound.length, 1);
-  assert.equal(recoveredOutbound.length, 1);
+  assert.equal((await runtime.recoverPendingInbound()).length, 1);
+  assert.equal((await runtime.recoverPendingOutbound()).length, 1);
   assert.equal(persistence.outbound.get("out-5")?.state, "PENDING");
 });
 
+test("persistence failure is surfaced without fallback business state", async () => {
+  const persistence = new MemoryPersistence();
+  const { runtime } = createRuntime(persistence);
+  persistence.failOutboundReads = true;
+
+  await assert.rejects(() => runtime.recoverPendingOutbound(), /persistence unavailable/);
+});
+
 test("missing persistence records fail explicitly", async () => {
-  const { runtime } = runtime();
+  const { runtime } = createRuntime();
   await assert.rejects(() => runtime.markProcessing("missing"), /Unknown outbound idempotency key/);
 });
