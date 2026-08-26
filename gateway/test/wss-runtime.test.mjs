@@ -83,7 +83,7 @@ async function openWebSocket(server) {
     handshake = Buffer.concat([handshake, await new Promise(resolve => socket.once('data', resolve))]);
   }
   const expected = createHash('sha1').update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest('base64');
-  assert.match(handshake.toString('latin1'), new RegExp(`Sec-WebSocket-Accept: ${expected}`));
+  assert.ok(handshake.toString('latin1').includes(`Sec-WebSocket-Accept: ${expected}`));
 
   return { socket, next: frameReader(socket), send: message => socket.write(maskFrame(JSON.stringify(message))) };
 }
