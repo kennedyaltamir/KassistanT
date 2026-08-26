@@ -55,6 +55,8 @@
 **Technical territory:** `IA-03 — Inbox/Outbox / Event Integration`  
 **Operational owner:** `AG-ENG-01` by D-009 delegation.
 
+**Contract prerequisite:** `D-010` approved by Kennedy Altamir + Esdras Ribeiro on `2026-08-25 23:11:44 America/Sao_Paulo (UTC−03:00)`. `INBOX-V1` and `OUTBOX-V1` are frozen; `CONTRACT-001` is resolved.
+
 ### Allowed paths
 - IA-03-owned Inbox/Outbox/runtime integration paths only
 - IA-03 tests
@@ -65,6 +67,40 @@
 - frozen protocol docs
 - unrelated territories
 - shared/root config unless explicitly authorized
+- IA-01 schema/migration paths except via a separately authorized integration boundary
+
+### Canonical boundary
+
+`IA-03` owns Inbox/Outbox event/runtime semantics. `IA-01` owns SQLite schema and migrations. The IA-03 ↔ IA-01 interface is explicit, versioned and independent of SQLite.
+
+The interface must not expose SQL, table names, SQLite internals, migration numbers or physical storage details.
+
+Canonical semantic operations:
+
+`accept_inbound`, `deduplicate`, `retrieve_pending`, `stage_outbound`, `mark_processing`, `mark_delivered`, `record_retry`, `record_failure`, `recover_pending`.
+
+### Inbox semantics
+
+- identity: `(provider, external_event_id)`;
+- durable acceptance before processing;
+- idempotent acceptance;
+- deterministic state;
+- correlation/causation preserved;
+- restart recovery;
+- ACK only after the durability required by the contract.
+
+### Outbox semantics
+
+- identity: `idempotency_key`;
+- represents an externally visible effect committed after the internal operation is accepted;
+- canonical states: `PENDING`, `PROCESSING`, `DELIVERED`, `RETRY_WAIT`, `FAILED_TERMINAL`;
+- deterministic lifecycle transitions;
+- duplicate logical identities cannot create a second logical effect;
+- no physical DLQ in P0-001B.
+
+### Retry / recovery
+
+Retry and recovery semantics belong to IA-03. Persistence stores attempts, state, timestamps and failure metadata. Implement bounded retry, deterministic backoff, terminal failure classification and restart recovery without moving business authority into persistence or transport.
 
 ### Required behavior
 - durable inbound acceptance where required;
@@ -82,10 +118,17 @@
 - retry/failure;
 - persistence failure;
 - restart recovery where supported;
+- state-transition coverage;
 - IA-07 consumer contract.
 
 ### Handoff
 `P0-001B → AG-QAOPS-01` and `P0-001`.
+
+### Gate
+
+`CONTRACT_FROZEN → IMPLEMENTED → TESTED → VERIFIED → READY_FOR_REVIEW`.
+
+`READY_FOR_REVIEW` does not mean `APPROVED` or `RELEASED`.
 
 ## P0-001 — WSS Runtime Transport
 
@@ -151,7 +194,8 @@ Every delivery must include:
 - IA-08 owns Desktop-side integration evidence.
 - `AG-ENG-01` must not rewrite their contracts unilaterally.
 - D-009 is an operational delegation, not technical ownership transfer.
-- Missing dependency = `BLOCKED / IMPLEMENTATION_DEPENDENCY_GAP`.
+- D-010 is the closed contract prerequisite for P0-001B.
+- Missing implementation dependency = `BLOCKED / IMPLEMENTATION_DEPENDENCY_GAP`.
 
 ## Handoff
 
@@ -161,7 +205,7 @@ P0-001A/P0-001B → `AG-QAOPS-01` → P0-001 → `AG-QAOPS-01` / P0-005.
 
 - merge;
 - release;
-- governance changes;
+- governance changes outside explicitly authorized canonicalization work;
 - silent cross-territory ownership;
 - weakening WSS security or idempotency semantics;
 - silent baseline/ref changes.
