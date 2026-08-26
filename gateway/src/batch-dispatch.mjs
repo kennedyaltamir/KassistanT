@@ -108,6 +108,8 @@ export class BatchDispatchRuntime {
     this.state = makeInitialState();
     /** @type {Map<string, TimerHandle>} */
     this.retryTimers = new Map();
+    /** @type {Promise<void>} */
+    this.saveQueue = Promise.resolve();
     this.ready = this.#load();
   }
 
@@ -129,12 +131,17 @@ export class BatchDispatchRuntime {
   }
 
   /** @returns {Promise<void>} */
-  async #save() {
-    const directory = path.dirname(this.statePath);
-    await fs.mkdir(directory, { recursive: true });
-    const tempPath = `${this.statePath}.tmp`;
-    await fs.writeFile(tempPath, `${JSON.stringify(this.state, null, 2)}\n`, 'utf8');
-    await fs.rename(tempPath, this.statePath);
+  #save() {
+    const write = async () => {
+      const directory = path.dirname(this.statePath);
+      await fs.mkdir(directory, { recursive: true });
+      const tempPath = `${this.statePath}.tmp`;
+      await fs.writeFile(tempPath, `${JSON.stringify(this.state, null, 2)}\n`, 'utf8');
+      await fs.rename(tempPath, this.statePath);
+    };
+    const next = this.saveQueue.then(write, write);
+    this.saveQueue = next.catch(() => {});
+    return next;
   }
 
   /** @param {string|undefined} batchId @returns {DispatchBatch} */
@@ -241,8 +248,7 @@ export class BatchDispatchRuntime {
     batch.causationId = causationId;
     batch.updatedAt = nowIso(this.clock);
     await this.#save();
-    void this.processBatch(id).catch((error) => console.error('[KassisT Dispatch] batch processing failed:', error instanceof Error ? error.message : error));
-    return batch;
+    return await this.processBatch(id);
   }
 
   /** @param {string|undefined} batchId @returns {Promise<DispatchBatch>} */
