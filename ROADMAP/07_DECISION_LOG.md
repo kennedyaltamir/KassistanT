@@ -347,6 +347,85 @@ The KassisT project moves from contract-first preparation to controlled P0 imple
 
 Owners execute their assigned P0 packets and return evidence packages. `AG-QAOPS-01` verifies quality gates; P0-005 verifies WSS end-to-end after P0-001.
 
+## 2026-08-25 — D-010: Inbox / Outbox Persistence Boundary
+
+**Authority:** `Kennedy Altamir + Esdras Ribeiro`  
+**Effective:** `2026-08-25 23:11:44 America/Sao_Paulo (UTC−03:00)`  
+**Decision:** **APPROVED — Option C**
+
+**Contexto:**
+
+P0-001B was blocked by an unresolved persistence/event boundary between IA-03 and IA-01. The canonical sources identified `INBOX-V1` as defined, `OUTBOX-V1` as ambiguous, and `CONTRACT-001` as unresolved.
+
+**Evidências:**
+
+- `docs/protocols/contract-registry.md`
+- `docs/backend/inbox-outbox.md`
+- `docs/backend/database.md`
+- `agents/01-schema/AGENT.md`
+- `agents/01-schema/CANONICAL-SCHEMA-SPEC.md`
+- `ROADMAP/AGENT_TASKS/AG-ENG-01.md`
+- `ROADMAP/13_P0_IMPLEMENTATION_TASKS.md`
+- `ROADMAP/P0-001-DEPENDENCY-GRAPH.md`
+- Issue `#55`
+- human approval by Kennedy Altamir + Esdras Ribeiro
+
+**Decisão:**
+
+Close D-010 as APPROVED — Option C. `AG-ENG-01` retains operational responsibility for P0-001A/P0-001B, while IA-06, IA-03 and IA-01 remain distinct technical territories.
+
+### D-010.1 — Canonical INBOX-V1 semantics
+
+`InboundInbox` represents durable acceptance of an external event before processing. Canonical identity is `(provider, external_event_id)`. Acceptance is idempotent and deterministic, with correlation, causation and restart recovery. ACK occurs only after the durability required by the contract.
+
+### D-010.2 — Canonical OUTBOX-V1 semantics
+
+`DomainOutbox` represents an external effect the system committed to produce after the corresponding internal operation is accepted. Canonical identity is `idempotency_key`. Canonical states are `PENDING`, `PROCESSING`, `DELIVERED`, `RETRY_WAIT`, `FAILED_TERMINAL`. State transitions are deterministic and versioned in the contract.
+
+### D-010.3 — CONTRACT-001 resolution
+
+`DomainOutbox` is a logical boundary between Core/Domain and external effects. It is not a Gateway mechanism, arbitrary physical table, transport detail or business authority. Business semantics remain in Core/Domain; persistence remains persistence; transport remains transport.
+
+### D-010.4 — SQLite schema ownership
+
+`IA-01` is the canonical technical owner of the SQLite schema. `IA-03` must not create or alter SQLite schema unilaterally.
+
+### D-010.5 — Migration ownership
+
+`IA-01` owns SQLite schema migrations. `IA-03` does not create migrations as part of P0-001B.
+
+### D-010.6 — IA-03 ↔ IA-01 interface
+
+The boundary is explicit, versioned and independent of SQLite. It must not expose SQL, table names, SQLite internals, migration numbers or physical storage details. Canonical semantic operations are `accept_inbound`, `deduplicate`, `retrieve_pending`, `stage_outbound`, `mark_processing`, `mark_delivered`, `record_retry`, `record_failure`, `recover_pending`.
+
+### D-010.7 — Idempotency model
+
+Inbox identity is `(provider, external_event_id)`. Outbox identity is `idempotency_key`. Reprocessing the same logical identity must not produce a second logical effect.
+
+### D-010.8 — Retry / recovery model
+
+Retry and recovery semantics belong to IA-03. Persistence stores attempts, state, timestamps and failure metadata. The model requires retryable failure, terminal failure, deterministic backoff, bounded retry and restart recovery.
+
+### D-010.9 — Dead-letter semantics
+
+No physical DLQ is introduced in this phase. `FAILED_TERMINAL` is the terminal failure state. A physical DLQ requires a new authorized decision based on demonstrated operational need.
+
+### D-010.10 — P0-001B gate
+
+P0-001B follows:
+
+`CONTRACT_FROZEN → IMPLEMENTED → TESTED → VERIFIED → READY_FOR_REVIEW`
+
+The evidence package must include baseline, starting SHA, final SHA, changed paths, contract traceability, unit/integration tests, idempotency, retry, recovery, persistence-failure and correlation tests, build, typecheck, lint, security, CI and handoff. `READY_FOR_REVIEW` does not mean `APPROVED`; `APPROVED` and `RELEASED` remain human decisions.
+
+**Impacto:**
+
+`INBOX-V1 = FROZEN`; `OUTBOX-V1 = FROZEN`; `CONTRACT-001 = RESOLVED`; IA-01 schema/migration ownership is canonical; IA-03 ↔ IA-01 interface is frozen. The contract prerequisite of P0-001B is satisfied. No implementation authorization is implied beyond the task packet and quality gates.
+
+**Próxima validação:**
+
+Synchronize the Contract Registry, backend Inbox/Outbox and database documents, AG-ENG-01 task packet, P0 implementation task packet and dependency graph. After synchronization, P0-001B may enter its implementation gate; it must not be treated as implemented or verified until evidence exists.
+
 ## Regra
 
 Uma decisão deve refletir evidência verificável. Hipóteses devem ser identificadas como hipóteses. Decisões humanas registradas neste arquivo não devem ser reinterpretadas unilateralmente por agentes; mudanças posteriores exigem nova decisão explícita.
