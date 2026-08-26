@@ -1,4 +1,5 @@
 import { createHttpServer, connect } from './http.mjs';
+import { attachWssTransport } from './wss.mjs';
 import { startAutoReply } from './auto-reply.mjs';
 import { getLlmSettings, registerLlmSettingsObserver } from './llm-settings.mjs';
 import { updateAllLocalModels } from './llm.mjs';
@@ -7,6 +8,7 @@ import { createLlmUpdateScheduler } from './llm-scheduler.mjs';
 const host = process.env.KASSIST_GATEWAY_HOST ?? '127.0.0.1';
 const port = Number(process.env.KASSIST_GATEWAY_PORT ?? 3210);
 const server = createHttpServer();
+const wss = attachWssTransport(server);
 const scheduler = createLlmUpdateScheduler({
   getSettings: getLlmSettings,
   updateAllLocalModels,
@@ -32,6 +34,7 @@ server.listen(port, host, async () => {
 
 /** @param {NodeJS.Signals} signal */
 function shutdown(signal) {
+  wss.close();
   scheduler.shutdown();
   console.log(`[KassisT WhatsApp Gateway] ${signal}; shutting down.`);
   server.close(() => process.exit(0));
