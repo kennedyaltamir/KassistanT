@@ -1,6 +1,6 @@
 # P0-008C / P0-008D — Decision Package
 
-**Baseline:** `MVP2 @ 35df2fe5f924d3147a5346b716ca1dd2e96cfb3b`
+**Baseline:** `MVP2 @ 35df2fe5f924d3147a5346b716ca1dd2e96cfb3`
 
 ## Inbox
 
