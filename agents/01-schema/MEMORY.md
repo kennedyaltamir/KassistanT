@@ -2,72 +2,82 @@
 
 ## Permanent verified facts
 
-### Repository and authority
-
 - Repository: `kennedyaltamir/KassistanT`.
-- IA-01 territory: Canonical SQLite Schema / Persistence Schema Foundation.
-- Integration authority is `main`.
-- Configuration branch: `agents/configuring`.
-- The agent configuration scaffold initially contained empty operational files under `agents/01-schema/`.
+- Integration authority: `main`.
+- Active branch: `Agent01-schema-canonical-sqlite`.
+- The branch was reconciled with current `main` at `86387b02ed55ef3af3b24f1591b3e0b0ff436a30` through merge commit `456e6661647bba47a3e2dbeb9bc170a276cb61e7` without rewriting IA-01 history.
+- Phase 1, Phase 2 and schema decision work remain documentation-only; protected contracts and M5.1 runtime remain untouched.
+- Canonical schema inventory: 28 entities.
 
-### Baseline
+## M5.1 foundation
 
-- Approved baseline file: `KassisT_Approved_Technical_Baseline_v1.0.1.md`.
-- Baseline blob SHA observed in the repository: `02830152099f58307912ce382c064a3c4075f505`.
-- The baseline defines SQLite as the MVP local persistence technology.
-- Canonical persistence uses UTC timestamps, integer monetary cents/BRL and store scoping.
-- UUIDv7 is the normative identifier direction where supported by the stack.
+M5.1 provides SQLite lifecycle, deterministic migration discovery, SHA-256 checksums, idempotent migration application, checksum drift detection, transaction boundaries, database errors, health checks and UUIDv7/UTC/BRL primitives.
 
-### M5.1 persistence foundation
+`0001_bootstrap.sql` still creates only `_schema_metadata`; canonical business tables are not implemented.
 
-M5.1 merged through PR #2 and provides:
+## Latest verified cross-agent evidence
 
-- SQLite connection lifecycle;
-- deterministic migration discovery;
-- SHA-256 migration checksums;
-- idempotent migration application;
-- checksum drift detection;
-- transaction boundary;
-- database error taxonomy;
-- database health check;
-- UUIDv7, UTC and BRL integer-cent primitives;
-- schema/migration/transaction tests.
+### IA-02
+- DREQ-001: Order aggregate root; OrderItem and OrderItemModifier aggregate-owned; OrderStatusHistory deferred for V1 aggregate boundary.
+- DREQ-002: `DRAFT -> CONFIRMED` via `ConfirmOrder`, event `order.confirmed`.
+- DREQ-005: domain error categories do not define persistence/idempotency/concurrency storage.
+- DREQ-006: authentication outside aggregate; authorization at application/application-service boundary; ActorContext shape not frozen.
 
-### Current schema state
+### IA-03
+- Durable Inbox ACK corresponds to local persistence in `InboundInbox`.
+- DomainOutbox remains blocked under CONTRACT-001.
+- Exact physical field inventory for Inbox/Job/Audit is still incomplete.
 
-The repository currently contains one bootstrap migration:
+### IA-04
+- `CONFIRMED` remains the operational sale milestone.
+- Parent-key persistence details for OrderItem/OrderItemModifier and OrderStatusHistory remain unresolved.
 
-`apps/desktop/database/migrations/0001_bootstrap.sql`
+### IA-05
+- AIExecution requires cross-agent logical closure with IA-01/IA-03.
+- Conversation transition semantics come from IA-02.
+- No complete canonical physical AI field inventory is frozen.
 
-It creates only `_schema_metadata` and records schema version `0001`. Canonical business tables are not implemented.
+### IA-06
+- Device authentication security boundaries are established, but schema-specific status/field decisions remain open.
 
-### Canonical entity set
+### IA-07
+- Gateway remains the external integration boundary.
+- CONTRACT-001 remains ambiguous and is not locally resolved.
 
-The assigned canonical entities are:
+## Readiness
 
-`Store`, `Device`, `Settings`, `ProductCategory`, `Product`, `ProductModifier`, `ProductImage`, `Promotion`, `Customer`, `CustomerAddress`, `Conversation`, `Message`, `Order`, `OrderItem`, `OrderItemModifier`, `OrderStatusHistory`, `PaymentMethod`, `Notification`, `Integration`, `IntegrationCredential`, `InboundInbox`, `DomainOutbox`, `Job`, `AuditLog`, `Log`, `AIProfile`, `AIExecution`, `KnowledgeItem`.
+Strict deterministic gate:
 
-### Normative uniqueness recorded in the current contract layer
+- `DETERMINISTIC`: 0.
+- `DETERMINISTIC_AFTER_HUMAN_APPROVAL`: 0.
+- `DETERMINISTIC_AFTER_CROSS_AGENT_RESPONSE`: 0.
+- `BLOCKED`: 28.
+- `UNKNOWN`: 0.
+- `READY_FOR_DDL`: 0.
 
-- `Customer(store_id, phone_normalized)`
-- `Conversation(store_id, external_thread_id)`
-- `Message(store_id, external_message_id)`
-- `InboundInbox(provider, external_event_id)`
-- `DomainOutbox(idempotency_key)`
-- `Order(store_id, display_number)`
+Previous dependency buckets (3 local candidates, 14 cross-agent candidates, 1 global candidate, 10 direct-gap tables) remain planning categories only. They are not current deterministic states.
 
-The detailed field schemas for several entities remain partial and must not be inferred from implementation.
+## Local physical proposals awaiting operator confirmation
 
-### Open contracts relevant to schema
+- `lower_snake_case` physical naming.
+- UUID as canonical textual `TEXT`.
+- UTC timestamps as canonical RFC3339/ISO-8601 `TEXT`.
+- booleans as SQLite `INTEGER 0/1` where semantics are frozen.
+- contract-defined JSON payloads as `TEXT` JSON.
 
-- `CONTRACT-001`: DomainOutbox ownership/scope is ambiguous across local Core and Gateway architecture.
-- `CONTRACT-002`: `order.status_changed` semantics are contradictory in normative material.
-- `GOV-001`: version/document authority history remains ambiguous.
+These remain proposals, not approved decisions.
 
-### Architectural boundary
+## Schema-critical blockers
 
-Desktop Core owns deterministic business rules and local SQLite persistence. Gateway is a transport/integration boundary and is not business-rule authority. Inbox/Outbox/Queue/EventBus/AuditLog are distinct reliability boundaries; Event Sourcing is not used in the MVP.
+- `FIELD-GAPS`.
+- `CHILD-KEY-GAPS`.
+- `NULLABILITY-DEFAULT-GAPS`.
+- `FK-ACTION-GAPS`.
+- `ENUM-PHYSICAL-GAPS`.
+- `CONTRACT-001` only for affected DomainOutbox physical semantics.
+- `CONTRACT-002` currently non-blocking for schema.
+- `GOV-001` deferred unless a real source conflict changes schema interpretation.
 
-## Memory policy
+## Decision protocol
 
-This file stores durable verified facts only. Activity logs, hypotheses and pending work belong in `PROGRESS.md`, `LEARNINGS.md`, `DECISIONS.md` or `ERRORS.md`.
+No field, key, FK action, default, status encoding or persistence model is inferred from assertive language or runtime requirements. Physical readiness changes only after explicit owner evidence and/or operator approval is validated against the exact schema question.

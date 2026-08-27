@@ -2,26 +2,26 @@
 
 ## E-001 — Gateway HTTP skeleton
 
-- Status: OPEN / EXPECTED IN CURRENT PHASE
-- Evidence: `gateway/src/http.mjs` responde 404 para qualquer request. fileciteturn51file0L2-L2
-- Impacto: nenhuma API HTTP de produção foi comprovada.
+- Status: OPEN / PARTIALLY RESOLVED
+- Evidence: `/health` and `/ready` have runtime coverage; remaining normative HTTP routes are still not implemented.
+- Impacto: nenhuma API HTTP de produção completa foi comprovada.
 
 ## E-002 — WSS não implementado
 
 - Status: OPEN / EXPECTED IN CURRENT PHASE
-- Evidence: `attachWssTransport()` retorna `not_implemented`. fileciteturn53file0L2-L2
+- Evidence: `gateway/src/wss.mjs` continua retornando `not_implemented`.
 - Impacto: nenhum transporte WSS funcional foi comprovado.
 
 ## E-003 — CONTRACT-001
 
 - Status: BLOCKER / AMBIGUOUS
-- DomainOutbox entre Core local e Gateway não possui ownership/scope final. fileciteturn55file0L2-L2
+- DomainOutbox entre Core local e Gateway não possui ownership/scope final.
 - Regra: não resolver localmente.
 
 ## E-004 — Idempotência HTTP incompleta
 
 - Status: OPEN / CONTRACT GAP
-- Regras endpoint-specific de `Idempotency-Key` replay/TTL permanecem ausentes quando não expressamente definidas. fileciteturn57file0L2-L2
+- Regras endpoint-specific de `Idempotency-Key` replay/TTL permanecem ausentes quando não expressamente definidas.
 
 ## E-005 — Dependência de autenticação
 
@@ -32,3 +32,47 @@
 
 - Status: GOVERNANCE RISK
 - O código atual não deve ser usado para inventar semântica que os contratos não estabelecem.
+
+## E-007 — Catálogo de erros incompleto
+
+- Status: OPEN / CONTRACT GAP
+- O contrato público define envelope com `code`, `message`, `retryable` e `correlation_id`, mas o catálogo completo de códigos permanece MISSING/PARTIAL.
+- Impacto: códigos adicionais do Gateway não podem ser tratados como normativos sem decisão/contrato.
+- Observação: `not_ready` e `internal_error` continuam sendo comportamentos locais da implementação anterior, não códigos comprovadamente normativos. Não ampliar seu uso sem contrato.
+
+## E-008 — WSS protocol partially specified
+
+- Status: OPEN / PARTIAL
+- Sequence/replay/resume/resync, retenção, jitter exato e limites numéricos de backpressure permanecem incompletos.
+- Impacto: transporte WSS completo permanece bloqueado.
+
+## E-009 — Envelope lexical rules incomplete
+
+- Status: OPEN / CONTRACT GAP
+- O contrato declara tipos e presença de campos, mas não fecha formato exato de identificadores, gramática de timestamp, limites de `sequence`, política de campos desconhecidos ou negociação de versão.
+- Impacto: o validador deve permanecer conservador; não assumir regras adicionais como normativas.
+
+## E-010 — Session identity boundary incomplete
+
+- Status: OPEN / CROSS-AGENT CONTRACT GAP
+- IA-06 define que session identity existe na fronteira de device authentication, mas não fecha campos, lifecycle, expiration ou reconnect/reauthentication semantics executáveis.
+- Impacto: IA-07 não pode implementar `WSS connection lifecycle` sem correr o risco de criar uma sessão concorrente ou incompatível.
+
+## E-011 — ACK boundary depends on IA-03
+
+- Status: BLOCKER / DEPENDENCY
+- ACK depende de durable `InboundInbox` persistence; IA-03 runtime ainda não está implementado.
+- Impacto: IA-07 não pode implementar ACK persistence, replay store ou durable intake.
+
+## E-012 — Integration gates not yet satisfied
+
+- Status: BLOCKER / CROSS-AGENT
+- IA-06 lacks an executable authenticated-session/revocation/reconnect interface for IA-07 consumption.
+- IA-03 lacks executable durable-intake/ACK/replay interfaces for IA-07 consumption.
+- Impacto: WSS V1 connection lifecycle remains blocked until explicit acceptance criteria in `WSS-INTEGRATION-GATE.md` and `WSS-DEPENDENCY-ACCEPTANCE.md` are satisfied.
+
+## E-013 — Dependency acceptance state is not yet verified
+
+- Status: OPEN / ACCEPTANCE GAP
+- Current IA-06 and IA-03 dependency results are `NOT_VERIFIED` because the required executable evidence packets have not been delivered.
+- Impacto: IA-07 must not infer acceptance from documentation-only progress or branch configuration.

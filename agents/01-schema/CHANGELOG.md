@@ -1,27 +1,24 @@
 # IA-01 — CHANGELOG
 
-## [0.1.0] — 2026-08-24
+## [0.5.0] — 2026-08-24
 
-### Added
+### Updated
 
-- Formal activation of IA-01 as **Schema / Canonical SQLite**.
-- Operational identity and mission documented in `AGENT.md`.
-- Territory boundaries documented in `SCOPE.md`.
-- Code and test ownership boundaries documented in `OWNERSHIP.md`.
-- Permanent verified repository facts initialized in `MEMORY.md`.
-- Audit-derived technical learnings initialized in `LEARNINGS.md`.
-- Decision/proposal registry initialized in `DECISIONS.md`.
-- Known errors, contract ambiguities and ownership traps initialized in `ERRORS.md`.
-- Current domain state initialized in `PROGRESS.md`.
-- IA-01-specific roadmap initialized in `ROADMAP.md`.
-- Continuity and downstream-dependency handoff initialized in `HANDOFF.md`.
+- Reconciled `Agent01-schema-canonical-sqlite` with current `main` at `86387b02ed55ef3af3b24f1591b3e0b0ff436a30` through a non-destructive merge commit.
+- Preserved IA-01 documentation history.
+- Reconfirmed strict deterministic schema readiness after the IA-02 D2 merge.
 
-### Constraints
+### Findings
 
-- Product implementation remains frozen during agent configuration.
-- No files outside `agents/01-schema/**` were intentionally modified by IA-01.
-- Protected contracts and global documentation were read but not modified.
+- DREQ-001 clarifies Order aggregate ownership but does not freeze physical parent keys or FK actions.
+- DREQ-002 adds no new persistence requirement beyond the existing Order lifecycle state.
+- DREQ-005 and DREQ-006 create no schema persistence authority.
+- No table currently satisfies the strict `DETERMINISTIC` gate.
 
-### Audit basis
+### Preserved
 
-Initial configuration was based on the current repository state, approved baseline, M5.1 SQLite foundation, domain/persistence documentation, contract registry and Git history available on 2026-08-24.
+- No migration `0002` created.
+- No modification to `0001_bootstrap.sql`.
+- No modification to M5.1 runtime.
+- No modification to `packages/domain/**` or `packages/contracts/**`.
+- No modification outside `agents/01-schema/**`.

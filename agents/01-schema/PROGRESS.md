@@ -2,62 +2,54 @@
 
 ## Current phase
 
-**Agent Configuration / Territory Audit**
+**Controlled Parallel Execution / Canonical Schema Consolidation**
 
-Implementation freeze is active. No product runtime implementation is being performed in this phase.
+## Phase status
 
-## Audit status
+- Phase 1: `DONE WITH BLOCKERS`.
+- Phase 2: `COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`.
+- Decision package: `COMPLETE / REVIEW REQUIRED`.
+- Parallel consolidation: `ACTIVE / SCHEMA-GATE PENDING`.
 
-- **Repository audit:** COMPLETE for the assigned territory.
-- **Baseline review:** COMPLETE.
-- **Roadmap review:** COMPLETE, with stale-head documentation drift recorded as a non-owned issue.
-- **Persistence review:** COMPLETE.
-- **Domain entity review:** COMPLETE at current documented contract level.
-- **Contract registry review:** COMPLETE.
-- **M5.1 implementation review:** COMPLETE.
-- **Agent ownership review:** COMPLETE.
+## Latest verified evidence
 
-## Current technical reality
+The approved IA-02 D2 decisions were incorporated only where they have a physical consequence.
 
-| Area | Status | Evidence |
-|---|---|---|
-| SQLite lifecycle | FOUNDATION IMPLEMENTED | M5.1 runtime files |
-| Migration discovery | IMPLEMENTED | deterministic filename ordering |
-| Migration checksum | IMPLEMENTED | SHA-256 |
-| Migration idempotency | IMPLEMENTED | migration runner |
-| Transaction boundary | IMPLEMENTED | M5.1 tests/runtime |
-| Database health | IMPLEMENTED | `healthCheck()` |
-| Canonical business schema | NOT_IMPLEMENTED | only `_schema_metadata` exists |
-| Canonical field-level completeness | PARTIAL | domain documentation |
-| Schema tests for business tables | NOT_IMPLEMENTED | no canonical business schema yet |
-| DomainOutbox schema semantics | BLOCKED/AMBIGUOUS | CONTRACT-001 |
-| Order event schema implications | OPEN | CONTRACT-002 |
-| Documentation authority | OPEN | GOV-001 |
+- DREQ-001 confirms `Order` as aggregate root and `OrderItem` / `OrderItemModifier` as aggregate-owned children.
+- DREQ-001 does not freeze parent key names, FK actions, ordering, uniqueness or physical representation.
+- DREQ-001 explicitly leaves `OrderStatusHistory` persistence/ownership unresolved.
+- DREQ-002 confirms `DRAFT -> CONFIRMED` through `ConfirmOrder` and `order.confirmed`.
+- DREQ-002 does not authorize persisted `order.status_changed` structures.
+- DREQ-005 and DREQ-006 are semantic decisions and explicitly do not authorize new persistence representations.
+- IA-03, IA-05, IA-06 and IA-07 still expose physical persistence dependencies without complete schema field closure.
 
-## Configuration deliverables
+## Current readiness
 
-- `AGENT.md` — initialized.
-- `SCOPE.md` — initialized.
-- `OWNERSHIP.md` — initialized.
-- `MEMORY.md` — initialized.
-- `LEARNINGS.md` — initialized.
-- `DECISIONS.md` — initialized.
-- `ERRORS.md` — initialized.
-- `PROGRESS.md` — initialized.
-- `ROADMAP.md` — initialized.
-- `HANDOFF.md` — initialized.
-- `CHANGELOG.md` — initialized.
+Under the strict deterministic-state model:
 
-## Implementation status
+- `DETERMINISTIC`: 0.
+- `DETERMINISTIC_AFTER_HUMAN_APPROVAL`: 0.
+- `DETERMINISTIC_AFTER_CROSS_AGENT_RESPONSE`: 0.
+- `BLOCKED`: 28.
+- `UNKNOWN`: 0.
 
-`IMPLEMENTATION_STARTED = FALSE`.
+Previous planning buckets remain useful but must not be confused with readiness:
 
-No canonical schema migration, schema runtime, repository, domain logic or product feature has been implemented by IA-01 in this phase.
+- 3 candidate tables primarily waiting on local physical approval.
+- 14 candidate tables with material cross-agent semantic dependencies.
+- 1 candidate table with localized global dependency (`DomainOutbox`).
+- 10 tables with direct field/relationship gaps.
 
-## Blockers
+## Human decisions
 
-The primary blockers are contract-level ambiguities and incomplete field specifications, not the M5.1 migration mechanism itself.
+SD-001..SD-005 remain `PROPOSAL / PENDING OPERATOR APPROVAL`.
 
-## Next operational gate
+## Migration
 
-Before canonical schema implementation, verify that all schema-critical field and constraint decisions required for the target migration are authoritative and that no migration design would silently resolve an open global contract.
+`0002 = NOT_AUTHORIZED`.
+
+No migration was created. `0001_bootstrap.sql` and M5.1 remain unchanged.
+
+## Next gate
+
+Collect explicit operator approval and actual owner responses; validate them against evidence; resolve conflicts; then reclassify tables. Only after all physical properties are closed may the deterministic-generation gate pass.

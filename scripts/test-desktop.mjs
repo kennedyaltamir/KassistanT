@@ -10,19 +10,51 @@ const jsTests = [];
 for (const file of walkFiles(path.join(root, "tests"))) {
   if (file.endsWith(".test.mjs")) jsTests.push(file);
 }
+jsTests.push(path.join(desktop, "electron", "database", "runtime.test.cjs"));
 
 const tsTests = [
   path.join(domain, "src", "foundation.test.ts"),
-  path.join(desktop, "electron", "database", "database.test.ts")
+  path.join(domain, "src", "order.test.ts"),
+  path.join(desktop, "electron", "database", "database.test.ts"),
+  path.join(desktop, "electron", "database", "product-order-persistence.test.ts"),
+  path.join(desktop, "electron", "infrastructure", "inbox-outbox", "runtime.test.ts"),
+  path.join(desktop, "electron", "infrastructure", "inbox", "p0-001b-runtime.test.ts"),
+  path.join(desktop, "electron", "infrastructure", "outbox", "p0-001b-runtime.test.ts"),
+  path.join(desktop, "electron", "infrastructure", "outbox", "p0-001b-recovery.test.ts")
 ];
 
-run("node", ["--test", ...jsTests]);
-run("pnpm", ["exec", "tsx", "--test", ...tsTests]);
+run("node", ["--test", ...jsTests], root);
+run("pnpm", ["exec", "tsx", "--test", ...tsTests], desktop);
 
-function run(command, args) {
-  const result = spawnSync(command, args, { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+function run(command, args, cwd) {
+  const resolved = resolveCommand(command);
+  const result = spawnSync(resolved.command, [...resolved.prefixArgs, ...args], {
+    cwd,
+    stdio: "inherit",
+    shell: false
+  });
+
   if (result.error) throw result.error;
   if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
+function resolveCommand(command) {
+  if (process.platform !== "win32" || command !== "pnpm") {
+    return { command, prefixArgs: [] };
+  }
+
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && /\.(?:cjs|js|mjs)$/i.test(npmExecPath)) {
+    return {
+      command: process.execPath,
+      prefixArgs: [npmExecPath]
+    };
+  }
+
+  throw new Error(
+    "Unable to resolve the pnpm JavaScript entrypoint on Windows. " +
+    "Expected npm_execpath to point to pnpm.cjs/pnpm.js/pnpm.mjs."
+  );
 }
 
 function walkFiles(directory) {

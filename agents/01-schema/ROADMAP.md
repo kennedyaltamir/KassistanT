@@ -1,111 +1,69 @@
 # IA-01 — ROADMAP
 
 ## Scope
-
-Este roadmap cobre exclusivamente o território de IA-01: Canonical SQLite Schema e Persistence Schema Foundation.
-
-Ele não substitui `docs/ROADMAP.md`, não altera a sequência global do projeto e não autoriza implementação de trabalho pertencente a outros agentes.
+Canonical SQLite Schema and Persistence Schema Foundation only.
 
 ## Phase 0 — Territory configuration
-
-**Status:** DONE
-
-- Establish IA-01 identity and mission.
-- Define scope and non-scope.
-- Define ownership.
-- Initialize memory, learnings, decisions, errors, progress and handoff records.
-- Freeze product implementation during configuration.
+`DONE`
 
 ## Phase 1 — Contract-to-schema audit
+`DONE WITH BLOCKERS`
 
-**Status:** READY / PRE-IMPLEMENTATION
-
-Objectives:
-
-- map canonical entities against protected documentation;
-- classify field definitions as authoritative, partial or unknown;
-- identify required keys, foreign keys and uniqueness constraints supported by contract;
-- identify cross-agent dependencies;
-- preserve unresolved contract ambiguities without encoding them prematurely.
+Primary artifact: `CANONICAL_SCHEMA_AUDIT.md`.
 
 ## Phase 2 — Canonical schema specification
+`COMPLETE AS SPECIFICATION / BLOCKED FOR DDL`
 
-**Status:** BLOCKED UNTIL REQUIRED CONTRACT DETAILS ARE CLOSED
+Completed:
 
-Expected result:
+- physical mapping for 28 entities;
+- 23 relationship classifications;
+- constraint/index specifications;
+- lifecycle/status semantic inventory;
+- scope and mutability analysis;
+- documentary `0002` projection.
 
-- canonical table inventory;
-- column definitions supported by authoritative sources;
-- primary/foreign keys;
-- required uniqueness;
-- indexes;
-- nullability and checks where normative;
-- migration compatibility rules;
-- schema-specific test matrix.
+## Phase 2.5 — Schema Decision Package
+`COMPLETE / REVIEW REQUIRED`
 
-The phase must not invent missing business semantics.
+Artifacts:
+
+- `SCHEMA-DECISION-MATRIX.md`
+- `SCHEMA-AUTHORITY-MATRIX.md`
+- `TABLE-READINESS-MATRIX.md`
+- updated `CANONICAL-SCHEMA-SPEC.md`
+- updated `MIGRATION-0002-READINESS.md`
+- updated `MIGRATION-0002-PROJECTION.md`
+
+Result:
+
+- 3 tables require only local physical decisions;
+- 14 require cross-agent semantic decisions;
+- 1 requires global decision (`DomainOutbox` / CONTRACT-001);
+- 10 remain directly blocked by missing field/relationship semantics;
+- `CONTRACT-002` is currently non-blocking for physical schema;
+- `GOV-001` is deferred unless an actual source conflict affects schema interpretation.
 
 ## Phase 3 — Canonical migration implementation
-
-**Status:** NOT_STARTED
-
-Expected ownership:
-
-`apps/desktop/database/migrations/**`
+`BLOCKED / NOT_STARTED`
 
 Preconditions:
 
-- required schema field decisions are authoritative;
-- migration strategy remains compatible with M5.1;
-- `CONTRACT-001` is resolved wherever the schema would otherwise encode ownership semantics;
-- affected shared contracts are stable.
+- local physical proposals approved;
+- cross-agent semantic gaps closed;
+- DomainOutbox physical scope resolved where required;
+- every included table is deterministic;
+- deterministic-generation review passes.
 
 ## Phase 4 — Schema validation
-
-**Status:** NOT_STARTED
-
-Expected evidence:
-
-- migration ordering/determinism tests;
-- schema existence tests;
-- constraint enforcement tests;
-- foreign-key integrity tests;
-- unique-key tests;
-- money representation tests;
-- store-scoping tests;
-- migration upgrade compatibility tests;
-- no regression of M5.1 foundations.
+`NOT_STARTED`
 
 ## Phase 5 — Cross-agent integration audit
-
-**Status:** NOT_STARTED
-
-Review consumers and dependencies with:
-
-- IA-02 Domain Runtime;
-- IA-03 Event Infrastructure;
-- IA-04 Order Engine;
-- IA-05 Conversation + LLM;
-- IA-06 Device Authentication;
-- IA-07 Gateway + WSS where contracts cross the Desktop/Gateway boundary;
-- IA-08 Desktop UI through application-level contracts.
-
-The integration audit must verify that schema decisions do not leak business authority into persistence.
+`NOT_STARTED`
 
 ## Phase 6 — Handoff and PR readiness
+`NOT_STARTED`
 
-**Status:** NOT_STARTED
+## Guardrail
 
-Required evidence:
-
-- schema implementation summary;
-- migration identifiers/checksums;
-- tests and results;
-- known limitations;
-- unresolved dependencies, if any;
-- compatibility notes for downstream agents;
-- human-review readiness.
-
-## Global dependency note
-
-The global roadmap currently identifies P5 Canonical SQLite Schema as the next technical implementation gate after the existing documentation and M5.1 foundations. IA-01's roadmap is subordinate to that global authority.
+No migration may be created because plausible SQL exists. `0002` requires authoritative deterministic physical specification.

@@ -1,44 +1,30 @@
-# IA-06 Handoff
-
-## Purpose
-
-This document is the minimum continuity context for a future IA-06 operator.
+# IA-06 Device Authentication Handoff
 
 ## Current state
 
-IA-06 is configured for Device Authentication, but product implementation is frozen in the current phase. The audited repository state contains contractual documentation and no verified production device-auth runtime.
+Final DR-02 refinement complete. Production Device Authentication remains frozen.
 
-## Authoritative facts
+## Decision package
 
-- Ed25519 challenge-response is the approved authentication model.
-- Desktop private key belongs in Windows Secure Storage.
-- Gateway stores the device public key.
-- Enrollment uses a one-time, short-lived pairing code and explicit Store/Device/public-key association.
-- Provisioning Service is the MVP authority for enrollment authorization, revoke, rotate and device status.
-- Revocation results in `DEVICE_REVOKED` and session termination.
-- Local clock must not be the sole authentication authority.
+Use `DEVICE-AUTH-DECISION-PACKAGE.md` as the executive decision register and `DEVICE-AUTH-APPROVAL-REQUEST.md` as the human approval surface.
 
-## Contract gaps that must be resolved before implementation encodes them
+## DR-02 final stratification
 
-- Enrollment exact request/response schemas.
-- Status codes.
-- Authorization matrix.
-- Endpoint idempotency.
-- Numerical rate limits.
-- Any unspecified key-rotation/session details required by runtime.
+- **DR-02A — Cryptographic Verification Contract:** minimum approval scope for the pure Signature Verification Boundary.
+- **DR-02B — Operational Replay Protocol:** remains OPEN and is not implicitly approved by DR-02A.
 
-## Cross-agent dependencies
+DR-02A covers only signed-context definition, exact verifier bytes, public-key/signature representation, required context binding and deterministic valid/invalid semantics.
 
-- IA-01: persistence schema.
-- IA-02: domain conventions.
-- IA-03: audit/event infrastructure.
-- IA-07: Gateway/WSS transport boundary.
-- IA-08: UI exposure of device state.
+DR-02B covers challenge uniqueness/freshness, lifecycle/storage, reuse rejection, expiration, replay detection/error semantics and persistence/recovery.
 
-## Safety rules
+## First slice
 
-Do not expose the private key to the Renderer. Do not log pairing codes or private material. Do not invent cryptographic protocol fields, authorization rules or rate limits. Do not alter protected contracts without explicit authority.
+`DEVICE-FIRST-SLICE.md` proposes a pure signature-verification boundary after explicit DR-02A approval. It does not require enrollment HTTP, session lifecycle, authorization, rate limits, endpoint idempotency or rotation closure.
+
+## Safety
+
+No runtime was implemented. No cryptographic wire encoding, TTL, replay store, HTTP mapping or Windows storage technology was selected locally.
 
 ## Handoff status
 
-Prepared for future continuation after configuration-phase acceptance and explicit implementation authorization.
+READY FOR HUMAN PROJECT DECISION REVIEW / BLOCKED FOR IMPLEMENTATION.

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<operator_governance_decision_record protocol="KASSIST-OPERATOR-GOVERNANCE" version="1.0.0" status="APPROVED">
+  <authority>OPERATOR_PROJECT_GOVERNANCE</authority>
+  <repository>kennedyaltamir/KassistanT</repository>
+  <branch>MVP2</branch>
+  <current_head_sha>e2d8807a6e797b0fb35e6a4658f8c4aabec7535a</current_head_sha>
+  <main_sha>86387b02ed55ef3af3b24f1591b3e0b0ff436a30</main_sha>
+  <effective_from>2026-08-24T19:52:00-03:00</effective_from>
+
+  <decision id="MVP_SCOPE_DECISION">
+    <question>Qual é o escopo normativo do MVP que será efetivamente aceito?</question>
+    <decision>APPROVE_TEXT_FIRST_REAL_COMMERCIAL_OPERATION</decision>
+    <rationale>O pacote de escopo já formaliza um conjunto coerente para a primeira operação comercial real e separa explicitamente capacidades pós-MVP. A aprovação não promove implementação existente a requisito nem autoriza automaticamente schema, merge ou produção.</rationale>
+    <affected_requirements>Customer; Conversation; Message; Inbox/InboundInbox; AI/Conversation+LLM; Product; Order; Inventory; Pricing; Freight; Sale; DomainOutbox; Recovery; WhatsApp; Human Handoff; Windows Runtime.</affected_requirements>
+    <affected_contracts>Customer Identity; Conversation; Message; DomainOutbox; downstream IA-02/IA-03 contracts.</affected_contracts>
+    <affected_schema>Schema must represent only the approved MVP after IA-01 reconciliation; existing physical artifacts are not retroactively authorized.</affected_schema>
+    <explicit_non_scope>Image; Audio; PDF Import; Campaign; Advanced Attribution; Advanced KPI; Multi-provider LLM; cross-channel identity stitching; complex promotion engine; complex freight integrations; SaaS billing; automatic schema/migration authorization; merge; production release.</explicit_non_scope>
+    <evidence>consensus/governance/MVP_SCOPE_DECISION.md; current MVP2 HEAD e2d8807a6e797b0fb35e6a4658f8c4aabec7535a; prior governance reconciliation.</evidence>
+  </decision>
+
+  <decision id="GOV-DRIFT-0002">
+    <question>Qual é o status normativo da Migration 0002 existente fisicamente no MVP2?</question>
+    <decision>B_DEPRECATE_OR_REJECT_EXISTING_MIGRATION_AS_NON_AUTHORITATIVE</decision>
+    <rationale>A migration física existente não corresponde integralmente à projeção canônica, contradiz o gate documental anterior e não pode ser promovida por mera existência física. Preservar sua evidência histórica sem autoridade normativa reduz o risco de cristalizar um schema parcial como baseline.</rationale>
+    <affected_requirements>Migration governance; canonical schema consistency; release gate.</affected_requirements>
+    <affected_contracts>Schema authority; Product/Order persistence; DomainOutbox-dependent persistence.</affected_contracts>
+    <affected_schema>apps/desktop/database/migrations/0002_c1_product_order.sql remains physically present but non-authoritative. No removal, rename, replacement or execution is authorized by this decision.</affected_schema>
+    <explicit_non_scope>Deletion of 0002; new migration creation; migration execution; schema replacement; merge.</explicit_non_scope>
+    <evidence>apps/desktop/database/migrations/0002_c1_product_order.sql exists in MVP2; agents/01-schema/MIGRATION-0002-PROJECTION.md says 0002 is not created; agents/01-schema/HUMAN-SCHEMA-REVIEW.md says 0002 is not authorized; consensus/governance/MVP2-RECONCILIATION.md classifies the conflict as governance drift.</evidence>
+  </decision>
+
+  <decision id="CUSTOMER-IDENTITY">
+    <question>Qual é a identidade canônica de Customer para o MVP?</question>
+    <decision>APPROVE_STORE_ID_PLUS_NORMALIZED_PHONE</decision>
+    <rationale>O modelo preserva isolamento por store, fornece identidade determinística para o canal WhatsApp do MVP e evita introduzir identity graph ou merge automático não necessários ao primeiro escopo.</rationale>
+    <affected_requirements>Customer canonical identity; WhatsApp identity resolution.</affected_requirements>
+    <affected_contracts>Customer Identity Contract; Transport Identity -> Identity Resolution -> Customer.</affected_contracts>
+    <affected_schema>UNIQUE(store_id, phone_normalized) for canonical Customer identity.</affected_schema>
+    <explicit_non_scope>Cross-channel identity stitching; automatic customer merging; identity graph.</explicit_non_scope>
+    <evidence>docs/domain/entities.md; agents/02-domain/CANONICAL-ENTITY-INVENTORY.md; consensus/governance/CUSTOMER-CONVERSATION-MESSAGE-DECISION-PACKAGE.md.</evidence>
+  </decision>
+
+  <decision id="CONVERSATION-CONTRACT">
+    <question>Qual é a cardinalidade e identidade canônica de Conversation?</question>
+    <decision>APPROVE_CUSTOMER_1_TO_N_WITH_SEPARATE_INTERNAL_ID_AND_EXTERNAL_THREAD_ID</decision>
+    <rationale>Uma Conversation pertence a um Customer, pode haver múltiplas conversas por Customer e o identificador interno do domínio deve permanecer distinto do identificador do transporte externo. Store scoping fornece determinismo sem introduzir cross-channel stitching.
+    </rationale>
+    <affected_requirements>Conversation ownership; external thread identity.</affected_requirements>
+    <affected_contracts>Conversation Contract; Customer-to-Conversation relationship.</affected_contracts>
+    <affected_schema>UNIQUE(store_id, external_thread_id); Conversation.id is distinct from external_thread_id.</affected_schema>
+    <explicit_non_scope>Cross-channel conversation merge; automatic conversation stitching; multi-channel identity graph.</explicit_non_scope>
+    <evidence>docs/domain/entities.md; consensus/governance/CUSTOMER-CONVERSATION-MESSAGE-DECISION-PACKAGE.md.</evidence>
+  </decision>
+
+  <decision id="MESSAGE-CONTRACT">
+    <question>Qual é a regra canônica de identidade/idempotência de Message?</question>
+    <decision>APPROVE_INBOUND_PROVIDER_IDENTITY_SCOPED_BY_STORE_AND_DEFER_OUTBOUND_IDENTITY_TO_EXPLICIT_CONTRACT</decision>
+    <rationale>O invariável necessário para o MVP de ingestão é deduplicar mensagens externas de provider por store. Aplicar a mesma chave indistintamente a outbound poderia congelar uma semântica não demonstrada pelo evidence set atual. O outbound permanece explicitamente fora desta decisão e exigirá contrato próprio antes de congelar sua identidade.</rationale>
+    <affected_requirements>Inbound message idempotency.</affected_requirements>
+    <affected_contracts>Message Contract; Inbox/InboundInbox integration.</affected_contracts>
+    <affected_schema>UNIQUE(store_id, external_message_id) for inbound provider messages; outbound identity is not frozen by this decision.</affected_schema>
+    <explicit_non_scope>Canonical outbound message identity; provider-specific outbound correlation; cross-channel message stitching.</explicit_non_scope>
+    <evidence>docs/domain/entities.md; consensus/governance/CUSTOMER-CONVERSATION-MESSAGE-DECISION-PACKAGE.md; current mandate's inbound idempotency requirement.</evidence>
+  </decision>
+
+  <decision id="CONTRACT-001">
+    <question>Qual é a ownership, scope e fronteira transacional normativa do DomainOutbox?</question>
+    <decision>A_DOMAIN_EVENT_INTENT_PLUS_IA03_DURABLE_OUTBOX_MECHANICS</decision>
+    <rationale>Preserva separação semântica: domínio define intent/event semantics; IA-03 controla durable delivery mechanics e worker. A transação de negócio e o outbox intent devem compartilhar a mesma boundary quando ambos fazem parte da mesma operação persistente. Provider invocation ocorre somente após durable intent.</rationale>
+    <affected_requirements>Atomic business state + outbox intent; durable delivery; idempotency; deterministic recovery; auditability.</affected_requirements>
+    <affected_contracts>Domain event contract; DomainOutbox; IA-03 delivery worker; provider boundary.</affected_contracts>
+    <affected_schema>DomainOutbox physical representation must be reconciled by IA-01 after this semantic decision; no migration change is authorized by this record.</affected_schema>
+    <explicit_non_scope>Direct provider call after business persistence; hidden bypass paths; provider-owned business transaction semantics; schema implementation in this mandate.</explicit_non_scope>
+    <evidence>agents/02-domain/DOMAIN-GLOBAL-DECISIONS.md DREQ-004; consensus/governance/CONTRACT-001-DECISION-PACKAGE.md; required semantics documented in the Operator mandate.</evidence>
+  </decision>
+
+  <global_invariants>
+    <item>Candidate recommendations are not authoritative; these decisions are normative because they are recorded by OPERATOR_PROJECT_GOVERNANCE.</item>
+    <item>Physical existence never implies normative authorization.</item>
+    <item>No decision in this record authorizes migration execution, schema mutation, merge or production release.</item>
+    <item>IA-01 must reconcile documentation/schema to these decisions without changing their normative content.</item>
+  </global_invariants>
+</operator_governance_decision_record>

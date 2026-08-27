@@ -1,61 +1,35 @@
 # IA-02 — Domain Runtime Roadmap
 
-## Phase D0 — Territory configuration
-**Status:** DONE
+## D0 — Territory configuration
+**DONE**
 
-- Audit repository and approved sources.
-- Establish ownership and non-ownership.
-- Record permanent facts, learnings, decisions, errors and current progress.
-- Preserve implementation freeze.
+## D1 — Contract lock and domain readiness
+**DONE / BLOCKED FOR D2 IMPLEMENTATION**
 
-## Phase D1 — Contract lock and domain readiness
-**Status:** BLOCKED / PREPARATION
+Completed audit artifacts:
+- `DOMAIN-READINESS.md`
+- `STATE-TRANSITION-MATRIX.md`
+- `DOMAIN-CONTRACT-MATRIX.md`
+- `READINESS-GAPS.md`
 
-Prerequisites:
-- approved interpretation of domain-relevant open contracts;
-- canonical schema direction available from IA-01;
-- stable event semantics where domain behavior depends on them.
+Current blockers:
+- `CONTRACT-001` DomainOutbox ownership/scope.
+- `CONTRACT-002` `order.status_changed` normative status.
+- Aggregate boundaries and lifecycle transition matrices are still incomplete.
+- Canonical command/query/error semantics remain partial.
 
-## Phase D2 — Domain model foundation
-**Status:** NOT_STARTED
+## D2 — Domain model foundation
+**NOT_STARTED**
 
-Expected scope:
-- executable entities/value objects;
-- aggregate boundaries;
-- domain errors;
-- state machines;
-- pure validation and invariants;
-- contract-aligned command/query types.
+Gate requires an approved first slice with explicit aggregate boundary, transitions, command contract, domain errors and stable events.
 
-## Phase D3 — Business rules
-**Status:** NOT_STARTED
+## D3 — Business rules
+**NOT_STARTED**
 
-Expected scope:
-- deterministic pricing-related domain rules where contractually owned by domain;
-- customer/conversation/order lifecycle rules;
-- promotion eligibility rules;
-- delivery/payment business constraints;
-- invariant-preserving domain services.
+## D4 — Domain test suite
+**NOT_STARTED**
 
-## Phase D4 — Domain test suite
-**Status:** NOT_STARTED
+## D5 — Integration handoff
+**NOT_STARTED**
 
-Expected evidence:
-- unit tests for invariants;
-- state transition tests;
-- command validation tests;
-- deterministic calculation tests;
-- negative/error-path tests.
-
-## Phase D5 — Integration handoff
-**Status:** NOT_STARTED
-
-Expected consumers:
-- IA-01 for persistence representation alignment;
-- IA-03 for event/inbox/outbox infrastructure integration;
-- IA-04 for Order Engine orchestration;
-- IA-05 for conversation/LLM orchestration.
-
-## Roadmap rule
-
-This roadmap contains only IA-02 domain work. It does not schedule other agents and does not authorize implementation before global dependencies are resolved.
+The roadmap does not authorize implementation before the D2 gate is satisfied.

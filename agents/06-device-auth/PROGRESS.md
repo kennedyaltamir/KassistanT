@@ -2,37 +2,51 @@
 
 ## Current phase
 
-**Agent Configuration / Territory Audit**
+**Final DR-02 Refinement / Human Review Preparation**
 
 ## Status
 
-`AUDIT_COMPLETE / DOCUMENTATION_CONFIGURED / IMPLEMENTATION_FROZEN`
+`CONTRACT_REVIEW_READY / DR02_STRATIFIED / IMPLEMENTATION_FROZEN`
 
 ## Confirmed
 
-- Agent identity: IA-06 — Device Authentication.
-- Ownership boundaries documented.
-- Device enrollment contract audited.
-- Device authentication contract audited.
-- Backend authentication/authorization documentation audited.
-- Approved baseline device-enrollment/authentication sections audited.
-- Current repository evidence indicates device-auth runtime is not implemented.
-- Dependencies on canonical schema, domain conventions, event/audit infrastructure, Gateway/WSS and UI have been identified.
-- Known contract gaps and global ambiguities have been recorded.
+- Branch: `Agent06-device-authentication`.
+- Base: `main`.
+- No production Device Authentication runtime was implemented.
+- No shared contracts were modified.
+- The approval package now distinguishes DR-02A (cryptographic verification) from DR-02B (operational replay).
+- The proposed first slice depends only on the minimum DR-02A scope.
+- Enrollment, session, authorization, rate limiting, idempotency and rotation remain independently gated.
 
-## Not started
+## Readiness
 
-- Production enrollment implementation.
-- Production Ed25519 key management implementation.
-- Challenge-response runtime.
-- Secure Storage runtime.
-- Device revocation/rotation runtime.
-- Device-auth runtime tests.
+### READY FOR HUMAN REVIEW
 
-## Evidence rule
+- Ed25519 primitive boundary.
+- DR-02A approval surface definition.
+- First-slice sequencing definition.
+- Layer separation and non-implicit-approval rule.
 
-Progress must never be advanced from documentation-only status to implementation-complete status without executable evidence and approved integration.
+### OPEN
+
+- DR-02A project approval.
+- DR-02B replay runtime contract.
+- DR-01 and DR-03..DR-08.
+
+### BLOCKED FOR IMPLEMENTATION
+
+- Production enrollment.
+- Challenge/replay runtime.
+- Session runtime.
+- Authorization runtime.
+- Rate limiting.
+- Endpoint idempotency.
+- Rotation.
+
+## Implementation status
+
+No production code created. No migration created. No Gateway implementation changed. No Windows external configuration executed.
 
 ## Next phase
 
-Wait for an explicit implementation instruction after the Agent Configuration / Territory Audit is accepted.
+Await explicit project authority decision on DR-02A. A DR-02A approval alone must not be treated as replay-runtime approval.

@@ -16,3 +16,5 @@ apps/desktop/database/*.db-shm
 apps/desktop/media/
 apps/desktop/backups/
 apps/desktop/logs/
+gateway/.data/whatsapp/
+gateway/data/*.json

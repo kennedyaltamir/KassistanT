@@ -9,24 +9,91 @@
 5. Confirmar dependências com IA-06, IA-03 e demais agentes envolvidos.
 6. Confirmar branch e ownership antes de editar código.
 
-## Estado de entrada
+## Estado de entrada — 2026-08-24
 
-O Gateway atual é skeleton: HTTP retorna 404 e WSS está explicitamente `not_implemented`. fileciteturn51file0L2-L2 fileciteturn53file0L2-L2
+O Gateway possui `/health` e `/ready` implementados; webhooks e endpoints de dispositivo permanecem não implementados por insuficiência contratual/dependências. WSS de transporte continua NOT_IMPLEMENTED.
 
-## Dependências críticas
+Foi acrescentado um validador estrutural puro em `gateway/src/wss-envelope.mjs` para o envelope WSS v1. Ele não substitui o runtime WSS.
 
-- IA-06: identidade/autenticação de dispositivo.
-- IA-03: durabilidade, Inbox/Outbox/Queue/EventBus/Audit.
-- IA-01: persistência/schema quando houver necessidade.
-- IA-02/IA-04/IA-05: consumidores/produtores de capacidades de domínio, pedidos e conversa sem transferência de regras comerciais ao Gateway.
-- IA-08: Desktop/WSS consumer.
+## Integration gate package
+
+### IA-06 → IA-07
+
+Antes do WSS lifecycle, IA-06 precisa fornecer uma interface executável/testável para:
+
+- authenticated session result;
+- authoritative `device_id`;
+- `session_id`, se o contrato de sessão o utilizar;
+- expiry semantics, se aplicável;
+- authoritative revocation signal;
+- reconnect/reauthentication rule.
+
+IA-06 continua responsável pela autoridade criptográfica, revogação e identidade.
+
+### IA-03 → IA-07
+
+Antes do WSS receive/ACK/recovery runtime, IA-03 precisa fornecer:
+
+- durable intake interface;
+- persisted / duplicate / failure outcomes;
+- ACK authorization after durable persistence;
+- explicit duplicate/retry semantics;
+- selected replay/resume boundary or explicit deferral;
+- sequence ownership and duplicate/gap semantics for the selected scope.
+
+IA-03 continua responsável pela persistência, deduplicação, ACK e replay/recovery.
+
+### IA-07 → IA-08
+
+IA-07 fornece estado de conexão/sessão e envelopes de eventos; IA-08 apenas apresenta/consome esses resultados no Desktop.
+
+## Dependency acceptance
+
+Use `WSS-DEPENDENCY-ACCEPTANCE.md` when IA-06 or IA-03 delivers a new dependency revision.
+
+Acceptance procedure:
+
+1. Record the exact branch and commit SHA.
+2. Read only the dependency gate artifacts relevant to the supplied revision.
+3. Compare the evidence against each acceptance criterion.
+4. Record one result per gate: `ACCEPTED`, `ACCEPTED_WITH_GAPS`, `REJECTED` or `NOT_VERIFIED`.
+5. Do not repeat the global project audit unless new evidence conflicts with an authoritative source.
+6. Do not change runtime during dependency acceptance.
+
+Current results:
+- IA-06: `NOT_VERIFIED`.
+- IA-03: `NOT_VERIFIED`.
+
+## Minimum V1
+
+The first lifecycle slice is currently proposed as `connection lifecycle without replay`. It remains BLOCKED until IA-06 session/revocation/reauthentication gates and IA-03 durable-intake/ACK gates pass, and replay deferral is explicit for the selected V1 contract.
+
+Full resync, advanced replay retention and numerical backpressure tuning may remain deferred only when the selected V1 contract explicitly permits it.
+
+## Artifacts
+
+- `WSS-INTEGRATION-GATE.md`
+- `WSS-IA06-CONTRACT.md`
+- `WSS-IA03-CONTRACT.md`
+- `WSS-RUNTIME-V1-REQUIREMENTS.md`
+- `WSS-DEPENDENCY-ACCEPTANCE.md`
+- `WSS-INTEGRATION-BOUNDARY.md`
+- `WSS-SESSION-DECISION-MATRIX.md`
+
+## Current readiness
+
+`WSS_RUNTIME_READINESS = BLOCKED`.
+
+The `WSS connection lifecycle abstraction` is not authorized for implementation until all critical gates pass.
 
 ## Bloqueios conhecidos
 
 - CONTRACT-001.
-- CONTRACT-002 quando semântica de `order.status_changed` afetar transporte.
-- GOV-001 quando autoridade documental estiver em disputa.
-- Regras endpoint-specific de Idempotency-Key ainda podem estar ausentes. fileciteturn57file0L2-L2
+- CONTRACT-002 when `order.status_changed` semantics affect transport.
+- GOV-001 when document/version authority is relevant.
+- Endpoint-specific `Idempotency-Key` rules.
+- Complete error catalogue.
+- Webhook/provider semantics and numeric rate/backpressure limits.
 
 ## Regra de continuidade
 

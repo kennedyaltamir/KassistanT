@@ -1,19 +1,25 @@
 # IA-06 Memory
 
-## Permanent confirmed facts
+## Permanent facts
 
-- KassisT is a Windows Electron local-first product with a cloud Gateway transport boundary. The approved baseline describes WhatsApp → Gateway → WSS → Desktop Core → SQLite/LLM/integrations/UI.
-- Device authentication for the MVP is based on Ed25519 challenge-response.
-- Gateway stores the device public key; Desktop stores the private key in Windows Secure Storage.
-- Enrollment creates/uses an `enrollment_id`, `device_id`, one-time short-lived `pairing_code` and `expires_at`.
-- Enrollment associates Store, Device and Ed25519 public key. The private key remains on the Desktop side.
-- Enrollment states are `PENDING`, `AUTHORIZED`, `COMPLETED`, `EXPIRED`, `CANCELLED`, `REVOKED`.
-- The MVP uses a Provisioning Service authenticated in the Gateway as the authority for authorizing enrollment, revoking devices, rotating device keys and reading device status.
-- Authentication flow is Gateway challenge → Desktop signs nonce plus session context → Gateway verifies → `AUTH_OK`; failure is `AUTH_FAILED`; revocation yields `DEVICE_REVOKED` and session termination.
-- Authentication must not rely exclusively on the local clock.
-- Conceptual rate limits exist independently for enrollment, AUTH, RESUME and reconnect; numerical policies are not currently defined.
-- Device-auth runtime is not implemented in the audited repository state.
+- MVP device authentication uses Ed25519 challenge-response.
+- Gateway stores device public key; Desktop private key remains in Windows Secure Storage.
+- Provisioning Service is authority for enrollment authorization, revoke, rotate and status.
+- Revocation yields `DEVICE_REVOKED` and session termination.
+- Enrollment routes/states exist, but exact HTTP schemas and endpoint semantics remain partial.
+- WSS AUTH-related message types exist, but authentication/session payload details remain partial.
+
+## Contract closure facts
+
+- DR-01 and DR-03..DR-08 remain OPEN project decisions.
+- DR-02 is intentionally split into DR-02A (cryptographic verification contract) and DR-02B (operational replay protocol).
+- DR-02A is the only DR-02 subset required by the proposed pure Signature Verification Boundary.
+- DR-02B remains open for challenge uniqueness/freshness, challenge lifecycle/storage, reuse rejection, expiration, replay detection, replay error semantics and persistence/recovery.
+- A DR-02A approval must never be interpreted as approval of DR-02B.
+- No rate-limit numbers, HTTP schemas, authorization matrix, idempotency TTL/replay semantics or rotation lifecycle are invented.
+- Concrete Windows Secure Storage technology is not selected locally.
+- Runtime remains NOT_STARTED.
 
 ## Memory hygiene
 
-This file stores stable facts only. Activity logs, hypotheses and unapproved designs belong in the corresponding operational documents.
+Stable facts only. Decision requests and unapproved designs belong in the decision package.

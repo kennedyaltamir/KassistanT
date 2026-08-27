@@ -4,9 +4,19 @@ Audit-derived, evidence-backed learnings. These are not new requirements.
 
 1. The repository contract layer is intentionally conservative: executable schemas remain partial and documentation does not imply implementation.
 2. The Order Engine is explicitly separated from Gateway transport and from the reliability infrastructure boundaries.
-3. Order confirmation is the critical transactional boundary: order state, items, status history, confirmation event and outbox effect are specified to persist atomically.
-4. Idempotency is a cross-cutting requirement, but endpoint-specific replay/TTL semantics are not yet fully defined.
+3. Order confirmation is the critical transactional boundary: order state, items, status history, confirmation event and durable external-effect record are specified to persist atomically, but DomainOutbox ownership remains CONTRACT-001.
+4. Idempotency is a cross-cutting requirement, but endpoint/operation-specific replay, conflict and TTL semantics are not fully defined.
 5. The event contract currently contains `order.status_changed`, while the baseline has contradictory treatment of that event; this is preserved as CONTRACT-002.
 6. DomainOutbox is similarly affected by an unresolved ownership/scope ambiguity (CONTRACT-001).
 7. Complete domain error codes and complete actor/permission rules are not yet available, so implementation cannot safely invent them.
 8. M5.1 deliberately did not implement the Order Engine or full canonical schema.
+9. The lifecycle documentation provides a state catalog and invalid-transition rule, but not a complete normative adjacency graph with actor/precondition/error/event semantics.
+10. Pricing fields and core monetary invariants are explicit, but complete pricing execution remains blocked by promotion, delivery-fee and exact calculation-order semantics.
+11. Promotion semantics are materially incomplete: eligibility, stacking/exclusivity, priority, usage limits and conflict resolution are not all contractually fixed.
+12. Delivery and payment are represented as Order concerns, but complete executable command/state semantics are not established; payment is registration of a method, not a payment gateway.
+13. The current TypeScript event contract is concrete repository evidence, but because `DOMAIN-EVENT-V1` remains AMBIGUOUS it cannot override the baseline contradiction.
+14. The canonical Money primitive is already implemented in `packages/domain/src/money.ts`, so IA-04 must consume it rather than duplicate monetary semantics.
+15. The canonical Money primitive exposes only safe integer cents/BRL creation, addition, subtraction and validation; IA-04 does not invent multiply, comparison, rounding or formatting APIs that are not part of the existing contract.
+16. The Order Engine territory now contains contract-level tests for consuming the canonical Money primitive without modifying the domain package.
+17. The Money slice is independently safe because it does not depend on DomainOutbox, event infrastructure, lifecycle, promotions, delivery, payment or other unresolved Order contracts.
+18. The readiness audit can support staged implementation later: Money consumption first, then contract-complete lifecycle/pricing/order command slices, rather than starting the complete Order Engine at once.
