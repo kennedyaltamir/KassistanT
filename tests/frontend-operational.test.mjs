@@ -10,7 +10,7 @@ const html = readFileSync(
 test("AppShell exposes current C1 navigation surfaces", () => {
   for (const page of [
     "Dashboard",
-    "WhatsApp",
+    "Conversas",
     "Pedidos",
     "Produtos",
     "Clientes",
@@ -20,7 +20,7 @@ test("AppShell exposes current C1 navigation surfaces", () => {
   }
 
   assert.match(html, /data-page="dashboard"/);
-  assert.match(html, /data-page="whatsapp"/);
+  assert.match(html, /data-page="conversations"/);
   assert.match(html, /aria-label="Navegação principal"/);
 });
 
@@ -53,19 +53,20 @@ test("WhatsApp renderer preserves delivery boundary", () => {
 });
 
 test("WhatsApp renderer preserves real conversation identity", () => {
-  assert.match(html, /Conversas reais/);
-  assert.match(html, /JID REAL/);
+  assert.match(html, /Mensagens reais recebidas do Gateway/);
+  assert.match(html, /jidLabel/);
   assert.match(html, /@lid/);
   assert.match(html, /message\.id/);
 });
 
 test("Provisional UI boundaries remain explicit", () => {
-  assert.match(html, /PROVISIONAL_DATA/);
-  assert.match(html, /presentation-only|presentation only/i);
+  assert.match(html, /UNAVAILABLE/);
+  assert.match(html, /UNKNOWN/);
+  assert.match(html, /Nenhum grupo será fabricado na interface/);
 });
 
 test("Diagnostics surface exists", () => {
-  assert.match(html, /Diagnostics/);
+  assert.match(html, /Diagnósticos/);
   assert.match(html, /Gateway/);
   assert.match(html, /WhatsApp/);
   assert.match(html, /SSE/);
