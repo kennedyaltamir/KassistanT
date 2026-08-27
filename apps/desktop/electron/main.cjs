@@ -34,16 +34,30 @@ function startGateway() {
     return;
   }
 
-  const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  gatewayProcess = spawn(command, ["dev"], {
+  const isWindows = process.platform === "win32";
+  const command = isWindows ? (process.env.ComSpec || "cmd.exe") : "pnpm";
+  const args = isWindows ? ["/d", "/s", "/c", "pnpm dev"] : ["dev"];
+
+  gatewayProcess = spawn(command, args, {
     cwd: gatewayDirectory,
     env: {
       ...process.env,
       KASSIST_PERSISTENCE_URL:
-        process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message"
+        process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message",
+      KASSIST_WA_AUTH_DIR:
+        process.env.KASSIST_WA_AUTH_DIR ?? path.join(app.getPath("userData"), "whatsapp", "auth")
     },
-    stdio: "inherit",
-    windowsHide: false
+    stdio: ["ignore", "pipe", "pipe"],
+    windowsHide: false,
+    shell: false
+  });
+
+  gatewayProcess.stdout?.on("data", (chunk) => {
+    process.stdout.write(`[KassisT Gateway] ${String(chunk)}`);
+  });
+
+  gatewayProcess.stderr?.on("data", (chunk) => {
+    process.stderr.write(`[KassisT Gateway] ${String(chunk)}`);
   });
 
   gatewayProcess.on("error", (error) => {
