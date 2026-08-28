@@ -196,8 +196,18 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
   socket = socketInstance;
 
   socketInstance.ev.on('creds.update', () => {
+    const saveGeneration = generation;
     pendingCredsSave = pendingCredsSave
-      .then(() => saveCreds())
+      .then(async () => {
+        if (
+          saveGeneration !== lifecycleGeneration ||
+          socketInstance !== socket ||
+          shuttingDown
+        ) {
+          return;
+        }
+        await saveCreds();
+      })
       .catch((error) => {
         console.error(
           '[KassisT WhatsApp] failed to persist auth credentials:',
@@ -245,6 +255,7 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
       if (shuttingDown) {
         state.connection = 'DISCONNECTED';
         state.qr = null;
+        state.me = null;
         state.lastError = null;
         emit({ type: 'connection', status: getStatus() });
         return;
@@ -253,6 +264,7 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
       state.connection = loggedOut ? 'DISCONNECTED' : 'CONNECTING';
       state.lastError = loggedOut ? null : error;
       state.qr = null;
+      state.me = null;
       emit({ type: 'connection', status: getStatus() });
 
       if (loggedOut) {
@@ -272,10 +284,23 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
   });
 
   socketInstance.ev.on('messages.upsert', ({ messages }) => {
+    const isCurrentLifecycle = () =>
+      generation === lifecycleGeneration &&
+      socketInstance === socket &&
+      !shuttingDown;
+
     for (const message of messages) {
+      if (!isCurrentLifecycle()) return;
+
       const snapshot = snapshotMessage(message, message.key?.fromMe ? 'OUTBOUND' : 'INBOUND');
+
       void (async () => {
+        if (!isCurrentLifecycle()) return;
+
         await persistSnapshot(snapshot);
+
+        if (!isCurrentLifecycle()) return;
+
         recordMessage(snapshot);
       })();
     }
@@ -298,6 +323,7 @@ export async function connect() {
   connecting = (async () => {
     state.connection = 'CONNECTING';
     state.qr = null;
+    state.me = null;
     state.lastError = null;
     emit({ type: 'connection', status: getStatus() });
     try {
@@ -341,6 +367,7 @@ export async function shutdown() {
   await pendingCredsSave;
   state.connection = 'DISCONNECTED';
   state.qr = null;
+  state.me = null;
   emit({ type: 'connection', status: getStatus() });
 }
 
@@ -373,8 +400,12 @@ export async function logout() {
 
 export async function resetSession() {
   await logout();
+  await pendingCredsSave;
   await clearAuthState();
   state.connection = 'DISCONNECTED';
+  state.qr = null;
+  state.me = null;
+  state.lastError = null;
   emit({ type: 'connection', status: getStatus() });
 }
 

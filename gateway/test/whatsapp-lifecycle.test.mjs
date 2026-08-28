@@ -4,44 +4,76 @@ import test from 'node:test';
 
 const source = fs.readFileSync(new URL('../src/whatsapp.mjs', import.meta.url), 'utf8');
 
-function count(text) {
-  return (source.match(new RegExp(text, 'g')) ?? []).length;
-}
-
 test('WhatsApp lifecycle uses a monotonic generation guard for socket events', () => {
-  assert.equal(count('lifecycleGeneration'), 7);
   assert.match(source, /let lifecycleGeneration = 0;/);
   assert.match(source, /async function startSocket\(\{ generation \} = \{ generation: lifecycleGeneration \}\)/);
-  assert.match(source, /if \(generation !== lifecycleGeneration\) \{/);
-  assert.match(source, /await safelyEndSocket\(socketInstance\)/);
+  assert.match(source, /if \(generation !== lifecycleGeneration \|\| shuttingDown\) return;/);
+  assert.match(source, /if \(generation !== lifecycleGeneration\) \{[\s\S]*?await safelyEndSocket\(socketInstance\);[\s\S]*?\}/);
+  assert.match(source, /export async function connect\(\) \{[\s\S]*?lifecycleGeneration \+= 1;[\s\S]*?const generation = lifecycleGeneration;[\s\S]*?startSocket\(\{ generation \}\)/);
+  assert.match(source, /export async function logout\(\) \{[\s\S]*?lifecycleGeneration \+= 1;/);
+  assert.match(source, /export async function shutdown\(\) \{[\s\S]*?shuttingDown = true;[\s\S]*?lifecycleGeneration \+= 1;/);
 });
 
-test('intentional logout and disconnect invalidate the active socket lifecycle before closing it', () => {
+test('logout is the transport disconnect contract and invalidates the active lifecycle before closing the socket', () => {
+  assert.doesNotMatch(source, /export async function disconnect\(\)/);
+
   assert.match(
     source,
-    /export async function disconnect\(\) \{\s*lifecycleGeneration \+= 1;\s*if \(reconnectTimer\)/s
+    /export async function logout\(\) \{[\s\S]*?lifecycleGeneration \+= 1;[\s\S]*?if \(reconnectTimer\) \{/
   );
+
   assert.match(
     source,
-    /export async function logout\(\) \{\s*lifecycleGeneration \+= 1;\s*if \(reconnectTimer\)/s
+    /export async function logout\(\) \{[\s\S]*?const current = socket;[\s\S]*?socket = null;[\s\S]*?current\.logout\(/
   );
+
   assert.match(
     source,
-    /export async function shutdown\(\) \{\s*shuttingDown = true;\s*lifecycleGeneration \+= 1;/s
+    /export async function shutdown\(\) \{[\s\S]*?shuttingDown = true;[\s\S]*?lifecycleGeneration \+= 1;[\s\S]*?const activeSocket = socket;[\s\S]*?socket = null;[\s\S]*?activeSocket\.end/
   );
 });
 
-test('reset clears authentication and ends in DISCONNECTED without automatic reconnect', () => {
+test('reset clears authentication only after lifecycle invalidation and pending credential saves settle', () => {
   const start = source.indexOf('export async function resetSession()');
   assert.notEqual(start, -1);
   const end = source.indexOf('/** @param {string} to', start);
   assert.notEqual(end, -1);
   const resetSource = source.slice(start, end);
 
-  assert.match(resetSource, /await logout\(\);/);
-  assert.match(resetSource, /await clearAuthState\(\);/);
-  assert.match(resetSource, /state\.connection = 'DISCONNECTED';/);
+  const logoutIndex = resetSource.indexOf('await logout();');
+  const pendingSaveIndex = resetSource.indexOf('await pendingCredsSave;');
+  const clearAuthIndex = resetSource.indexOf('await clearAuthState();');
+  const disconnectedIndex = resetSource.indexOf("state.connection = 'DISCONNECTED';");
+
+  assert.ok(logoutIndex >= 0);
+  assert.ok(pendingSaveIndex > logoutIndex);
+  assert.ok(clearAuthIndex > pendingSaveIndex);
+  assert.ok(disconnectedIndex > clearAuthIndex);
   assert.doesNotMatch(resetSource, /setTimeout\(.*connect\(/s);
+});
+
+test('stale creds.update cannot persist credentials after lifecycle invalidation', () => {
+  assert.match(
+    source,
+    /socketInstance\.ev\.on\('creds\.update', \(\) => \{[\s\S]*?const saveGeneration = generation;[\s\S]*?saveGeneration !== lifecycleGeneration[\s\S]*?socketInstance !== socket[\s\S]*?shuttingDown[\s\S]*?await saveCreds\(\)/
+  );
+
+  assert.match(
+    source,
+    /const saveGeneration = generation;[\s\S]*?pendingCredsSave = pendingCredsSave[\s\S]*?\.then\(async \(\) => \{/
+  );
+});
+
+test('stale messages.upsert cannot publish after lifecycle invalidation', () => {
+  assert.match(
+    source,
+    /const isCurrentLifecycle = \(\) =>[\s\S]*?generation === lifecycleGeneration[\s\S]*?socketInstance === socket[\s\S]*?!shuttingDown/
+  );
+
+  assert.match(
+    source,
+    /if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?await persistSnapshot\(snapshot\);[\s\S]*?if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?recordMessage\(snapshot\)/
+  );
 });
 
 test('explicit connect starts a new lifecycle generation', () => {
@@ -62,8 +94,7 @@ test('stale socket events are bound to their originating socket instance', () =>
   assert.match(source, /if \(current === socket\) socket = null;/);
 });
 
-// Contract guard: the renderer-facing connection model remains the five official states.
-test('lifecycle patch does not introduce a new connection state', () => {
+test('lifecycle keeps exactly the five official connection states', () => {
   assert.match(
     source,
     /@typedef \{'DISCONNECTED' \| 'CONNECTING' \| 'PAIRING' \| 'CONNECTED' \| 'ERROR'\}/
