@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { readdirSync } from "node:fs";
+import { readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -44,7 +44,7 @@ function runTsTests() {
 
 function isFile(file) {
   try {
-    return require("node:fs").statSync(file).isFile();
+    return statSync(file).isFile();
   } catch {
     return false;
   }
