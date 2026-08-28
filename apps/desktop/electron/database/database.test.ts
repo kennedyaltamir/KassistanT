@@ -58,8 +58,13 @@ test("SQLite transaction boundary rolls back on failure", async () => {
   try {
     assert.equal(database.healthCheck().ok, true);
     const appliedIds = database.appliedMigrations().map((migration) => migration.migration_id);
-    assert.deepEqual(appliedIds, ["0001_bootstrap", "0003_first_sale_core", "0004_first_sale_order_modifiers"]);
-    assert.equal(database.healthCheck().schemaVersion, "0004");
+    assert.deepEqual(appliedIds, [
+      "0001_bootstrap",
+      "0003_first_sale_core",
+      "0004_first_sale_order_modifiers",
+      "0005_assistant_product_fields"
+    ]);
+    assert.equal(database.healthCheck().schemaVersion, "0005");
 
     assert.throws(() => {
       database.transaction(() => {
