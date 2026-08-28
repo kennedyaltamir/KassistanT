@@ -8,7 +8,11 @@ const { startPersistenceServer } = require("./database/runtime.cjs");
 let persistence = null;
 let gatewayProcess = null;
 
-async function selectProductImage() {
+function imageMimeType(extension) {
+  return ({ ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".gif": "image/gif" })[extension] ?? null;
+}
+
+async function selectImageAsset(targetDirectory) {
   const result = await dialog.showOpenDialog({
     properties: ["openFile"],
     filters: [{ name: "Imagens", extensions: ["jpg", "jpeg", "png", "webp", "gif"] }]
@@ -17,14 +21,28 @@ async function selectProductImage() {
 
   const source = result.filePaths[0];
   const extension = path.extname(source).toLowerCase();
-  const supported = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
-  if (!supported.has(extension)) throw new Error("Unsupported product image format");
+  const mimeType = imageMimeType(extension);
+  if (!mimeType) throw new Error("Unsupported image format");
 
-  const targetDirectory = path.join(app.getPath("userData"), "products", "images");
   fs.mkdirSync(targetDirectory, { recursive: true });
   const target = path.join(targetDirectory, `${crypto.randomUUID()}${extension}`);
   await fs.promises.copyFile(source, target, fs.constants.COPYFILE_EXCL);
-  return { canceled: false, imageReference: target };
+  const stat = await fs.promises.stat(target);
+  return {
+    canceled: false,
+    imageReference: target,
+    filename: path.basename(source),
+    mimeType,
+    size: stat.size,
+  };
+}
+
+async function selectProductImage() {
+  return selectImageAsset(path.join(app.getPath("userData"), "products", "images"));
+}
+
+async function selectCampaignImage() {
+  return selectImageAsset(path.join(app.getPath("userData"), "campaigns", "images"));
 }
 
 function createMainWindow() {
@@ -44,9 +62,11 @@ function createMainWindow() {
   window.loadFile(path.join(__dirname, "../src/index.html"));
   window.webContents.on("did-finish-load", () => {
     try {
+      const campaignUiPath = path.join(__dirname, "../src/campaign-dispatch-ui.js");
       const featureUiPath = path.join(__dirname, "../src/assistant-products-ui.js");
+      const campaignUi = fs.readFileSync(campaignUiPath, "utf8");
       const featureUi = fs.readFileSync(featureUiPath, "utf8");
-      void window.webContents.executeJavaScript(featureUi, true);
+      void window.webContents.executeJavaScript(`${campaignUi}\n${featureUi}`, true);
     } catch (error) {
       console.error(
         "[KassisT Desktop] failed to load feature UI:",
@@ -69,6 +89,8 @@ function startGateway() {
   const isWindows = process.platform === "win32";
   const command = isWindows ? (process.env.ComSpec || "cmd.exe") : "pnpm";
   const args = isWindows ? ["/d", "/s", "/c", "pnpm dev"] : ["dev"];
+  const campaignMediaRoot = path.join(app.getPath("userData"), "campaigns", "images");
+  fs.mkdirSync(campaignMediaRoot, { recursive: true });
 
   gatewayProcess = spawn(command, args, {
     cwd: gatewayDirectory,
@@ -77,7 +99,9 @@ function startGateway() {
       KASSIST_PERSISTENCE_URL:
         process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message",
       KASSIST_WA_AUTH_DIR:
-        process.env.KASSIST_WA_AUTH_DIR ?? path.join(app.getPath("userData"), "whatsapp", "auth")
+        process.env.KASSIST_WA_AUTH_DIR ?? path.join(app.getPath("userData"), "whatsapp", "auth"),
+      KASSIST_MEDIA_ROOT:
+        process.env.KASSIST_MEDIA_ROOT ?? campaignMediaRoot
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: false,
@@ -106,6 +130,7 @@ function shutdownRuntime() {
 
 app.whenReady().then(() => {
   ipcMain.handle("kassist:select-product-image", selectProductImage);
+  ipcMain.handle("kassist:select-campaign-image", selectCampaignImage);
   try {
     persistence = startPersistenceServer({ migrationsPath: path.resolve(__dirname, "../database/migrations") });
     startGateway();
