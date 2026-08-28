@@ -116,7 +116,7 @@ test('analyzes image buffer using local vision endpoint', async () => {
       status: 200,
       json: async () => ({
         message: {
-          content: 'uma imagem de teste',
+          content: 'imagem analisada',
         },
       }),
     };
@@ -126,25 +126,65 @@ test('analyzes image buffer using local vision endpoint', async () => {
     const result = await analyzeImageBuffer(
       Buffer.from('image'),
       {
-        model: 'vision-test',
+        model: 'qwen2.5vl:7b',
         baseUrl: 'http://127.0.0.1:11434',
       }
     );
 
     assert.equal(result.status, 'COMPLETED');
-    assert.equal(result.text, 'uma imagem de teste');
-    assert.equal(capturedBody.model, 'vision-test');
-    assert.equal(capturedBody.messages[0].images.length, 1);
+    assert.equal(result.text, 'imagem analisada');
+
+    assert.equal(capturedBody.model, 'qwen2.5vl:7b');
+    assert.equal(capturedBody.stream, false);
+    assert.equal(capturedBody.think, false);
+    assert.equal(
+      capturedBody.messages[0].role,
+      'user'
+    );
+    assert.equal(
+      capturedBody.messages[0].images.length,
+      1
+    );
+    assert.equal(
+      capturedBody.messages[0].images[0],
+      Buffer.from('image').toString('base64')
+    );
   } finally {
     global.fetch = originalFetch;
   }
 });
 
 test('returns unavailable when vision model is missing', async () => {
-  const result = await analyzeImageBuffer(Buffer.from('image'), {
-    model: '',
-    baseUrl: 'http://127.0.0.1:11434',
-  });
+  const previousVision =
+    process.env.KASSIST_LLM_VISION_MODEL;
 
-  assert.equal(result.status, 'UNAVAILABLE');
+  const previousModel =
+    process.env.KASSIST_LLM_MODEL;
+
+  delete process.env.KASSIST_LLM_VISION_MODEL;
+  delete process.env.KASSIST_LLM_MODEL;
+
+  try {
+    const result = await analyzeImageBuffer(
+      Buffer.from('image'),
+      {
+        baseUrl: 'http://127.0.0.1:11434',
+      }
+    );
+
+    assert.equal(result.status, 'UNAVAILABLE');
+    assert.equal(result.text, null);
+    assert.match(
+      result.error ?? '',
+      /vision model configured/i
+    );
+  } finally {
+    if (previousVision !== undefined) {
+      process.env.KASSIST_LLM_VISION_MODEL = previousVision;
+    }
+
+    if (previousModel !== undefined) {
+      process.env.KASSIST_LLM_MODEL = previousModel;
+    }
+  }
 });
