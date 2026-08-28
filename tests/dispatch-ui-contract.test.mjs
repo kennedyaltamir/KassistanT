@@ -23,8 +23,8 @@ test('dispatch UI consumes the canonical batch state contract', () => {
 
 test('dispatch UI keeps confirmation as a hard gate before queueing', () => {
   requireAll([
-    /action\s*:\s*["']confirm["']/,
-    /action\s*:\s*["']queue["']/,
+    /action\s*:\s*["']confirm["']/, 
+    /action\s*:\s*["']queue["']/, 
     /CONFIRMED/,
     /window\.confirm/
   ], 'dispatch UI must preserve explicit confirmation before queueing');
@@ -36,9 +36,9 @@ test('dispatch UI keeps confirmation as a hard gate before queueing', () => {
 
 test('dispatch UI exposes persisted recipient outcomes', () => {
   requireAll([
-    /batch\.recipients/,
-    /recipient\.state/,
-    /recipient\.attempts/,
-    /recipient\.lastError/
+    /batch\??\.recipients/,
+    /recipient\??\.state/,
+    /recipient\??\.attempts/,
+    /recipient\??\.lastError/
   ], 'dispatch UI must render persisted recipient outcome data');
 });
