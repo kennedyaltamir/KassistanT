@@ -17,7 +17,8 @@ const HISTORICAL_NON_AUTHORITATIVE = new Set(["0002_c1_product_order"]);
 const AUTHORITATIVE_MIGRATIONS = new Set([
   "0001_bootstrap",
   "0003_first_sale_core",
-  "0004_first_sale_order_modifiers"
+  "0004_first_sale_order_modifiers",
+  "0005_assistant_product_fields"
 ]);
 
 export async function discoverMigrations(directory: string): Promise<MigrationDefinition[]> {
