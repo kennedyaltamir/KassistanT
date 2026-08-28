@@ -30,10 +30,10 @@ function campaign(overrides = {}) {
   };
 }
 
-function fakeTransport(log) {
+function fakeTransport(log, clock = null) {
   return {
-    sendText: async (to, text) => { log.push({ type: 'TEXT', to, text }); return { id: `wa-${log.length}` }; },
-    sendImage: async (to, imageReference, caption) => { log.push({ type: 'IMAGE', to, imageReference, caption }); return { id: `wa-${log.length}` }; },
+    sendText: async (to, text) => { log.push({ type: 'TEXT', to, text, startedAt: clock ? clock() : null }); return { id: `wa-${log.length}` }; },
+    sendImage: async (to, imageReference, caption) => { log.push({ type: 'IMAGE', to, imageReference, caption, startedAt: clock ? clock() : null }); return { id: `wa-${log.length}` }; },
   };
 }
 
@@ -90,6 +90,64 @@ test('campaign draft persists selection and pacing before confirmation', async (
   const journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
   assert.equal(journal.campaigns['campaign-1'].lifecycle, 'DRAFT');
   assert.equal(journal.campaigns['campaign-1'].selections['5511999990002'].scheduledDelayMs, draft.selections['5511999990002'].scheduledDelayMs);
+});
+
+test('draft aging does not expire pacing and consecutive effects respect persisted delay', async () => {
+  const paths = await tempPaths();
+  const clockState = { now: 100_000 };
+  const clock = () => clockState.now;
+  const log = [];
+  const runtime = new CampaignDispatchRuntime({
+    ...paths,
+    clock,
+    sleepImpl: async (delay) => { clockState.now += delay; },
+    ...fakeTransport(log, clock),
+  });
+  await runtime.ready;
+  const preview = await runtime.preview(campaign({ pacing_policy: { minimumMs: 2500, maximumMs: 2500 } }));
+  const draft = await runtime.createDraft(preview, { batchId: 'campaign-pacing', correlationId: 'corr-pacing' });
+  const persistedDelay = draft.selections['5511999990002'].scheduledDelayMs;
+  assert.equal(persistedDelay, 2500);
+  assert.equal(draft.selections['5511999990002'].scheduledAt, new Date(102500).toISOString());
+
+  clockState.now = 900_000;
+  const confirmed = await runtime.confirmCampaign(draft.batch.batchId, {
+    fingerprint: draft.fingerprint,
+    recipientCount: 2,
+    correlationId: 'corr-pacing-confirm',
+  });
+  assert.equal(confirmed.selections['5511999990002'].scheduledDelayMs, persistedDelay);
+
+  const result = await runtime.queueCampaign(draft.batch.batchId, { causationId: 'cause-pacing' });
+  assert.equal(result.batch.state, 'COMPLETED');
+  assert.equal(log.length, 2);
+  assert.equal(log[0].startedAt, 900_000);
+  assert.equal(log[1].startedAt - log[0].startedAt, persistedDelay);
+  assert.equal(new Date(result.selections['5511999990002'].scheduledAt).getTime(), log[1].startedAt);
+});
+
+test('first recipient is not subject to nonexistent prior pacing', async () => {
+  const paths = await tempPaths();
+  const clockState = { now: 500_000 };
+  const clock = () => clockState.now;
+  const log = [];
+  const runtime = new CampaignDispatchRuntime({
+    ...paths,
+    clock,
+    sleepImpl: async (delay) => { clockState.now += delay; },
+    ...fakeTransport(log, clock),
+  });
+  await runtime.ready;
+  const preview = await runtime.preview(campaign({ pacing_policy: { minimumMs: 3000, maximumMs: 3000 } }));
+  const draft = await runtime.createDraft(preview, { batchId: 'campaign-first', correlationId: 'corr-first' });
+  await runtime.confirmCampaign(draft.batch.batchId, {
+    fingerprint: draft.fingerprint,
+    recipientCount: 2,
+    correlationId: 'corr-first-confirm',
+  });
+  const queued = await runtime.queueCampaign('campaign-first');
+  assert.equal(queued.batch.state, 'COMPLETED');
+  assert.equal(log[0].startedAt, 500_000);
 });
 
 test('campaign lifecycle mutations continue to persist after initialization fix', async () => {
