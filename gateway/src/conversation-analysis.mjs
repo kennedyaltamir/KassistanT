@@ -39,7 +39,7 @@ function extractFromMessage(message) {
   const phone = text.match(/(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?9?\d{4}[-.\s]?\d{4}/);
   if (phone) out.push(candidate('phone', phone[0], message.id, 0.88));
 
-  const explicitName = text.match(/(?:meu nome [ée]|sou o|sou a)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,80}?)(?=\s+(?:e|mas|porém|porque|que|,|\.|$))/i);
+  const explicitName = text.match(/(?:meu nome [ée]|sou o|sou a)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,80}?)(?=\s+(?:e|mas|porém|porque|que)|[,.;]|$)/i);
   if (explicitName) out.push(candidate('name', explicitName[1], message.id, 0.95));
 
   const address = text.match(/(?:meu endere[cç]o [ée]|entrega em|pode entregar em)\s+(.{5,180})$/i);
@@ -48,14 +48,16 @@ function extractFromMessage(message) {
   const neighborhood = text.match(/(?:bairro|no bairro)\s+([^,.;]{2,80})/i);
   if (neighborhood) out.push(candidate('neighborhood', neighborhood[1], message.id, 0.9));
 
-  const city = text.match(/(?:cidade|moro em|resido em)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{2,80}?)(?=\s+(?:e|mas|porém|porque|que|,|\.|$))/i);
+  const city = text.match(/(?:cidade|moro em|resido em)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{2,80}?)(?=\s+(?:e|mas|porém|porque|que)|[,.;]|$)/i);
   if (city) out.push(candidate('city', city[1], message.id, 0.9));
 
   const preference = text.match(/(?:prefiro|gosto de|sempre peço)\s+(.{2,120})/i);
   if (preference) out.push(candidate('preferences', preference[1], message.id, 0.91));
 
-  const mentionedProducts = text.match(/(?:produto|produtos)\s*(?:chamado[s]?|:)?\s+([^,.!?]{2,120})/i);
-  if (mentionedProducts) out.push(candidate('mentioned_products', mentionedProducts[1], message.id, 0.72));
+  const mentionedProducts = text.match(/(?:produto|produtos)\s+(?:chamado[s]?\s+)?([^,.!?]{2,120})/i);
+  if (mentionedProducts && !/^(?:vocês|que|da|de|do|dos|das|tem|têm|estão|estao)\b/i.test(mentionedProducts[1].trim())) {
+    out.push(candidate('mentioned_products', mentionedProducts[1], message.id, 0.72));
+  }
 
   const interest = text.match(/(?:quero|gostaria de|preciso de|estou procurando)\s+(.{2,160})/i);
   if (interest) out.push(candidate('interest', interest[1], message.id, 0.86));

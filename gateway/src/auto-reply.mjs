@@ -98,17 +98,16 @@ export function toLlmMessages(context) {
   }
 
   const currentUserMessage = currentUserIndex >= 0 ? persistedMessages[currentUserIndex].text.trim() : null;
+  const recentMessages = currentUserIndex >= 0
+    ? persistedMessages.filter((_, index) => index !== currentUserIndex)
+    : persistedMessages;
   const trusted = {
     customer: sanitizeCustomer(context.customer, context.identityBindingStatus),
     conversation: context.conversation ?? null,
     current_state: context.currentState ?? null,
-    recent_messages: currentUserIndex >= 0
-      ? persistedMessages.filter((_, index) => index !== currentUserIndex)
-        .filter((message) => message && typeof message.text === 'string' && message.text.trim())
-        .map((message) => ({ direction: message.direction, message_type: message.message_type ?? 'TEXT', text: message.text.trim() }))
-      : persistedMessages
-        .filter((message) => message && typeof message.text === 'string' && message.text.trim())
-        .map((message) => ({ direction: message.direction, message_type: message.message_type ?? 'TEXT', text: message.text.trim() })),
+    recent_messages: recentMessages
+      .filter((message) => message && typeof message.text === 'string' && message.text.trim())
+      .map((message) => ({ direction: message.direction, message_type: message.message_type ?? 'TEXT', text: message.text.trim() })),
     relevant_memories: context.relevantMemories ?? [],
     active_order: context.activeOrder ?? null,
     business_context: context.businessContext ?? null,
@@ -121,7 +120,6 @@ export function toLlmMessages(context) {
   };
 
   const history = persistedMessages
-    .filter((_, index) => index !== currentUserIndex)
     .filter((message) => message && typeof message.text === 'string' && message.text.trim())
     .map((message) => ({
       role: message.direction === 'OUTBOUND' ? 'assistant' : 'user',
