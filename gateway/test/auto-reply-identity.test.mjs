@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toLlmMessages } from '../src/auto-reply.mjs';
+import { identitySafetyInstruction, toLlmMessages } from '../src/auto-reply.mjs';
 
-test('LLM history marks no identity as confirmed when runtime binding is legacy', () => {
+test('LLM context omits unverified customer identity fields', () => {
   const messages = toLlmMessages({
     identityBindingStatus: 'LEGACY_JID_DERIVED',
     customer: {
@@ -41,4 +41,13 @@ test('LLM history marks no identity as confirmed when runtime binding is legacy'
   const history = messages.slice(1).map(message => message.content).join('\n');
   assert.match(history, /Meu nome é Carlos/);
   assert.match(history, /Olá Carlos/);
+});
+
+test('identity safety instruction explicitly blocks unverified names as customer identity', () => {
+  const instruction = identitySafetyInstruction('LEGACY_JID_DERIVED');
+
+  assert.match(instruction, /Customer identity is not confirmed by the runtime/);
+  assert.match(instruction, /do not address the customer by that name as an established fact/);
+  assert.match(instruction, /meu nome é Carlos/);
+  assert.equal(identitySafetyInstruction('CONFIRMED'), '');
 });
