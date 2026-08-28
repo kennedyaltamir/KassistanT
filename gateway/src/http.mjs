@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { createReadinessChecker } from './readiness.mjs';
 import { connect, getMessages, getStatus, logout, resetSession, sendText, subscribe } from './whatsapp.mjs';
 import { createBatchDispatchRuntime, isDispatchPreview } from './batch-dispatch.mjs';
+import { createCampaignDispatchRuntime } from './campaign-dispatch.mjs';
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getAssistantConfig, getAssistantPromptResolution, updateAssistantConfig } from './assistant-config.mjs';
@@ -52,7 +53,7 @@ function buildConfirmInput(body, correlation) {
   return input;
 }
 
-export function createHttpServer({ readinessChecks = {}, dispatchRuntime = createBatchDispatchRuntime() } = {}) {
+export function createHttpServer({ readinessChecks = {}, dispatchRuntime = createBatchDispatchRuntime(), campaignRuntime = createCampaignDispatchRuntime() } = {}) {
   const checkReadiness = createReadinessChecker(readinessChecks);
   return createServer(async (request, response) => {
     const id = correlationId(request);
@@ -132,6 +133,40 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/preview/manual') {
         try { const body = await parseBody(request); return json(response, 200, createManualPreview(body.contacts)); }
         catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/campaign/preview') {
+        try { const body = await parseBody(request); return json(response, 200, await campaignRuntime.preview(body)); }
+        catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
+      }
+      if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/campaigns') {
+        try { return json(response, 200, { campaigns: await campaignRuntime.listCampaigns() }); }
+        catch (error) { return json(response, 503, { error: sanitizedError(error), correlation_id: id }); }
+      }
+      if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/campaigns') {
+        try {
+          const body = await parseBody(request);
+          const result = await campaignRuntime.createDraft(body.preview, { correlationId: id, ...(typeof body.batch_id === 'string' ? { batchId: body.batch_id } : {}) });
+          return json(response, 201, result);
+        } catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
+      }
+      const campaignMatch = url.pathname.match(/^\/api\/whatsapp\/dispatch\/campaigns\/([^/]+)$/);
+      if (campaignMatch) {
+        const campaignId = decodeURIComponent(campaignMatch[1]);
+        if (request.method === 'GET') {
+          try { return json(response, 200, await campaignRuntime.getCampaign(campaignId)); }
+          catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); }
+        }
+        if (request.method === 'POST') {
+          try {
+            const actionBody = await parseBody(request);
+            const action = String(actionBody.action ?? '');
+            if (action === 'confirm') return json(response, 200, await campaignRuntime.confirmCampaign(campaignId, buildConfirmInput(actionBody, id)));
+            if (action === 'queue') return json(response, 202, await campaignRuntime.queueCampaign(campaignId, { causationId: id }));
+            if (action === 'cancel') return json(response, 200, await campaignRuntime.cancelCampaign(campaignId));
+            return json(response, 400, { error: 'Unsupported campaign action', correlation_id: id });
+          } catch (error) { return json(response, 409, { error: sanitizedError(error), correlation_id: id }); }
+        }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/credentials') return json(response, 200, { credentials: listCredentialStatus(getCredentialValidationStatuses()) });
