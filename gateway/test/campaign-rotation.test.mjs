@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { BACKOFF_MS } from '../src/batch-dispatch.mjs';
 import { CampaignDispatchRuntime } from '../src/campaign-dispatch.mjs';
 
 async function tempPaths() {
@@ -109,6 +110,70 @@ test('image variants rotate independently and caption follows the selected messa
   assert.deepEqual(selections.map((selection) => selection.effect.type), ['IMAGE', 'IMAGE', 'IMAGE', 'IMAGE', 'IMAGE']);
   assert.deepEqual(selections.map((selection) => selection.effect.caption), ['Legenda 1 — á', 'Legenda 2 — ç', 'Legenda 1 — á', 'Legenda 2 — ç', 'Legenda 1 — á']);
   assert.equal(selections.some((selection) => selection.effect.type === 'TEXT'), false);
+});
+
+test('retry preserves the frozen message variant selection', async () => {
+  const paths = await tempPaths();
+  const clockState = { now: 2_000_000 };
+  const clock = () => clockState.now;
+  const timers = [];
+  let calls = 0;
+  const runtime = new CampaignDispatchRuntime({
+    ...paths,
+    clock,
+    setTimeoutImpl: (callback, delay) => {
+      timers.push({ callback, delay });
+      return Symbol('timer');
+    },
+    clearTimeoutImpl: () => {},
+    sendText: async (_to, text) => {
+      calls += 1;
+      if (calls === 1) throw Object.assign(new Error('ECONNRESET'), { code: 'ECONNRESET' });
+      return { id: 'wa-retry', text };
+    },
+  });
+  await runtime.ready;
+
+  const preview = await runtime.preview({
+    source: { type: 'manual' },
+    recipients: recipients(2),
+    objective: 'Retry com seleção congelada',
+    message_variants: [
+      { id: 'm1', text: 'Primeira variante' },
+      { id: 'm2', text: 'Segunda variante' },
+    ],
+    caption_policy: 'NO_IMAGE',
+    pacing_policy: { minimumMs: 0, maximumMs: 0 },
+  });
+
+  const draft = await runtime.createDraft(preview, { batchId: 'rotation-retry', correlationId: 'rotation-retry-correlation' });
+  const recipientId = draft.campaign.recipients[0].normalizedNumber;
+  const selectedBeforeRetry = draft.selections[recipientId].messageVariantId;
+
+  await runtime.confirmCampaign(draft.batch.batchId, {
+    fingerprint: draft.fingerprint,
+    recipientCount: 2,
+    correlationId: 'rotation-retry-confirm',
+  });
+
+  await runtime.queueCampaign(draft.batch.batchId, { causationId: 'rotation-retry-queue' });
+  let campaignAfterFailure = await runtime.getCampaign(draft.batch.batchId);
+  const recipientAfterFailure = campaignAfterFailure.batch.recipients[recipientId];
+
+  assert.equal(recipientAfterFailure.state, 'RETRY_WAIT');
+  assert.equal(campaignAfterFailure.selections[recipientId].messageVariantId, selectedBeforeRetry);
+  assert.equal(timers.some((timer) => timer.delay === BACKOFF_MS[0]), true);
+
+  clockState.now += BACKOFF_MS[0];
+  const retryTimer = timers.find((timer) => timer.delay === BACKOFF_MS[0]);
+  assert.ok(retryTimer);
+  await retryTimer.callback();
+
+  campaignAfterFailure = await runtime.getCampaign(draft.batch.batchId);
+  const recipientAfterRetry = campaignAfterFailure.batch.recipients[recipientId];
+  assert.equal(recipientAfterRetry.state, 'SUCCESS');
+  assert.equal(campaignAfterFailure.selections[recipientId].messageVariantId, selectedBeforeRetry);
+  assert.equal(campaignAfterFailure.selections[recipientId].effect.text, 'Primeira variante');
 });
 
 test('confirmed snapshot remains unchanged when the original preview is mutated', async () => {
