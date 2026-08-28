@@ -93,9 +93,9 @@ function escapeRegExp(value) {
 function extractReportedNames(messages = []) {
   const names = new Set();
   const patterns = [
-    /\bmeu nome é\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u,
-    /\bme chamo\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u,
-    /\bpode me chamar de\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u
+    /\bmeu nome é\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/iu,
+    /\bme chamo\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/iu,
+    /\bpode me chamar de\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/iu
   ];
 
   for (const message of messages) {
