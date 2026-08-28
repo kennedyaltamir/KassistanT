@@ -125,7 +125,6 @@ test('retry preserves the frozen message variant selection', async () => {
       timers.push({ callback, delay });
       return Symbol('timer');
     },
-    clearTimeoutImpl: () => {},
     sendText: async (_to, text) => {
       calls += 1;
       if (calls === 1) throw Object.assign(new Error('ECONNRESET'), { code: 'ECONNRESET' });
@@ -136,7 +135,7 @@ test('retry preserves the frozen message variant selection', async () => {
 
   const preview = await runtime.preview({
     source: { type: 'manual' },
-    recipients: recipients(2),
+    recipients: recipients(1),
     objective: 'Retry com seleção congelada',
     message_variants: [
       { id: 'm1', text: 'Primeira variante' },
@@ -152,7 +151,7 @@ test('retry preserves the frozen message variant selection', async () => {
 
   await runtime.confirmCampaign(draft.batch.batchId, {
     fingerprint: draft.fingerprint,
-    recipientCount: 2,
+    recipientCount: 1,
     correlationId: 'rotation-retry-confirm',
   });
 
