@@ -103,6 +103,12 @@ function toLlmMessages(context) {
   return [runtimeContextMessage, ...history];
 }
 
+function isConversationAiAuthorized(context) {
+  const conversation = context?.conversation;
+  if (!conversation || typeof conversation !== 'object') return false;
+  return conversation.ownership === 'AI' && conversation.aiState === 'ACTIVE' && conversation.lifecycleState === 'OPEN';
+}
+
 async function handleMessage(message) {
   const llmStatus = getLlmStatus();
   const assistantConfig = getAssistantConfig();
@@ -130,6 +136,7 @@ async function handleMessage(message) {
     return;
   }
   if (!context || !Array.isArray(context.messages) || context.messages.length === 0) return;
+  if (!isConversationAiAuthorized(context)) return;
 
   const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : null;
   const promptResolution = getAssistantPromptResolution();
@@ -139,10 +146,10 @@ async function handleMessage(message) {
   ].join('');
 
   inFlight.add(jid);
-  lastReplyAt.set(jid, now);
   try {
     const reply = await generateReply(toLlmMessages(context), { systemPrompt });
     await sendText(jid, reply);
+    lastReplyAt.set(jid, Date.now());
     console.log(`[KassisT AI] auto-reply sent to ${jid} prompt_version=${promptResolution.promptVersion} context_version=${context.contextVersion ?? 'unknown'}`);
   } catch (error) {
     console.error('[KassisT AI] auto-reply failed:', error instanceof Error ? error.message : error);
