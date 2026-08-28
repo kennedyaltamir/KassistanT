@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { identitySafetyInstruction, toLlmMessages } from '../src/auto-reply.mjs';
 
-test('LLM context omits unverified customer identity fields', () => {
+test('LLM context omits unverified customer identity fields and isolates the current user message', () => {
   const messages = toLlmMessages({
     identityBindingStatus: 'LEGACY_JID_DERIVED',
     customer: {
@@ -23,24 +23,34 @@ test('LLM context omits unverified customer identity fields', () => {
     availableProducts: [],
     messages: [
       {
+        id: 'm1',
         direction: 'INBOUND',
-        text: 'Meu nome é Carlos e quero saber quais produtos vocês têm.'
+        text: 'Quero saber quais produtos vocês têm.'
       },
       {
+        id: 'm2',
         direction: 'OUTBOUND',
-        text: 'Olá Carlos!'
+        text: 'Claro, posso apresentar o catálogo.'
+      },
+      {
+        id: 'm3',
+        direction: 'INBOUND',
+        text: 'Meu nome é Carlos e quero comprar o produto X.'
       }
     ]
   });
 
   const runtimeContext = messages[0].content;
-  assert.match(runtimeContext, /"customer":\{"id":"customer-1"\}/);
+  assert.match(runtimeContext, /"customer":\{"id":"customer-1"/);
+  assert.match(runtimeContext, /"user_message":"Meu nome é Carlos e quero comprar o produto X\."/);
+  assert.match(runtimeContext, /"recent_messages"/);
   assert.doesNotMatch(runtimeContext, /Kennedy Altamir/);
   assert.doesNotMatch(runtimeContext, /246973638648023@lid/);
 
   const history = messages.slice(1).map(message => message.content).join('\n');
-  assert.match(history, /Meu nome é Carlos/);
-  assert.match(history, /Olá Carlos/);
+  assert.match(history, /Quero saber quais produtos/);
+  assert.match(history, /Claro, posso apresentar o catálogo/);
+  assert.doesNotMatch(history, /Meu nome é Carlos e quero comprar o produto X/);
 });
 
 test('identity safety instruction explicitly blocks unverified names as customer identity', () => {
