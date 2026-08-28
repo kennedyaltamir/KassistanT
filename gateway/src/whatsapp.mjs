@@ -61,11 +61,12 @@ function normalizeRecipient(value) {
   return `${digits}@s.whatsapp.net`;
 }
 
-function messageType(message) {
-  if (message?.audioMessage) return 'AUDIO';
-  if (message?.imageMessage) return 'IMAGE';
-  if (message?.videoMessage) return 'VIDEO';
-  if (message?.documentMessage) return 'DOCUMENT';
+export function messageType(message) {
+  const content = message?.message ?? message ?? {};
+  if (content.audioMessage) return 'AUDIO';
+  if (content.imageMessage) return 'IMAGE';
+  if (content.videoMessage) return 'VIDEO';
+  if (content.documentMessage) return 'DOCUMENT';
   return 'TEXT';
 }
 
@@ -212,7 +213,7 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
         const snapshot = initial.direction === 'INBOUND' ? await enrichMediaMessage(message, initial) : initial;
         if (!isCurrentLifecycle()) return;
         try { await persistSnapshot(snapshot); }
-        catch (error) { console.error(`[KassisT Persistence] failed to persist WhatsApp message ${snapshot.id}:`, error instanceof Error ? error.message : error); return; }
+        catch (error) { console.error(`[KassisT Persistence] failed to persist WhatsApp message ${snapshot.id}:`, error instanceof Error ? error.message : String(error)); return; }
         if (!isCurrentLifecycle()) return;
         recordMessage(snapshot);
       })();
@@ -241,7 +242,7 @@ export async function shutdown() {
   shuttingDown = true; lifecycleGeneration += 1;
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   const activeSocket = socket; socket = null;
-  if (activeSocket) { try { activeSocket.end(undefined); } catch (error) { console.error('[KassisT WhatsApp] failed to close socket cleanly:', error instanceof Error ? error.message : error); } }
+  if (activeSocket) { try { activeSocket.end(undefined); } catch (error) { console.error('[KassisT WhatsApp] failed to close socket cleanly:', error instanceof Error ? error.message : String(error)); } }
   await pendingCredsSave;
   state.connection = 'DISCONNECTED'; state.qr = null; state.me = null; emit({ type: 'connection', status: getStatus() });
 }
@@ -250,7 +251,7 @@ export async function logout() {
   lifecycleGeneration += 1;
   if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   const current = socket; socket = null;
-  if (current) { try { await current.logout('KassisT user requested logout'); } catch (error) { console.error('[KassisT WhatsApp] failed to logout cleanly:', error instanceof Error ? error.message : error); } }
+  if (current) { try { await current.logout('KassisT user requested logout'); } catch (error) { console.error('[KassisT WhatsApp] failed to logout cleanly:', error instanceof Error ? error.message : String(error)); } }
   state.connection = 'DISCONNECTED'; state.qr = null; state.me = null; state.lastError = null; emit({ type: 'connection', status: getStatus() });
 }
 
