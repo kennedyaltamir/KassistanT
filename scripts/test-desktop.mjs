@@ -27,6 +27,17 @@ const tsTests = [
 run("node", ["--test", ...jsTests], root);
 runTsTests();
 
+function run(command, args, cwd) {
+  const result = spawnSync(command, args, {
+    cwd,
+    stdio: "inherit",
+    shell: false
+  });
+
+  if (result.error) throw result.error;
+  if (result.status !== 0) process.exit(result.status ?? 1);
+}
+
 function runTsTests() {
   if (!isFile(desktopTsx)) {
     throw new Error(`Unable to resolve local desktop tsx CLI: ${desktopTsx}`);
