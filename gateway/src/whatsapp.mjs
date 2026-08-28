@@ -16,7 +16,7 @@ import { analyzeImageBuffer, transcribeAudioBuffer } from './multimodal.mjs';
 /** @typedef {'INBOUND' | 'OUTBOUND'} MessageDirection */
 /** @typedef {'UNKNOWN' | 'RECEIVED'} MessageStatus */
 /** @typedef {'TEXT' | 'AUDIO' | 'IMAGE' | 'VIDEO' | 'DOCUMENT' | 'OTHER'} MessageType */
-/** @typedef {{ id: string, jid: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus, push_name?: string | null, message_type?: MessageType, media_status?: string, media_error?: string | null }} MessageSnapshot */
+/** @typedef {{ id: string, jid: string | null, phone_normalized?: string | null, direction: MessageDirection, fromMe: boolean, text: string | null, timestamp: number, status: MessageStatus, push_name?: string | null, message_type?: MessageType, media_status?: string, media_error?: string | null }} MessageSnapshot */
 /** @typedef {{ connection: ConnectionState, qr: string | null, me: { id: string, name: string | null } | null, lastError: string | null, messageCount: number }} GatewayStatus */
 /** @typedef {{ type: 'connection', status: GatewayStatus } | { type: 'message', message: MessageSnapshot }} GatewayEvent */
 /** @typedef {(event: GatewayEvent) => void} EventListener */
@@ -69,21 +69,30 @@ function messageType(message) {
   return 'TEXT';
 }
 
+function observedPhoneIdentity(jid, key) {
+  const alt = typeof key.remoteJidAlt === 'string' ? key.remoteJidAlt.trim() : '';
+  if (alt.endsWith('@s.whatsapp.net')) return alt;
+  if (typeof jid === 'string' && jid.endsWith('@s.whatsapp.net')) return jid;
+  return null;
+}
+
 function snapshotMessage(message, direction) {
   const key = message.key ?? {};
   const jid = key.remoteJid ?? null;
+  const type = messageType(message);
   const text = message.message?.conversation ?? message.message?.extendedTextMessage?.text ?? message.message?.imageMessage?.caption ?? message.message?.videoMessage?.caption ?? null;
   return {
     id: key.id ?? `wa-${Date.now()}`,
     jid,
+    phone_normalized: observedPhoneIdentity(jid, key),
     direction,
     fromMe: Boolean(key.fromMe),
     text,
     timestamp: Number(message.messageTimestamp ?? Math.floor(Date.now() / 1000)),
     status: direction === 'INBOUND' ? 'RECEIVED' : 'UNKNOWN',
     push_name: typeof message.pushName === 'string' ? message.pushName : null,
-    message_type: messageType(message),
-    media_status: messageType(message) === 'TEXT' ? 'NOT_APPLICABLE' : 'PENDING',
+    message_type: type,
+    media_status: type === 'TEXT' ? 'NOT_APPLICABLE' : 'PENDING',
     media_error: null,
   };
 }
@@ -185,9 +194,7 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
       }
       state.connection = loggedOut ? 'DISCONNECTED' : 'CONNECTING'; state.lastError = loggedOut ? null : error; state.qr = null; state.me = null;
       emit({ type: 'connection', status: getStatus() });
-      if (loggedOut) {
-        return;
-      }
+      if (loggedOut) return;
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect().catch((reconnectError) => { state.connection = 'ERROR'; state.lastError = reconnectError instanceof Error ? reconnectError.message : String(reconnectError); emit({ type: 'connection', status: getStatus() }); });

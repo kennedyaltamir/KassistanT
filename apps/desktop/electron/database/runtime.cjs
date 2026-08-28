@@ -90,6 +90,37 @@ function messageType(message) {
   return new Set(["TEXT", "AUDIO", "IMAGE", "VIDEO", "DOCUMENT", "OTHER"]).has(value) ? value : "OTHER";
 }
 
+function resolveCustomer(database, storeId, externalThreadId, phoneNormalized, pushName, conversation, now) {
+  if (conversation) {
+    const customer = database.prepare("SELECT id, phone_normalized, name FROM customer WHERE store_id = ? AND id = ?").get(storeId, conversation.customer_id);
+    if (!customer) throw new Error("Conversation references a missing customer");
+
+    if (phoneNormalized !== externalThreadId && phoneNormalized !== customer.phone_normalized) {
+      const conflictingCustomer = database.prepare("SELECT id FROM customer WHERE store_id = ? AND phone_normalized = ?").get(storeId, phoneNormalized);
+      if (conflictingCustomer && conflictingCustomer.id !== customer.id) {
+        throw new Error("Customer identity conflict: observed phone is already bound to another customer");
+      }
+      database.prepare("UPDATE customer SET phone_normalized = ?, updated_at = ? WHERE store_id = ? AND id = ?")
+        .run(phoneNormalized, now, storeId, customer.id);
+      customer.phone_normalized = phoneNormalized;
+    }
+    return customer;
+  }
+
+  let customer = database.prepare("SELECT id, phone_normalized, name FROM customer WHERE store_id = ? AND phone_normalized = ?")
+    .get(storeId, phoneNormalized);
+  if (customer) return customer;
+
+  const customerId = crypto.randomUUID();
+  database.prepare(`INSERT INTO customer (
+    id, store_id, phone_normalized, name, notes, first_order_at, last_order_at,
+    order_count, total_spent_cents, currency, status, created_at, updated_at
+  ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, 0, 'BRL', 'ACTIVE', ?, ?)`)
+    .run(customerId, storeId, phoneNormalized, typeof pushName === "string" ? pushName : null, now, now);
+  customer = { id: customerId, phone_normalized: phoneNormalized, name: typeof pushName === "string" ? pushName : null };
+  return customer;
+}
+
 function persistMessage(database, storeId, storeName, event) {
   const message = event.message && typeof event.message === "object" ? event.message : {};
   const externalMessageId = String(message.external_message_id || message.id || "").trim();
@@ -100,23 +131,16 @@ function persistMessage(database, storeId, storeName, event) {
   const now = new Date().toISOString();
   const correlationId = typeof event.correlation_id === "string" && event.correlation_id ? event.correlation_id : null;
   const causationId = typeof event.causation_id === "string" && event.causation_id ? event.causation_id : null;
-  const phoneNormalized = externalThreadId;
+  const phoneNormalized = normalizeParticipant(message.phone_normalized || externalThreadId);
 
   return database.transaction(() => {
     ensureStore(database, storeId, storeName);
-    const customer = database.prepare("SELECT id FROM customer WHERE store_id = ? AND phone_normalized = ?").get(storeId, phoneNormalized);
-    const customerId = customer?.id || crypto.randomUUID();
-    if (!customer) {
-      database.prepare(`INSERT INTO customer (
-        id, store_id, phone_normalized, name, notes, first_order_at, last_order_at,
-        order_count, total_spent_cents, currency, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, 0, 'BRL', 'ACTIVE', ?, ?)`)
-        .run(customerId, storeId, phoneNormalized, typeof message.push_name === "string" ? message.push_name : null, now, now);
-    }
-
     const conversation = database.prepare("SELECT id, customer_id FROM conversation WHERE store_id = ? AND external_thread_id = ?")
       .get(storeId, externalThreadId);
+    const customer = resolveCustomer(database, storeId, externalThreadId, phoneNormalized, message.push_name, conversation, now);
+    const customerId = customer.id;
     const conversationId = conversation?.id || crypto.randomUUID();
+
     if (!conversation) {
       database.prepare(`INSERT INTO conversation (
         id, store_id, customer_id, external_thread_id, lifecycle_state,
@@ -298,9 +322,18 @@ function conversationContext(database, storeId, externalThreadId, limit) {
     LEFT JOIN product_category c ON c.id = p.category_id WHERE p.store_id = ? AND p.available = 1
     ORDER BY p.name ASC LIMIT 200`).all(storeId);
 
+  const identityBindingStatus = conversation.phone_normalized && conversation.phone_normalized !== externalThreadId
+    ? "OBSERVED_PHONE_IDENTITY"
+    : "LEGACY_JID_DERIVED";
+
   return {
     contextVersion: "1",
-    identityBindingStatus: "LEGACY_JID_DERIVED",
+    identityBindingStatus,
+    identity: {
+      channelJid: externalThreadId,
+      phoneNormalized: conversation.phone_normalized,
+      bindingStatus: identityBindingStatus
+    },
     customer: { id: conversation.customer_id, name: conversation.customer_name, phoneNormalized: conversation.phone_normalized,
       notes: conversation.notes, status: conversation.customer_status, addresses },
     conversation: { id: conversation.id, externalThreadId: conversation.external_thread_id,
