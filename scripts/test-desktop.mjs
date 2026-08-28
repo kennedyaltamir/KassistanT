@@ -5,6 +5,7 @@ import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 const desktop = path.join(root, "apps", "desktop");
 const domain = path.join(root, "packages", "domain");
+const desktopTsx = path.join(desktop, "node_modules", "tsx", "dist", "cli.mjs");
 
 const jsTests = [];
 for (const file of walkFiles(path.join(root, "tests"))) {
@@ -24,12 +25,15 @@ const tsTests = [
 ];
 
 run("node", ["--test", ...jsTests], root);
-run("pnpm", ["exec", "tsx", "--test", ...tsTests], desktop);
+runTsTests();
 
-function run(command, args, cwd) {
-  const resolved = resolveCommand(command);
-  const result = spawnSync(resolved.command, [...resolved.prefixArgs, ...args], {
-    cwd,
+function runTsTests() {
+  if (!isFile(desktopTsx)) {
+    throw new Error(`Unable to resolve local desktop tsx CLI: ${desktopTsx}`);
+  }
+
+  const result = spawnSync(process.execPath, [desktopTsx, "--test", ...tsTests], {
+    cwd: desktop,
     stdio: "inherit",
     shell: false
   });
@@ -38,23 +42,12 @@ function run(command, args, cwd) {
   if (result.status !== 0) process.exit(result.status ?? 1);
 }
 
-function resolveCommand(command) {
-  if (process.platform !== "win32" || command !== "pnpm") {
-    return { command, prefixArgs: [] };
+function isFile(file) {
+  try {
+    return require("node:fs").statSync(file).isFile();
+  } catch {
+    return false;
   }
-
-  const npmExecPath = process.env.npm_execpath;
-  if (npmExecPath && /\.(?:cjs|js|mjs)$/i.test(npmExecPath)) {
-    return {
-      command: process.execPath,
-      prefixArgs: [npmExecPath]
-    };
-  }
-
-  throw new Error(
-    "Unable to resolve the pnpm JavaScript entrypoint on Windows. " +
-    "Expected npm_execpath to point to pnpm.cjs/pnpm.js/pnpm.mjs."
-  );
 }
 
 function walkFiles(directory) {
