@@ -2,7 +2,7 @@
 
 ## Status
 
-VALIDATED_PENDING_COMMIT
+VALIDATED
 
 ## Bug
 
@@ -94,31 +94,27 @@ Validated locally on Windows:
 - `pnpm build` — PASS
 - `git diff --check` — PASS after EOF normalization
 
-## Files Changed
-
-- `gateway/src/http.mjs`
-- `gateway/test/http.test.mjs`
-- `KNOWLEDGE/decisions/campaign-dispatch-lifecycle-fix-2026-08-28.md`
-
 ## Validation State
 
 IMPLEMENTATION_HEAD_BEFORE:
 `415f7304421f86028c902c4f754c2d947c8f2b90`
 
 VALIDATED_COMMIT:
-To be assigned after commit of the validated code/test tree.
+`c3477abd98a30b607974e125fa592006ebd184ba`
 
 KNOWLEDGE_COMMIT:
-To be assigned.
+This documentation finalization commit.
 
 FINAL_HEAD:
-To be assigned.
+This documentation finalization commit.
 
 ## Residual Risks
 
 No residual Campaign Dispatch lifecycle failure was observed in the validated Windows test execution.
 
 The BatchDispatchRuntime recovery/persistence behavior remains intentionally unchanged; the fix removes only its unnecessary eager construction from unrelated HTTP server initialization.
+
+Remote CI status for the final commit is not available in the GitHub integration at time of recording; local Windows validation is the evidence source for the listed test results.
 
 ## Governance
 
