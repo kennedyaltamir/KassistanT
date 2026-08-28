@@ -11,7 +11,7 @@ function count(text) {
 test('WhatsApp lifecycle uses a monotonic generation guard for socket events', () => {
   assert.equal(count('lifecycleGeneration'), 7);
   assert.match(source, /let lifecycleGeneration = 0;/);
-  assert.match(source, /async function startSocket\(\{ generation \} = \{\}\)/);
+  assert.match(source, /async function startSocket\(\{ generation \} = \{ generation: lifecycleGeneration \}\)/);
   assert.match(source, /if \(generation !== lifecycleGeneration\) \{/);
   assert.match(source, /await safelyEndSocket\(socketInstance\)/);
 });
@@ -19,11 +19,11 @@ test('WhatsApp lifecycle uses a monotonic generation guard for socket events', (
 test('intentional logout and disconnect invalidate the active socket lifecycle before closing it', () => {
   assert.match(
     source,
-    /export async function disconnect\(\) \{\s*lifecycleGeneration \+= 1;\s*cancelScheduledReconnect\(\);/s
+    /export async function disconnect\(\) \{\s*lifecycleGeneration \+= 1;\s*if \(reconnectTimer\)/s
   );
   assert.match(
     source,
-    /export async function logout\(\) \{\s*lifecycleGeneration \+= 1;\s*cancelScheduledReconnect\(\);/s
+    /export async function logout\(\) \{\s*lifecycleGeneration \+= 1;\s*if \(reconnectTimer\)/s
   );
   assert.match(
     source,
@@ -31,12 +31,21 @@ test('intentional logout and disconnect invalidate the active socket lifecycle b
   );
 });
 
-test('reset delegates to logout and clears persisted authentication without reconnect logic', () => {
-  assert.match(
-    source,
-    /export async function resetSession\(\) \{\s*await logout\(\);\s*await clearAuthState\(\);/s
-  );
-  assert.doesNotMatch(source, /POST \/api\/whatsapp\/reconnect/);
+test('reset clears authentication and ends in DISCONNECTED without automatic reconnect', () => {
+  const start = source.indexOf('export async function resetSession()');
+  assert.notEqual(start, -1);
+  const end = source.indexOf('/** @param {string} to', start);
+  assert.notEqual(end, -1);
+  const resetSource = source.slice(start, end);
+
+  assert.match(resetSource, /await logout\(\);/);
+  assert.match(resetSource, /await clearAuthState\(\);/);
+  assert.match(resetSource, /state\.connection = 'DISCONNECTED';/);
+  assert.doesNotMatch(resetSource, /setTimeout\(.*connect\(/s);
+});
+
+test('explicit connect starts a new lifecycle generation', () => {
+  assert.match(source, /export async function connect\(\) \{[\s\S]*?lifecycleGeneration \+= 1;[\s\S]*?startSocket\(\{ generation \}\)/);
 });
 
 test('unexpected current-socket close still schedules automatic reconnect', () => {
@@ -46,9 +55,11 @@ test('unexpected current-socket close still schedules automatic reconnect', () =
   );
 });
 
-test('connect creates a new lifecycle generation and passes it into startSocket', () => {
-  assert.match(source, /lifecycleGeneration \+= 1;\s*const generation = lifecycleGeneration;/s);
-  assert.match(source, /await startSocket\(\{ generation \}\);/);
+test('stale socket events are bound to their originating socket instance', () => {
+  assert.match(source, /const socketInstance = makeWASocket\(/);
+  assert.match(source, /if \(socketInstance === socket\) socket = null;/);
+  assert.match(source, /async function safelyEndSocket\(targetSocket = socket\)/);
+  assert.match(source, /if \(current === socket\) socket = null;/);
 });
 
 // Contract guard: the renderer-facing connection model remains the five official states.
