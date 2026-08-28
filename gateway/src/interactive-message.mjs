@@ -45,7 +45,29 @@ export function buildInteractiveMessage({ body, buttons, imageMessage = null }) 
   const nativeButtons = canonical.map((button) => proto.Message.InteractiveMessage.NativeFlowMessage.NativeFlowButton.create({ name: INTERACTIVE_BUTTON_TYPE, buttonParamsJson: JSON.stringify({ display_text: button.text, id: button.id }) }));
   return proto.Message.InteractiveMessage.create({ ...(imageMessage ? { header: proto.Message.InteractiveMessage.Header.create({ imageMessage, hasMediaAttachment: true }) } : {}), body: proto.Message.InteractiveMessage.Body.create({ text }), nativeFlowMessage: proto.Message.InteractiveMessage.NativeFlowMessage.create({ buttons: nativeButtons, messageParamsJson: '{}', messageVersion: 1 }) });
 }
-export function buildInteractiveRelayNodes() { return [{ tag: 'biz', attrs: {} }, { tag: 'bot', attrs: { biz_bot: '1' } }]; }
+export function buildInteractiveRelayNodes(isGroup = false) {
+  const bizNode = {
+    tag: 'biz',
+    attrs: {},
+    content: [
+      {
+        tag: 'interactive',
+        attrs: { type: 'native_flow', v: '1' },
+        content: [
+          {
+            tag: 'native_flow',
+            attrs: { v: '9', name: 'mixed' },
+          },
+        ],
+      },
+    ],
+  };
+  if (isGroup) return [bizNode];
+  return [
+    { tag: 'bot', attrs: { biz_bot: '1' } },
+    bizNode,
+  ];
+}
 export function parseInteractiveReply(message) {
   const content = message?.message ?? {};
   const response = content.interactiveResponseMessage;
