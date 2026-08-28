@@ -1,4 +1,4 @@
-﻿import test from "node:test";
+import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
@@ -188,7 +188,7 @@ test("WhatsApp reset requires explicit confirmation before destructive request",
 });
 
 test("WhatsApp reset confirmation describes destructive session removal", () => {
-  assert.match(html, /Resetar sessÃ£o\?/);
-  assert.match(html, /A sessÃ£o WhatsApp armazenada pelo KassisT serÃ¡ removida/);
-  assert.match(html, /Um novo QR Code poderÃ¡ ser necessÃ¡rio/);
+  assert.match(html, /Resetar sessão\?/);
+  assert.match(html, /A sessão WhatsApp armazenada pelo KassisT será removida/);
+  assert.match(html, /Um novo QR Code poderá ser necessário/);
 });
