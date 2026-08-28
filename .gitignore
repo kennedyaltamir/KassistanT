@@ -18,3 +18,5 @@ apps/desktop/backups/
 apps/desktop/logs/
 gateway/.data/whatsapp/
 gateway/data/*.json
+
+gateway/.data/
