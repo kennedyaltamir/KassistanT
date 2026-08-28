@@ -1,11 +1,31 @@
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
+const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { startPersistenceServer } = require("./database/runtime.cjs");
 
 let persistence = null;
 let gatewayProcess = null;
+
+async function selectProductImage() {
+  const result = await dialog.showOpenDialog({
+    properties: ["openFile"],
+    filters: [{ name: "Imagens", extensions: ["jpg", "jpeg", "png", "webp", "gif"] }]
+  });
+  if (result.canceled || result.filePaths.length === 0) return { canceled: true };
+
+  const source = result.filePaths[0];
+  const extension = path.extname(source).toLowerCase();
+  const supported = new Set([".jpg", ".jpeg", ".png", ".webp", ".gif"]);
+  if (!supported.has(extension)) throw new Error("Unsupported product image format");
+
+  const targetDirectory = path.join(app.getPath("userData"), "products", "images");
+  fs.mkdirSync(targetDirectory, { recursive: true });
+  const target = path.join(targetDirectory, `${crypto.randomUUID()}${extension}`);
+  await fs.promises.copyFile(source, target, fs.constants.COPYFILE_EXCL);
+  return { canceled: false, imageReference: target };
+}
 
 function createMainWindow() {
   const window = new BrowserWindow({
@@ -64,22 +84,11 @@ function startGateway() {
     shell: false
   });
 
-  gatewayProcess.stdout?.on("data", (chunk) => {
-    process.stdout.write(`[KassisT Gateway] ${String(chunk)}`);
-  });
-
-  gatewayProcess.stderr?.on("data", (chunk) => {
-    process.stderr.write(`[KassisT Gateway] ${String(chunk)}`);
-  });
-
-  gatewayProcess.on("error", (error) => {
-    console.error("[KassisT Desktop] failed to start gateway:", error.message);
-  });
-
+  gatewayProcess.stdout?.on("data", (chunk) => process.stdout.write(`[KassisT Gateway] ${String(chunk)}`));
+  gatewayProcess.stderr?.on("data", (chunk) => process.stderr.write(`[KassisT Gateway] ${String(chunk)}`));
+  gatewayProcess.on("error", (error) => console.error("[KassisT Desktop] failed to start gateway:", error.message));
   gatewayProcess.on("exit", (code, signal) => {
-    if (code !== 0 && signal !== "SIGTERM") {
-      console.error(`[KassisT Desktop] gateway exited code=${code} signal=${signal ?? "none"}`);
-    }
+    if (code !== 0 && signal !== "SIGTERM") console.error(`[KassisT Desktop] gateway exited code=${code} signal=${signal ?? "none"}`);
     gatewayProcess = null;
   });
 }
@@ -96,10 +105,9 @@ function shutdownRuntime() {
 }
 
 app.whenReady().then(() => {
+  ipcMain.handle("kassist:select-product-image", selectProductImage);
   try {
-    persistence = startPersistenceServer({
-      migrationsPath: path.resolve(__dirname, "../database/migrations")
-    });
+    persistence = startPersistenceServer({ migrationsPath: path.resolve(__dirname, "../database/migrations") });
     startGateway();
   } catch (error) {
     console.error(
@@ -117,7 +125,6 @@ app.whenReady().then(() => {
 });
 
 app.on("before-quit", shutdownRuntime);
-
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") app.quit();
 });
