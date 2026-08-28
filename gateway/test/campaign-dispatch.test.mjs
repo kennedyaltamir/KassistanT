@@ -37,6 +37,28 @@ function fakeTransport(log) {
   };
 }
 
+test('campaign runtime with absent journal keeps initialization read-only', async () => {
+  const paths = await tempPaths();
+  const runtime = new CampaignDispatchRuntime(paths);
+
+  assert.equal(await fs.stat(paths.statePath).catch((error) => error.code), 'ENOENT');
+  await runtime.ready;
+  assert.equal(await fs.stat(paths.statePath).catch((error) => error.code), 'ENOENT');
+  assert.deepEqual(await runtime.listCampaigns(), []);
+});
+
+test('campaign runtime loads an existing journal without rewriting it', async () => {
+  const paths = await tempPaths();
+  const persisted = JSON.stringify({ version: 1, campaigns: {} }, null, 2) + '\n';
+  await fs.mkdir(path.dirname(paths.statePath), { recursive: true });
+  await fs.writeFile(paths.statePath, persisted, 'utf8');
+
+  const runtime = new CampaignDispatchRuntime(paths);
+  await runtime.ready;
+
+  assert.equal(await fs.readFile(paths.statePath, 'utf8'), persisted);
+});
+
 test('campaign preview includes immutable fingerprint inputs', async () => {
   const paths = await tempPaths();
   const runtime = new CampaignDispatchRuntime(paths);
@@ -65,6 +87,41 @@ test('campaign draft persists selection and pacing before confirmation', async (
   assert.ok(draft.selections['5511999990002'].scheduledDelayMs >= 2000);
   assert.ok(draft.selections['5511999990002'].scheduledDelayMs <= 4000);
   assert.equal(log.length, 0);
+  const journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
+  assert.equal(journal.campaigns['campaign-1'].lifecycle, 'DRAFT');
+  assert.equal(journal.campaigns['campaign-1'].selections['5511999990002'].scheduledDelayMs, draft.selections['5511999990002'].scheduledDelayMs);
+});
+
+test('campaign lifecycle mutations continue to persist after initialization fix', async () => {
+  const paths = await tempPaths();
+  const runtime = new CampaignDispatchRuntime({ ...paths, ...fakeTransport([]), sleepImpl: async () => {} });
+  await runtime.ready;
+  const preview = await runtime.preview(campaign({ pacing_policy: { minimumMs: 0, maximumMs: 0 } }));
+  const draft = await runtime.createDraft(preview, { batchId: 'campaign-persist', correlationId: 'corr-persist' });
+
+  let journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
+  assert.equal(journal.campaigns['campaign-persist'].lifecycle, 'DRAFT');
+
+  const confirmed = await runtime.confirmCampaign(draft.batch.batchId, {
+    fingerprint: draft.fingerprint,
+    recipientCount: 2,
+    correlationId: 'corr-confirm',
+  });
+  journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
+  assert.equal(confirmed.batch.state, 'CONFIRMED');
+  assert.equal(journal.campaigns['campaign-persist'].lifecycle, 'CONFIRMED');
+
+  const queued = await runtime.queueCampaign(draft.batch.batchId);
+  journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
+  assert.equal(queued.batch.state, 'COMPLETED');
+  assert.equal(journal.campaigns['campaign-persist'].lifecycle, 'COMPLETED');
+
+  const cancelledPreview = await runtime.preview(campaign({ pacing_policy: { minimumMs: 0, maximumMs: 0 } }));
+  const cancelledDraft = await runtime.createDraft(cancelledPreview, { batchId: 'campaign-cancel', correlationId: 'corr-cancel' });
+  const cancelled = await runtime.cancelCampaign(cancelledDraft.batch.batchId);
+  journal = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
+  assert.equal(cancelled.batch.state, 'CANCELLED');
+  assert.equal(journal.campaigns['campaign-cancel'].lifecycle, 'CANCELLED');
 });
 
 test('campaign confirmation gates transport and queue reuses persisted message selection', async () => {
