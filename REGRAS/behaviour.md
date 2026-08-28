@@ -160,6 +160,52 @@ Primeiro deve diagnosticar a divergência.
 
 ---
 
+# 6.1 Regra obrigatória após commit da IA
+
+Sempre que a IA criar um commit no repositório KassisT, ela MUST informar imediatamente:
+
+```text
+LAST_COMMIT_SHA
+LAST_COMMIT_MESSAGE
+BRANCH
+BASELINE
+```
+
+No bloco operacional imediatamente seguinte, a IA MUST fornecer um comando PowerShell completo para o usuário posicionar o checkout local do VSCode exatamente no `LAST_COMMIT_SHA`, sem presumir equivalência entre o ambiente da IA e o ambiente local.
+
+Esse bloco MUST:
+
+* começar com `Set-Location` para o repositório;
+* atualizar refs quando necessário;
+* verificar a branch;
+* verificar o `HEAD` local;
+* informar o SHA-alvo explicitamente;
+* preservar alterações locais antes de qualquer operação que possa sobrescrevê-las;
+* evitar `git reset --hard`, `git clean`, `git restore` ou qualquer descarte automático;
+* concluir com uma verificação explícita do `HEAD` esperado.
+
+O padrão mínimo esperado é conceitualmente:
+
+```text
+COMMIT CRIADO PELA IA
+        ↓
+INFORMAR SHA EXATO
+        ↓
+INFORMAR MENSAGEM
+        ↓
+FORNECER COMANDO COMPLETO DE SINCRONIZAÇÃO
+        ↓
+VALIDAR HEAD LOCAL
+```
+
+A IA MUST NOT dizer apenas "vá para o commit anterior", "atualize sua branch" ou equivalente sem fornecer o SHA exato e o comando completo.
+
+Se o checkout local possuir alterações não commitadas, a IA MUST diagnosticar e preservar essas alterações antes de orientar qualquer sincronização.
+
+A sincronização do VSCode deve ocorrer exclusivamente para a branch autorizada pela Change Unit.
+
+---
+
 # 7. Branch obrigatória da Change Unit
 
 Cada Change Unit possui uma branch própria.
@@ -859,8 +905,11 @@ Antes de iniciar serviços locais:
 
 ```text
 verificar processos
+
 verificar portas
+
 identificar instâncias antigas
+
 iniciar somente uma instância
 ```
 
@@ -872,9 +921,13 @@ Antes de matar um processo, confirmar:
 
 ```text
 PID
+
 ProcessName
+
 CommandLine
+
 ParentProcessId
+
 porta
 ```
 
@@ -890,12 +943,19 @@ Antes do commit:
 
 ```text
 auditoria
+
 implementação
+
 testes
+
 validação
+
 diff
+
 escopo
+
 documentação
+
 knowledge
 ```
 
@@ -919,6 +979,8 @@ TEST STATUS
 ```
 
 A próxima operação deve usar aquele SHA como referência.
+
+A regra complementar da seção 6.1 é obrigatória: imediatamente após informar o commit, a IA deve fornecer o bloco PowerShell completo que permita ao usuário posicionar o VSCode exatamente naquele SHA e validar o `HEAD` local.
 
 ---
 
@@ -947,15 +1009,25 @@ Ao finalizar uma operação, a IA deve informar:
 
 ```text
 STATUS
+
 BRANCH
+
 BASELINE
+
 HEAD
+
 LAST_COMMIT
+
 FILES_CHANGED
+
 TESTS
+
 VALIDATION
+
 KNOWLEDGE
+
 BLOCKERS
+
 NEXT_ACTION
 ```
 
@@ -975,13 +1047,21 @@ Nunca presumir:
 
 ```text
 branch correta
+
 commit correto
+
 arquivo correto
+
 estado correto
+
 processo correto
+
 porta livre
+
 teste executado
+
 deploy realizado
+
 push realizado
 ```
 
@@ -1017,10 +1097,15 @@ Ao iniciar uma nova sessão, a IA deve reconstruir seu contexto através de:
 
 ```text
 REGRAS/README.md
+
 REGRAS/behaviour.md
+
 regra específica da área
+
 KNOWLEDGE relevante
+
 estado Git
+
 Change Unit atual
 ```
 
@@ -1036,17 +1121,29 @@ Quando houver conflito entre conveniência e governança:
 
 ```text
 segurança
+
 >
+
 integridade do repositório
+
 >
+
 contrato
+
 >
+
 escopo da Change Unit
+
 >
+
 testabilidade
+
 >
+
 clareza
+
 >
+
 estética
 ```
 
@@ -1064,19 +1161,33 @@ Toda IA que trabalha no KassisT deve operar com a seguinte mentalidade:
 
 ```text
 ENTENDER
+
 →
+
 VERIFICAR
+
 →
+
 DEFINIR ESCOPO
+
 →
+
 ALTERAR
+
 →
+
 TESTAR
+
 →
+
 REGISTRAR CONHECIMENTO
+
 →
+
 AUDITAR
+
 →
+
 COMMITAR
 ```
 
@@ -1084,9 +1195,13 @@ Nunca:
 
 ```text
 ALTERAR
+
 →
+
 ESPERAR QUE FUNCIONE
+
 →
+
 CORRER PARA O PRÓXIMO PROBLEMA
 ```
 
@@ -1096,10 +1211,15 @@ O objetivo é construir um projeto que permaneça:
 
 ```text
 compreensível
+
 verificável
+
 rastreável
+
 manutenível
+
 consistente
+
 profissional
 ```
 
