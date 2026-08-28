@@ -133,11 +133,10 @@ export class CampaignDispatchRuntime {
   async createDraft(preview, options = {}) {
     await this.ready;
     if (!preview || preview.status !== 'PREVIEW') throw new Error('A campaign PREVIEW is required');
-    const suppliedFingerprint = assertString(preview.fingerprint, 'fingerprint');
+    const fingerprint = assertString(preview.fingerprint, 'fingerprint');
     const previewCampaign = preview.campaign;
     if (!previewCampaign || typeof previewCampaign !== 'object') throw new Error('PREVIEW campaign snapshot is required');
-    const { snapshot } = validateCampaign(previewCampaign);
-    const fingerprint = suppliedFingerprint;
+    const snapshot = structuredClone(previewCampaign);
     if (fingerprintCampaign(snapshot) !== fingerprint) throw new Error('Campaign fingerprint mismatch');
     const batchId = assertString(options.batchId ?? newId(), 'batchId');
     const correlationId = assertString(options.correlationId ?? newId(), 'correlationId');
