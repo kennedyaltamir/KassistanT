@@ -83,7 +83,7 @@ test('explicit connect starts a new lifecycle generation', () => {
 test('unexpected current-socket close still schedules automatic reconnect', () => {
   assert.match(
     source,
-    /if \(loggedOut\) \{[\s\S]*?return;\s*\}\s*\n\s*reconnectTimer = setTimeout\(\(\) => \{\s*reconnectTimer = null;\s*connect\(\)/
+    /if \(loggedOut\) return;[\s\S]*?reconnectTimer = setTimeout\(\(\) => \{\s*reconnectTimer = null;\s*connect\(\)/
   );
 });
 
