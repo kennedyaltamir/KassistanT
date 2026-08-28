@@ -29,30 +29,149 @@ async function cleanup(directory) {
   await fs.rm(directory, { recursive: true, force: true }).catch(() => {});
 }
 
-export async function transcribeAudioBuffer(buffer, { extension = 'ogg' } = {}) {
-  const command = process.env.KASSIST_WHISPER_COMMAND || 'whisper';
-  const model = process.env.KASSIST_WHISPER_MODEL || 'base';
+export async function transcribeAudioBuffer(
+  buffer,
+  {
+    extension = 'ogg',
+    device = process.env.KASSIST_WHISPER_DEVICE || 'cpu',
+    language = process.env.KASSIST_WHISPER_LANGUAGE || 'pt',
+  } = {}
+) {
+  const configuredCommand =
+    process.env.KASSIST_WHISPER_COMMAND || 'whisper';
+
+  const configuredPython =
+    process.env.KASSIST_WHISPER_PYTHON ||
+    'C:\\Users\\Kennedy Oliveira\\AppData\\Local\\Programs\\Python\\Python310\\python.exe';
+
+  const model =
+    process.env.KASSIST_WHISPER_MODEL || 'base';
+
   const temp = await writeTempBuffer(buffer, extension);
+
+  let command = configuredCommand;
+  let args = [];
+
   try {
-    await execFileAsync(command, [temp.filePath, '--model', model, '--output_format', 'txt', '--output_dir', temp.dir], {
-      timeout: Number(process.env.KASSIST_WHISPER_TIMEOUT_MS || 180000),
-      windowsHide: true,
-      maxBuffer: 1024 * 1024,
-    });
-    const stem = path.basename(temp.filePath, path.extname(temp.filePath));
-    const text = (await fs.readFile(path.join(temp.dir, `${stem}.txt`), 'utf8')).trim();
-    if (!text) throw new Error('Whisper returned an empty transcription');
-    return { status: 'COMPLETED', text, confidence: null, source: command };
-  } catch (error) {
-    if (error && typeof error === 'object' && error.code === 'ENOENT') {
-      return { status: 'UNAVAILABLE', text: null, confidence: null, error: `Transcription command not found: ${command}` };
+    const lowerCommand = configuredCommand.toLowerCase();
+
+    const usesWhisperExecutable =
+      lowerCommand.endsWith('.exe');
+
+    const usesWindowsScript =
+      lowerCommand.endsWith('.cmd') ||
+      lowerCommand.endsWith('.bat');
+
+    if (usesWhisperExecutable) {
+      command = configuredPython;
+
+      args = [
+        '-m',
+        'whisper',
+        temp.filePath,
+        '--model',
+        model,
+        '--device',
+        device,
+        '--output_format',
+        'txt',
+        '--output_dir',
+        temp.dir,
+      ];
+    } else {
+      command = configuredCommand;
+
+      args = [
+        temp.filePath,
+        '--model',
+        model,
+        '--device',
+        device,
+        '--output_format',
+        'txt',
+        '--output_dir',
+        temp.dir,
+      ];
     }
-    return { status: 'FAILED', text: null, confidence: null, error: error instanceof Error ? error.message : String(error) };
+
+    if (language) {
+      args.push('--language', language);
+    }
+
+    await execFileAsync(
+      command,
+      args,
+      {
+        timeout: Number(
+          process.env.KASSIST_WHISPER_TIMEOUT_MS || 180000
+        ),
+        windowsHide: true,
+        shell: usesWindowsScript,
+        maxBuffer: 16 * 1024 * 1024,
+        env: {
+          ...process.env,
+          PYTHONUTF8: '1',
+          PYTHONIOENCODING: 'utf-8',
+          OMP_NUM_THREADS: process.env.OMP_NUM_THREADS || '1',
+          MKL_NUM_THREADS: process.env.MKL_NUM_THREADS || '1',
+          OPENBLAS_NUM_THREADS: process.env.OPENBLAS_NUM_THREADS || '1',
+        },
+      }
+    );
+
+    const stem = path.basename(
+      temp.filePath,
+      path.extname(temp.filePath)
+    );
+
+    const outputPath = path.join(
+      temp.dir,
+      `${stem}.txt`
+    );
+
+    const text = (
+      await fs.readFile(outputPath, 'utf8')
+    ).trim();
+
+    if (!text) {
+      throw new Error(
+        'Whisper returned an empty transcription'
+      );
+    }
+
+    return {
+      status: 'COMPLETED',
+      text,
+      confidence: null,
+      source: command,
+    };
+  } catch (error) {
+    if (
+      error &&
+      typeof error === 'object' &&
+      error.code === 'ENOENT'
+    ) {
+      return {
+        status: 'UNAVAILABLE',
+        text: null,
+        confidence: null,
+        error: `Transcription runtime not found: ${command}`,
+      };
+    }
+
+    return {
+      status: 'FAILED',
+      text: null,
+      confidence: null,
+      error:
+        error instanceof Error
+          ? error.message
+          : String(error),
+    };
   } finally {
     await cleanup(temp.dir);
   }
 }
-
 export async function analyzeImageBuffer(buffer, { model, baseUrl } = {}) {
   const url = String(baseUrl || process.env.KASSIST_LLM_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
   const selectedModel = String(model || process.env.KASSIST_LLM_VISION_MODEL || process.env.KASSIST_LLM_MODEL || '').trim();
