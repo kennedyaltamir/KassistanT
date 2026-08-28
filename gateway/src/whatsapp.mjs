@@ -39,6 +39,7 @@ let connecting = null;
 let pendingCredsSave = Promise.resolve();
 /** @type {NodeJS.Timeout | null} */
 let reconnectTimer = null;
+let lifecycleGeneration = 0;
 let shuttingDown = false;
 /** @type {Set<EventListener>} */
 let eventListeners = new Set();
@@ -162,12 +163,27 @@ async function clearAuthState() {
   await fs.rm(authDir, { recursive: true, force: true });
 }
 
-async function startSocket() {
+/** @param {import('@whiskeysockets/baileys').WASocket | null} targetSocket */
+async function safelyEndSocket(targetSocket = socket) {
+  const current = targetSocket;
+  if (current === socket) socket = null;
+  if (!current) return;
+  try {
+    current.end(undefined);
+  } catch {
+    // The socket lifecycle is already moving toward the requested terminal state.
+  }
+}
+
+/** @param {{ generation: number }} [options] */
+async function startSocket({ generation } = { generation: lifecycleGeneration }) {
   await fs.mkdir(authDir, { recursive: true });
   const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
 
-  socket = makeWASocket({
+  if (generation !== lifecycleGeneration || shuttingDown) return;
+
+  const socketInstance = makeWASocket({
     version,
     auth: {
       creds: authState.creds,
@@ -177,8 +193,9 @@ async function startSocket() {
     markOnlineOnConnect: false,
     syncFullHistory: false,
   });
+  socket = socketInstance;
 
-  socket.ev.on('creds.update', () => {
+  socketInstance.ev.on('creds.update', () => {
     pendingCredsSave = pendingCredsSave
       .then(() => saveCreds())
       .catch((error) => {
@@ -189,7 +206,12 @@ async function startSocket() {
       });
   });
 
-  socket.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
+  socketInstance.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
+    if (generation !== lifecycleGeneration) {
+      await safelyEndSocket(socketInstance);
+      return;
+    }
+
     if (qr) {
       state.qr = qr;
       state.connection = 'PAIRING';
@@ -203,7 +225,7 @@ async function startSocket() {
       state.connection = 'CONNECTED';
       state.qr = null;
       state.lastError = null;
-      state.me = socket?.user ? { id: socket.user.id, name: socket.user.name ?? null } : null;
+      state.me = socketInstance.user ? { id: socketInstance.user.id, name: socketInstance.user.name ?? null } : null;
       console.log(`[KassisT WhatsApp] Connected as ${state.me?.id ?? 'unknown'}`);
       emit({ type: 'connection', status: getStatus() });
       return;
@@ -214,7 +236,7 @@ async function startSocket() {
       const loggedOut = statusCode === DisconnectReason.loggedOut;
       const error = lastDisconnect?.error?.message ?? String(lastDisconnect?.error ?? 'Connection closed');
 
-      socket = null;
+      if (socketInstance === socket) socket = null;
       if (reconnectTimer) {
         clearTimeout(reconnectTimer);
         reconnectTimer = null;
@@ -249,7 +271,7 @@ async function startSocket() {
     }
   });
 
-  socket.ev.on('messages.upsert', ({ messages }) => {
+  socketInstance.ev.on('messages.upsert', ({ messages }) => {
     for (const message of messages) {
       const snapshot = snapshotMessage(message, message.key?.fromMe ? 'OUTBOUND' : 'INBOUND');
       void (async () => {
@@ -265,17 +287,27 @@ export async function connect() {
   if (connecting) return connecting;
   if (socket && state.connection === 'CONNECTED') return;
 
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  lifecycleGeneration += 1;
+  const generation = lifecycleGeneration;
+
   connecting = (async () => {
     state.connection = 'CONNECTING';
     state.qr = null;
     state.lastError = null;
     emit({ type: 'connection', status: getStatus() });
     try {
-      await startSocket();
+      await startSocket({ generation });
     } catch (error) {
-      state.connection = 'ERROR';
-      state.lastError = error instanceof Error ? error.message : String(error);
-      emit({ type: 'connection', status: getStatus() });
+      if (generation === lifecycleGeneration) {
+        state.connection = 'ERROR';
+        state.lastError = error instanceof Error ? error.message : String(error);
+        emit({ type: 'connection', status: getStatus() });
+      }
       throw error;
     } finally {
       connecting = null;
@@ -287,6 +319,7 @@ export async function connect() {
 
 export async function shutdown() {
   shuttingDown = true;
+  lifecycleGeneration += 1;
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
@@ -312,13 +345,25 @@ export async function shutdown() {
 }
 
 export async function logout() {
-  if (socket) {
+  lifecycleGeneration += 1;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+
+  const current = socket;
+  socket = null;
+  if (current) {
     try {
-      await socket.logout('KassisT user requested logout');
-    } finally {
-      socket = null;
+      await current.logout('KassisT user requested logout');
+    } catch (error) {
+      console.error(
+        '[KassisT WhatsApp] failed to logout cleanly:',
+        error instanceof Error ? error.message : error
+      );
     }
   }
+
   state.connection = 'DISCONNECTED';
   state.qr = null;
   state.me = null;
