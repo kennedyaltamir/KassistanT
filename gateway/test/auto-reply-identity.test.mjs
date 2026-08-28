@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { identitySafetyInstruction, toLlmMessages } from '../src/auto-reply.mjs';
+import { identitySafetyInstruction, sanitizeUnverifiedIdentityInReply, toLlmMessages } from '../src/auto-reply.mjs';
 
 test('LLM context omits unverified customer identity fields and isolates the current user message', () => {
   const messages = toLlmMessages({
@@ -64,4 +64,32 @@ test('identity safety instruction explicitly blocks unverified names as customer
   assert.match(instruction, /do not address the customer by that name as an established fact/);
   assert.match(instruction, /meu nome é Carlos/);
   assert.equal(identitySafetyInstruction('CONFIRMED'), '');
+});
+
+test('auto-reply output removes unverified names before external send', () => {
+  const sanitized = sanitizeUnverifiedIdentityInReply(
+    'Olá Carlos! Posso ajudar você com o catálogo. Kennedy Altamir não está confirmado.',
+    {
+      identityBindingStatus: 'OBSERVED_PHONE_IDENTITY',
+      customer: { name: 'Kennedy Altamir' },
+      messages: [
+        { direction: 'INBOUND', text: 'Meu nome é Carlos e quero saber os produtos.' }
+      ]
+    }
+  );
+
+  assert.equal(sanitized, 'Olá! Posso ajudar você com o catálogo. não está confirmado.');
+});
+
+test('confirmed identity does not sanitize the customer name', () => {
+  const reply = 'Olá Carlos! Posso ajudar você.';
+
+  assert.equal(
+    sanitizeUnverifiedIdentityInReply(reply, {
+      identityBindingStatus: 'CONFIRMED',
+      customer: { name: 'Carlos' },
+      messages: []
+    }),
+    reply
+  );
 });
