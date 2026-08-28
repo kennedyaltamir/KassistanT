@@ -126,7 +126,7 @@ test("Renderer keeps the existing function architecture unique", () => {
     "bindConversations",
     "bind"
   ]) {
-    const matches = html.match(new RegExp(`function ${name}\\\\(`, "g")) ?? [];
+    const matches = html.match(new RegExp(`function ${name}\\(`, "g")) ?? [];
     assert.equal(matches.length, 1, `${name} must exist exactly once`);
   }
 });
