@@ -163,3 +163,32 @@ test("Accessibility-critical primitives exist", () => {
   assert.match(html, /tabindex="-1"/);
   assert.match(html, /:focus/);
 });
+
+test("WhatsApp health contract consumes status=ok, not legacy ok=true", () => {
+  assert.match(html, /health&&health\.status==='ok'\?'HEALTHY':'UNKNOWN'/);
+  assert.doesNotMatch(html, /health&&health\.ok\?/);
+});
+
+test("WhatsApp reset requires explicit confirmation before destructive request", () => {
+  const resetMarker = "document.querySelector('#wa-settings-reset')?.addEventListener('click',async()=>{";
+  const resetStart = html.indexOf(resetMarker);
+  assert.notEqual(resetStart, -1);
+
+  const pairingBoundary = html.indexOf("if(state.wa.connection==='PAIRING'", resetStart);
+  assert.ok(pairingBoundary > resetStart);
+
+  const resetHandler = html.slice(resetStart, pairingBoundary);
+  const confirmationIndex = resetHandler.indexOf('window.confirm(');
+  const cancelIndex = resetHandler.indexOf('if(!confirmed)return;');
+  const endpointIndex = resetHandler.indexOf('/api/whatsapp/reset-session');
+
+  assert.ok(confirmationIndex >= 0);
+  assert.ok(cancelIndex > confirmationIndex);
+  assert.ok(endpointIndex > confirmationIndex);
+});
+
+test("WhatsApp reset confirmation describes destructive session removal", () => {
+  assert.match(html, /Resetar sessÃ£o\?/);
+  assert.match(html, /A sessÃ£o WhatsApp armazenada pelo KassisT serÃ¡ removida/);
+  assert.match(html, /Um novo QR Code poderÃ¡ ser necessÃ¡rio/);
+});
