@@ -185,7 +185,9 @@ async function startSocket({ generation } = { generation: lifecycleGeneration })
       }
       state.connection = loggedOut ? 'DISCONNECTED' : 'CONNECTING'; state.lastError = loggedOut ? null : error; state.qr = null; state.me = null;
       emit({ type: 'connection', status: getStatus() });
-      if (loggedOut) return;
+      if (loggedOut) {
+        return;
+      }
       reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         connect().catch((reconnectError) => { state.connection = 'ERROR'; state.lastError = reconnectError instanceof Error ? reconnectError.message : String(reconnectError); emit({ type: 'connection', status: getStatus() }); });
@@ -250,6 +252,7 @@ export async function resetSession() {
   state.connection = 'DISCONNECTED'; state.qr = null; state.me = null; state.lastError = null; emit({ type: 'connection', status: getStatus() });
 }
 
+/** @param {string} to @param {string} text */
 export async function sendText(to, text) {
   if (!socket || state.connection !== 'CONNECTED') throw new Error('WhatsApp transport is not connected');
   const jid = normalizeRecipient(to); const body = String(text ?? '').trim(); if (!body) throw new Error('Message text is required');
