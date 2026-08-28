@@ -76,9 +76,19 @@ function isSupportedRecipient(jid) {
   return typeof jid === 'string' && (jid.endsWith('@lid') || jid.endsWith('@s.whatsapp.net') || jid.endsWith('@g.us'));
 }
 
-function toLlmMessages(context) {
+function sanitizeCustomer(customer, identityBindingStatus) {
+  if (!customer || typeof customer !== 'object') return null;
+  if (identityBindingStatus === 'CONFIRMED') return customer;
+
+  const sanitized = { ...customer };
+  delete sanitized.name;
+  delete sanitized.phoneNormalized;
+  return sanitized;
+}
+
+export function toLlmMessages(context) {
   const trusted = {
-    customer: context.customer ?? null,
+    customer: sanitizeCustomer(context.customer, context.identityBindingStatus),
     conversation: context.conversation ?? null,
     current_state: context.currentState ?? null,
     relevant_memories: context.relevantMemories ?? [],
