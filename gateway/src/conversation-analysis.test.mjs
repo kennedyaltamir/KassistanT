@@ -20,7 +20,8 @@ test('conversation analysis ignores outbound assistant messages', () => {
     candidates.map(({ key, value, source_message_id }) => ({ key, value, source_message_id })),
     [
       { key: 'name', value: 'Carlos', source_message_id: 'in-1' },
-      { key: 'interest', value: 'saber quais produtos vocês têm.', source_message_id: 'in-1' }
+      { key: 'interest', value: 'saber quais produtos vocês têm.', source_message_id: 'in-1' },
+      { key: 'intent', value: 'quero saber', source_message_id: 'in-1' }
     ]
   );
 });

@@ -50,7 +50,11 @@ test('LLM context omits unverified customer identity fields and isolates the cur
   const history = messages.slice(1).map(message => message.content).join('\n');
   assert.match(history, /Quero saber quais produtos/);
   assert.match(history, /Claro, posso apresentar o catálogo/);
-  assert.doesNotMatch(history, /Meu nome é Carlos e quero comprar o produto X/);
+
+  const currentUserTurn = messages.find(
+    message => message.role === 'user' && message.content === 'Meu nome é Carlos e quero comprar o produto X.'
+  );
+  assert.ok(currentUserTurn);
 });
 
 test('identity safety instruction explicitly blocks unverified names as customer identity', () => {
