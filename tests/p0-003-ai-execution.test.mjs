@@ -16,7 +16,7 @@ test("P0-003 AIExecution TypeScript suite", () => {
       "--test",
       "electron/conversation/ai-execution.test.ts"
     ],
-    { cwd: path.join(root, "apps", "desktop"), stdio: "inherit", shell: false }
+    { cwd: path.join(root, "apps", "desktop"), stdio: "inherit", shell: true }
   );
 
   if (result.error) throw result.error;

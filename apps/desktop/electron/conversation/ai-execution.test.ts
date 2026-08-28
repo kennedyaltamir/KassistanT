@@ -166,7 +166,10 @@ test("keeps prompt-injection content out of the system role and preserves proven
   const result = await service.execute(request());
   assert.equal(result.status, "COMPLETED");
   assert.equal(captured?.messages[0]?.role, "system");
-  assert.match(captured?.messages[1]?.content ?? "", /UNTRUSTED CONTEXT/);
+  assert.match(
+  captured?.messages[2]?.content ?? "",
+  /UNTRUSTED CONTEXT/
+);
   assert.equal(result.provenance.context.length, 2);
   assert.equal(result.provenance.promptId, "prompt.assistant");
 });
