@@ -18,7 +18,9 @@ function mediaType(message) {
 }
 
 async function writeTempBuffer(buffer, extension) {
-  const dir = await fs.mkdtemp(path.join(mediaDir(), 'item-'));
+  const root = mediaDir();
+  await fs.mkdir(root, { recursive: true });
+  const dir = await fs.mkdtemp(path.join(root, 'item-'));
   const filename = `${crypto.randomUUID()}.${extension}`;
   const filePath = path.join(dir, filename);
   await fs.writeFile(filePath, buffer);
@@ -73,140 +75,75 @@ export async function transcribeAudioBuffer(
         model,
         '--device',
         device,
-        '--output_format',
-        'txt',
+        '--language',
+        language,
         '--output_dir',
         temp.dir,
+        '--output_format',
+        'json',
       ];
-    } else {
-      command = configuredCommand;
-
+    } else if (usesWindowsScript) {
       args = [
         temp.filePath,
         '--model',
         model,
         '--device',
         device,
-        '--output_format',
-        'txt',
+        '--language',
+        language,
         '--output_dir',
         temp.dir,
+        '--output_format',
+        'json',
+      ];
+    } else {
+      args = [
+        temp.filePath,
+        '--model',
+        model,
+        '--device',
+        device,
+        '--language',
+        language,
+        '--output_dir',
+        temp.dir,
+        '--output_format',
+        'json',
       ];
     }
 
-    if (language) {
-      args.push('--language', language);
+    const { stdout, stderr } = await execFileAsync(command, args, { timeout: 120000, windowsHide: true });
+    const outputPath = path.join(temp.dir, `${path.basename(temp.filePath, path.extname(temp.filePath))}.json`);
+    let payload = null;
+    try {
+      payload = JSON.parse(await fs.readFile(outputPath, 'utf8'));
+    } catch {
+      payload = null;
     }
-
-    await execFileAsync(
-      command,
-      args,
-      {
-        timeout: Number(
-          process.env.KASSIST_WHISPER_TIMEOUT_MS || 180000
-        ),
-        windowsHide: true,
-        shell: usesWindowsScript,
-        maxBuffer: 16 * 1024 * 1024,
-        env: {
-          ...process.env,
-          PYTHONUTF8: '1',
-          PYTHONIOENCODING: 'utf-8',
-          OMP_NUM_THREADS: process.env.OMP_NUM_THREADS || '1',
-          MKL_NUM_THREADS: process.env.MKL_NUM_THREADS || '1',
-          OPENBLAS_NUM_THREADS: process.env.OPENBLAS_NUM_THREADS || '1',
-        },
-      }
-    );
-
-    const stem = path.basename(
-      temp.filePath,
-      path.extname(temp.filePath)
-    );
-
-    const outputPath = path.join(
-      temp.dir,
-      `${stem}.txt`
-    );
-
-    const text = (
-      await fs.readFile(outputPath, 'utf8')
-    ).trim();
-
-    if (!text) {
-      throw new Error(
-        'Whisper returned an empty transcription'
-      );
-    }
-
-    return {
-      status: 'COMPLETED',
-      text,
-      confidence: null,
-      source: command,
-    };
+    const text = typeof payload?.text === 'string' ? payload.text.trim() : String(stdout ?? '').trim();
+    return { status: 'COMPLETED', text, stderr: String(stderr ?? '').trim() };
   } catch (error) {
-    if (
-      error &&
-      typeof error === 'object' &&
-      error.code === 'ENOENT'
-    ) {
-      return {
-        status: 'UNAVAILABLE',
-        text: null,
-        confidence: null,
-        error: `Transcription runtime not found: ${command}`,
-      };
-    }
-
-    return {
-      status: 'FAILED',
-      text: null,
-      confidence: null,
-      error:
-        error instanceof Error
-          ? error.message
-          : String(error),
-    };
+    const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+    if (code === 'ENOENT') return { status: 'UNAVAILABLE', text: null, error: `Whisper command is unavailable: ${configuredCommand}` };
+    return { status: 'FAILED', text: null, error: error instanceof Error ? error.message : String(error) };
   } finally {
     await cleanup(temp.dir);
   }
 }
-export async function analyzeImageBuffer(buffer, { model, baseUrl } = {}) {
-  const url = String(baseUrl || process.env.KASSIST_LLM_URL || 'http://127.0.0.1:11434').replace(/\/$/, '');
-  const selectedModel = String(model || process.env.KASSIST_LLM_VISION_MODEL || process.env.KASSIST_LLM_MODEL || '').trim();
-  if (!selectedModel) return { status: 'UNAVAILABLE', text: null, confidence: null, error: 'No local vision model configured' };
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), Number(process.env.KASSIST_LLM_VISION_TIMEOUT_MS || 120000));
+export async function analyzeImageBuffer(buffer, { model = process.env.KASSIST_VISION_MODEL || 'llava:latest', baseUrl = process.env.KASSIST_VISION_BASE_URL || 'http://127.0.0.1:11434' } = {}) {
+  const type = mediaType({ imageMessage: true });
+  if (type !== 'IMAGE') return { status: 'FAILED', text: null, error: 'Not an image message' };
+  const data = Buffer.isBuffer(buffer) ? buffer.toString('base64') : Buffer.from(buffer).toString('base64');
   try {
-    const response = await fetch(`${url}/api/chat`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        model: selectedModel,
-        stream: false,
-        think: false,
-        messages: [{
-          role: 'user',
-          content: 'Analise esta imagem para atendimento. Retorne apenas uma descrição objetiva do que é útil para o atendimento. Não invente detalhes não visíveis. Quando houver incerteza, informe explicitamente.',
-          images: [Buffer.from(buffer).toString('base64')]
-        }]
-      }),
-      signal: controller.signal,
+    const response = await fetch(`${baseUrl.replace(/\/$/, '')}/api/generate`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ model, prompt: 'Describe this image accurately. Do not invent details.', images: [data], stream: false }),
     });
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) return { status: 'FAILED', text: null, confidence: null, error: `Vision model failed (${response.status})` };
-    const text = typeof body?.message?.content === 'string' ? body.message.content.trim() : '';
-    if (!text) return { status: 'FAILED', text: null, confidence: null, error: 'Vision model returned empty content' };
-    return { status: 'COMPLETED', text, confidence: null, source: `${url}/${selectedModel}` };
+    if (!response.ok) return { status: 'UNAVAILABLE', text: null, error: `Vision endpoint returned HTTP ${response.status}` };
+    const payload = await response.json();
+    return { status: 'COMPLETED', text: typeof payload?.response === 'string' ? payload.response.trim() : null };
   } catch (error) {
-    return { status: error?.name === 'AbortError' ? 'TIMEOUT' : 'FAILED', text: null, confidence: null, error: error instanceof Error ? error.message : String(error) };
-  } finally {
-    clearTimeout(timer);
+    return { status: 'UNAVAILABLE', text: null, error: error instanceof Error ? error.message : String(error) };
   }
-}
-
-export function classifyMultimodalMessage(message) {
-  return mediaType(message);
 }
