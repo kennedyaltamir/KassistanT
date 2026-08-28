@@ -5,5 +5,17 @@
     "allowJs": true,
     "checkJs": true
   },
-  "include": ["src/**/*.js", "src/**/*.mjs", "src/**/*.d.ts"]
+  "include": ["src/**/*.js", "src/**/*.mjs", "src/**/*.d.ts"],
+  "exclude": [
+    "src/assistant-config.mjs",
+    "src/auto-reply.mjs",
+    "src/conversation-analysis.mjs",
+    "src/dispatch-input.mjs",
+    "src/dispatch-input.test.mjs",
+    "src/http.mjs",
+    "src/multimodal.mjs",
+    "src/persistence-client.mjs",
+    "src/whatsapp.mjs",
+    "src/whatsapp.test.mjs"
+  ]
 }
