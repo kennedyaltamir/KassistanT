@@ -85,7 +85,9 @@ function shutdownRuntime() {
 
 app.whenReady().then(() => {
   try {
-    persistence = startPersistenceServer();
+    persistence = startPersistenceServer({
+      migrationsPath: path.resolve(__dirname, "../database/migrations")
+    });
     startGateway();
   } catch (error) {
     console.error(
