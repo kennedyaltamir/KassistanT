@@ -30,6 +30,9 @@ test("WhatsApp renderer exposes real Gateway integration", () => {
   assert.match(html, /\/api\/whatsapp\/status/);
   assert.match(html, /\/api\/whatsapp\/messages\?limit=500/);
   assert.match(html, /\/api\/whatsapp\/events/);
+  assert.match(html, /\/api\/whatsapp\/connect/);
+  assert.match(html, /\/api\/whatsapp\/logout/);
+  assert.match(html, /\/api\/whatsapp\/reset-session/);
 });
 
 test("WhatsApp renderer exposes explicit operational states", () => {
@@ -40,9 +43,91 @@ test("WhatsApp renderer exposes explicit operational states", () => {
     "CONNECTED",
     "DISCONNECTED",
     "CONNECTING",
+    "PAIRING",
     "ERROR"
   ]) {
     assert.match(html, new RegExp(status));
+  }
+});
+
+test("WhatsApp settings contains the complete connection UX contract", () => {
+  assert.match(html, /WhatsApp \/ Conexão/);
+  assert.match(html, /WhatsApp desconectado/);
+  assert.match(html, /Conectando ao WhatsApp\.\.\./);
+  assert.match(html, /Vincule seu WhatsApp/);
+  assert.match(html, /WhatsApp conectado/);
+  assert.match(html, /Falha na conexão/);
+  assert.match(html, /id="wa-qr"/);
+  assert.match(html, /Conectar WhatsApp/);
+  assert.match(html, /Desconectar/);
+  assert.match(html, /Reconectar/);
+  assert.match(html, /Resetar sessão/);
+  assert.match(html, /state\.wa\.me\?\.name/);
+  assert.match(html, /state\.wa\.me\?\.id/);
+  assert.match(html, /state\.wa\.error/);
+});
+
+test("WhatsApp settings binds existing Gateway lifecycle endpoints", () => {
+  assert.match(html, /#wa-settings-connect/);
+  assert.match(html, /#wa-settings-reconnect/);
+  assert.match(html, /#wa-settings-disconnect/);
+  assert.match(html, /#wa-settings-reset/);
+  assert.match(html, /#wa-settings-refresh/);
+  assert.match(html, /gatewayJson\('\/api\/whatsapp\/connect'/);
+  assert.match(html, /gatewayJson\('\/api\/whatsapp\/logout'/);
+  assert.match(html, /gatewayJson\('\/api\/whatsapp\/reset-session'/);
+});
+
+test("WhatsApp QR renderer is local SVG output", () => {
+  assert.match(html, /qrcode-generator\/dist\/qrcode\.js/);
+  assert.match(html, /qrcode\(0,'M'\)/);
+  assert.match(html, /addData\(String\(state\.wa\.qr\)\)/);
+  assert.match(html, /createSvgTag\(\{cellSize:6,margin:18,scalable:true\}\)/);
+  assert.match(html, /setAttribute\('role','img'\)/);
+});
+
+test("Conversation surface no longer owns WhatsApp onboarding", () => {
+  const start = html.indexOf("function conversations(){");
+  const end = html.indexOf("function assistant(){", start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+  const conversations = html.slice(start, end);
+  assert.doesNotMatch(conversations, /wa-connect/);
+  assert.doesNotMatch(conversations, /wa-logout/);
+  assert.doesNotMatch(conversations, /wa-reset/);
+  assert.doesNotMatch(conversations, /<textarea/i);
+  assert.doesNotMatch(conversations, /wa\.qr/);
+  assert.match(conversations, /wa-open-connection-settings/);
+});
+
+test("Connection status consumption preserves Gateway lastError", () => {
+  assert.match(html, /x\.lastError/);
+  assert.match(html, /state\.wa\.error=x\.lastError/);
+});
+
+test("Renderer contains no prohibited local WhatsApp implementation", () => {
+  for (const forbidden of [
+    "MutationObserver",
+    "paintWhatsAppSettings",
+    "sanitizeConversationsOnboarding",
+    "makeWASocket",
+    "useMultiFileAuthState",
+    "KASSIST_WA_AUTH_DIR"
+  ]) {
+    assert.doesNotMatch(html, new RegExp(forbidden));
+  }
+});
+
+test("Renderer keeps the existing function architecture unique", () => {
+  for (const name of [
+    "applyStatus",
+    "settings",
+    "conversations",
+    "bindConversations",
+    "bind"
+  ]) {
+    const matches = html.match(new RegExp(`function ${name}\\\\(`, "g")) ?? [];
+    assert.equal(matches.length, 1, `${name} must exist exactly once`);
   }
 });
 
