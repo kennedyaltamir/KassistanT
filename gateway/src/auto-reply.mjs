@@ -86,6 +86,50 @@ function sanitizeCustomer(customer, identityBindingStatus) {
   return sanitized;
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function extractReportedNames(messages = []) {
+  const names = new Set();
+  const patterns = [
+    /\bmeu nome é\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u,
+    /\bme chamo\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u,
+    /\bpode me chamar de\s+([\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,}(?:\s+[\p{Lu}À-ÖØ-Þ][\p{L}'-]{2,})?)/u
+  ];
+
+  for (const message of messages) {
+    if (message?.direction !== 'INBOUND' || typeof message.text !== 'string') continue;
+    for (const pattern of patterns) {
+      const match = message.text.match(pattern);
+      if (match?.[1]) names.add(match[1].trim());
+    }
+  }
+
+  return names;
+}
+
+export function sanitizeUnverifiedIdentityInReply(reply, context = {}) {
+  if (context?.identityBindingStatus === 'CONFIRMED' || typeof reply !== 'string' || !reply) return reply;
+
+  const names = extractReportedNames(context.messages);
+  const observedCustomerName = context.customer?.name;
+  if (typeof observedCustomerName === 'string' && observedCustomerName.trim()) names.add(observedCustomerName.trim());
+
+  let sanitized = reply;
+  for (const name of names) {
+    const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, 'giu');
+    sanitized = sanitized.replace(pattern, '');
+  }
+
+  return sanitized
+    .replace(/\s+,/g, ',')
+    .replace(/,\s*(?=[.!?]|$)/g, '')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/\n[ \t]+/g, '\n')
+    .trim();
+}
+
 export function toLlmMessages(context) {
   const persistedMessages = Array.isArray(context?.messages) ? context.messages : [];
   let currentUserIndex = -1;
@@ -187,7 +231,12 @@ async function handleMessage(message) {
 
   inFlight.add(jid);
   try {
-    const reply = await generateReply(toLlmMessages(context), { systemPrompt });
+    const rawReply = await generateReply(toLlmMessages(context), { systemPrompt });
+    const reply = sanitizeUnverifiedIdentityInReply(rawReply, context);
+    if (!reply) {
+      console.error('[KassisT AI] auto-reply blocked after identity safety sanitization');
+      return;
+    }
     await sendText(jid, reply);
     lastReplyAt.set(jid, Date.now());
     console.log(`[KassisT AI] auto-reply sent to ${jid} prompt_version=${promptResolution.promptVersion} context_version=${context.contextVersion ?? 'unknown'}`);
