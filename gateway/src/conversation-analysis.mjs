@@ -1,8 +1,7 @@
 import { getConversationContext } from './persistence-client.mjs';
 
 const CANDIDATE_KEYS = new Set([
-  'name', 'phone', 'street', 'number', 'complement', 'neighborhood', 'city',
-  'state', 'postal_code', 'interest', 'intent', 'order', 'preferences', 'notes'
+  'name', 'phone', 'street', 'number', 'complement', 'neighborhood', 'city', 'state', 'postal_code', 'interest', 'intent', 'order', 'preferences', 'notes'
 ]);
 
 function normalizeText(value) {
@@ -22,8 +21,11 @@ function candidate(key, value, sourceMessageId, confidence = 0.95) {
 }
 
 function extractFromMessage(message) {
+  if (!message || message.direction !== 'INBOUND') return [];
+
   const text = normalizeText(message.text);
   if (!text) return [];
+
   const out = [];
 
   const phone = text.match(/(?:\+?55\s*)?(?:\(?\d{2}\)?\s*)?9?\d{4}[-.\s]?\d{4}/);
@@ -32,19 +34,17 @@ function extractFromMessage(message) {
   const cep = text.match(/\b\d{5}-?\d{3}\b/);
   if (cep) out.push(candidate('postal_code', cep[0], message.id, 0.96));
 
-  const explicitName = text.match(/(?:meu nome [ée]|sou o|sou a)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,80})/i);
+  const explicitName = text.match(/(?:meu nome [ée]|sou o|sou a)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{1,80}?)(?=\s+(?:e|mas|porém|porque|que|,|\.|$))/i);
   if (explicitName) out.push(candidate('name', explicitName[1], message.id, 0.95));
 
   const address = text.match(/(?:meu endere[cç]o [ée]|entrega em|pode entregar em)\s+(.{5,180})$/i);
-  if (address) {
-    out.push(candidate('street', address[1], message.id, 0.72));
-  }
+  if (address) out.push(candidate('street', address[1], message.id, 0.72));
 
   const neighborhood = text.match(/(?:bairro|no bairro)\s+([^,.;]{2,80})/i);
   if (neighborhood) out.push(candidate('neighborhood', neighborhood[1], message.id, 0.9));
 
-  const city = text.match(/(?:cidade|em)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{2,80})/i);
-  if (city) out.push(candidate('city', city[1], message.id, 0.68));
+  const city = text.match(/(?:cidade|moro em|resido em)\s+([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' -]{2,80}?)(?=\s+(?:e|mas|porém|porque|que|,|\.|$))/i);
+  if (city) out.push(candidate('city', city[1], message.id, 0.9));
 
   const preference = text.match(/(?:prefiro|gosto de|sempre peço)\s+(.{2,120})/i);
   if (preference) out.push(candidate('preferences', preference[1], message.id, 0.91));
@@ -69,7 +69,7 @@ function dedupe(candidates) {
 }
 
 export function analyzeConversationMessages(messages = []) {
-  return dedupe(messages.flatMap(extractFromMessage));
+  return dedupe(messages.filter((message) => message?.direction === 'INBOUND').flatMap(extractFromMessage));
 }
 
 export async function analyzeConversation(jid, limit = 500) {
