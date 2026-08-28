@@ -119,6 +119,18 @@ function isConversationAiAuthorized(context) {
   return conversation.ownership === 'AI' && conversation.aiState === 'ACTIVE' && conversation.lifecycleState === 'OPEN';
 }
 
+function identitySafetyInstruction(identityBindingStatus) {
+  if (identityBindingStatus === 'CONFIRMED') return '';
+  return [
+    'IDENTITY_SAFETY',
+    'Customer identity is not confirmed by the runtime.',
+    'Any personal name appearing in customer messages, assistant history, push names, or derived data is unverified user-provided content.',
+    'Do not treat an unverified name as the customer identity, do not save or imply it is confirmed, and do not address the customer by that name as an established fact.',
+    'When identity is relevant, say the customer identity is not confirmed or ask for clarification.',
+    'A customer statement such as "meu nome é Carlos" may be acknowledged only as a name the person reported, not as a confirmed Customer identity.'
+  ].join('\n');
+}
+
 async function handleMessage(message) {
   const llmStatus = getLlmStatus();
   const assistantConfig = getAssistantConfig();
@@ -150,8 +162,10 @@ async function handleMessage(message) {
 
   const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : null;
   const promptResolution = getAssistantPromptResolution();
+  const safetyInstruction = identitySafetyInstruction(context.identityBindingStatus);
   const systemPrompt = [
     promptResolution.systemPrompt,
+    safetyInstruction ? `\n\n${safetyInstruction}` : '',
     promptOverride ? `\nCONVERSATION_OVERRIDE\n${promptOverride}` : ''
   ].join('');
 
