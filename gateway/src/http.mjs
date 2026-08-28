@@ -6,18 +6,12 @@ import { createBatchDispatchRuntime, isDispatchPreview } from './batch-dispatch.
 import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatus, listConversationPolicies, setConversationPolicy } from './auto-reply.mjs';
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getAssistantConfig, getAssistantPromptResolution, updateAssistantConfig } from './assistant-config.mjs';
+import { analyzeConversation } from './conversation-analysis.mjs';
 import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, updateLocalModel } from './llm.mjs';
 import { getLlmSettings, updateLlmSettings } from './llm-settings.mjs';
 import { deleteCredential, listCredentialStatus, setCredential } from './credentials.mjs';
 import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCredential } from './credential-validation.mjs';
 import { createProduct, deleteProduct, getConversationContext, getProduct, listPersistedConversations, listProducts, updateProduct } from './persistence-client.mjs';
-
-/** @typedef {import('node:http').IncomingMessage} IncomingMessage */
-/** @typedef {import('node:http').ServerResponse<IncomingMessage>} ServerResponse */
-/** @typedef {Record<string, unknown>} RequestBody */
-/** @typedef {Record<string, unknown>} SseEvent */
-/** @typedef {boolean | { ok: boolean } | Promise<boolean | { ok: boolean }>} ReadinessCheck */
-/** @typedef {{fingerprint:unknown,recipientCount:unknown,correlationId?:string,confirmedAt?:string}} ConfirmActionInput */
 
 function json(response, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -53,9 +47,7 @@ function writeSse(response, event) {
   response.write(`event: ${String(event.type)}\ndata: ${JSON.stringify(event)}\n\n`);
 }
 
-function sanitizedError(error) {
-  return error instanceof Error ? error.message : String(error);
-}
+function sanitizedError(error) { return error instanceof Error ? error.message : String(error); }
 
 function buildConfirmInput(body, correlation) {
   const input = { fingerprint: body.fingerprint, recipientCount: body.recipient_count, correlationId: correlation };
@@ -69,10 +61,8 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
   return createServer(async (request, response) => {
     const id = correlationId(request);
     response.setHeader('x-correlation-id', id);
-
     try {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
-
       if (request.method === 'GET' && url.pathname === '/health') return json(response, 200, { status: 'ok', correlation_id: id });
       if (request.method === 'GET' && url.pathname === '/ready') {
         const result = await checkReadiness();
@@ -107,8 +97,7 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
           const body = await parseBody(request);
           const allowed = ['enabled', 'baseUrl', 'model', 'timeoutMs', 'contextMessages', 'cooldownMs', 'systemPrompt'];
           const patch = Object.fromEntries(Object.entries(body).filter(([key]) => allowed.includes(key)));
-          const result = updateAiConfig(patch);
-          return json(response, 200, result);
+          return json(response, 200, updateAiConfig(patch));
         } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
 
@@ -127,36 +116,33 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       }
 
       if (request.method === 'GET' && url.pathname === '/api/products') {
-        try { return json(response, 200, await listProducts()); }
-        catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
+        try { return json(response, 200, await listProducts()); } catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/products') {
-        try { return json(response, 201, await createProduct(await parseBody(request))); }
-        catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
+        try { return json(response, 201, await createProduct(await parseBody(request))); } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
       const productMatch = url.pathname.match(/^\/api\/products\/([^/]+)$/);
       if (productMatch) {
         const productId = decodeURIComponent(productMatch[1]);
         if (request.method === 'GET') {
-          try { return json(response, 200, await getProduct(productId)); }
-          catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
+          try { return json(response, 200, await getProduct(productId)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
         }
         if (request.method === 'PUT') {
-          try { return json(response, 200, await updateProduct(productId, await parseBody(request))); }
-          catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
+          try { return json(response, 200, await updateProduct(productId, await parseBody(request))); } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
         }
         if (request.method === 'DELETE') {
-          try { return json(response, 200, await deleteProduct(productId)); }
-          catch (error) { return json(response, 409, { error: sanitizedError(error) }); }
+          try { return json(response, 200, await deleteProduct(productId)); } catch (error) { return json(response, 409, { error: sanitizedError(error) }); }
         }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/conversations') {
-        try { return json(response, 200, await listPersistedConversations(url.searchParams.get('limit') || 100)); }
-        catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
+        try { return json(response, 200, await listPersistedConversations(url.searchParams.get('limit') || 100)); } catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
       }
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/conversation-context') {
-        try { return json(response, 200, await getConversationContext(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 50)); }
+        try { return json(response, 200, await getConversationContext(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 50)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
+      }
+      if (request.method === 'GET' && url.pathname === '/api/whatsapp/conversation-analysis') {
+        try { return json(response, 200, await analyzeConversation(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 500)); }
         catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
       }
 
@@ -228,12 +214,10 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
         catch (error) { return json(response, 500, { error: sanitizedError(error), status: getStatus() }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/logout') {
-        try { await logout(); return json(response, 200, getStatus()); }
-        catch (error) { return json(response, 500, { error: sanitizedError(error) }); }
+        try { await logout(); return json(response, 200, getStatus()); } catch (error) { return json(response, 500, { error: sanitizedError(error) }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/reset-session') {
-        try { await resetSession(); return json(response, 200, getStatus()); }
-        catch (error) { return json(response, 500, { error: sanitizedError(error) }); }
+        try { await resetSession(); return json(response, 200, getStatus()); } catch (error) { return json(response, 500, { error: sanitizedError(error) }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/messages') {
         try { const body = await parseBody(request); const message = await sendText(String(body.to ?? ''), String(body.text ?? '')); return json(response, 202, { message }); }
