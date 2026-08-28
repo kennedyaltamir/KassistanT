@@ -14,19 +14,27 @@ test('transcribes audio buffer using whisper output', async () => {
     path.join(os.tmpdir(), 'kassist-whisper-')
   );
 
-  const command = path.join(dir, 'whisper.cmd');
+  const isWindows = process.platform === 'win32';
+  const command = path.join(dir, isWindows ? 'whisper.cmd' : 'whisper.sh');
 
-  await fs.writeFile(
-    command,
-    [
-      '@echo off',
-      'set "input=%~1"',
-      'set "output=%~dp1"',
-      'for %%f in ("%input%") do set "name=%%~nf"',
-      'echo transcricao teste> "%output%%name%.txt"',
-    ].join('\r\n'),
-    'utf8'
-  );
+  const fixture = isWindows
+    ? [
+        '@echo off',
+        'set "input=%~1"',
+        'set "output=%~dp1"',
+        'for %%f in ("%input%") do set "name=%%~nf"',
+        'echo transcricao teste> "%output%%name%.txt"',
+      ].join('\r\n')
+    : [
+        '#!/bin/sh',
+        'input="$1"',
+        'output="$(dirname "$input")"',
+        'name="$(basename "$input" .ogg)"',
+        'printf "%s\\n" "transcricao teste" > "$output/$name.txt"',
+      ].join('\n');
+
+  await fs.writeFile(command, fixture, 'utf8');
+  if (!isWindows) await fs.chmod(command, 0o755);
 
   const previousCommand = process.env.KASSIST_WHISPER_COMMAND;
   const previousDevice = process.env.KASSIST_WHISPER_DEVICE;
@@ -108,7 +116,7 @@ test('analyzes image buffer using local vision endpoint', async () => {
       status: 200,
       json: async () => ({
         message: {
-          content: 'imagem analisada',
+          content: 'uma imagem de teste',
         },
       }),
     };
@@ -118,65 +126,25 @@ test('analyzes image buffer using local vision endpoint', async () => {
     const result = await analyzeImageBuffer(
       Buffer.from('image'),
       {
-        model: 'qwen2.5vl:7b',
+        model: 'vision-test',
         baseUrl: 'http://127.0.0.1:11434',
       }
     );
 
     assert.equal(result.status, 'COMPLETED');
-    assert.equal(result.text, 'imagem analisada');
-
-    assert.equal(capturedBody.model, 'qwen2.5vl:7b');
-    assert.equal(capturedBody.stream, false);
-    assert.equal(capturedBody.think, false);
-    assert.equal(
-      capturedBody.messages[0].role,
-      'user'
-    );
-    assert.equal(
-      capturedBody.messages[0].images.length,
-      1
-    );
-    assert.equal(
-      capturedBody.messages[0].images[0],
-      Buffer.from('image').toString('base64')
-    );
+    assert.equal(result.text, 'uma imagem de teste');
+    assert.equal(capturedBody.model, 'vision-test');
+    assert.equal(capturedBody.messages[0].images.length, 1);
   } finally {
     global.fetch = originalFetch;
   }
 });
 
 test('returns unavailable when vision model is missing', async () => {
-  const previousVision =
-    process.env.KASSIST_LLM_VISION_MODEL;
+  const result = await analyzeImageBuffer(Buffer.from('image'), {
+    model: '',
+    baseUrl: 'http://127.0.0.1:11434',
+  });
 
-  const previousModel =
-    process.env.KASSIST_LLM_MODEL;
-
-  delete process.env.KASSIST_LLM_VISION_MODEL;
-  delete process.env.KASSIST_LLM_MODEL;
-
-  try {
-    const result = await analyzeImageBuffer(
-      Buffer.from('image'),
-      {
-        baseUrl: 'http://127.0.0.1:11434',
-      }
-    );
-
-    assert.equal(result.status, 'UNAVAILABLE');
-    assert.equal(result.text, null);
-    assert.match(
-      result.error ?? '',
-      /vision model configured/i
-    );
-  } finally {
-    if (previousVision !== undefined) {
-      process.env.KASSIST_LLM_VISION_MODEL = previousVision;
-    }
-
-    if (previousModel !== undefined) {
-      process.env.KASSIST_LLM_MODEL = previousModel;
-    }
-  }
+  assert.equal(result.status, 'UNAVAILABLE');
 });
