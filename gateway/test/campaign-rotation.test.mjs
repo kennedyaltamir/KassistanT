@@ -3,82 +3,104 @@ import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { CampaignDispatchRuntime } from '../src/campaign-dispatch.mjs';
 import { BACKOFF_MS } from '../src/batch-dispatch.mjs';
+import { CampaignDispatchRuntime } from '../src/campaign-dispatch.mjs';
 
 async function tempPaths() {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'kassist-campaign-rotation-'));
-  return {
-    statePath: path.join(dir, 'campaigns.json'),
-    batchRoot: path.join(dir, 'campaign-batches'),
-  };
+  return { statePath: path.join(dir, 'campaigns.json'), batchRoot: path.join(dir, 'batches') };
 }
 
 function recipients(count) {
-  return Array.from({ length: count }, (_, index) => ({ number: `55119999900${index}` }));
+  return Array.from({ length: count }, (_, index) => ({
+    normalizedNumber: `551199999${String(index + 1).padStart(4, '0')}`,
+    contact: `R${index + 1}`,
+    context: `Contexto ${index + 1}`,
+  }));
+}
+
+function fakeTransport(log) {
+  return {
+    sendText: async (to, text) => {
+      log.push({ type: 'TEXT', to, text });
+      return { id: `wa-${log.length}` };
+    },
+    sendImage: async (to, imageReference, caption) => {
+      log.push({ type: 'IMAGE', to, imageReference, caption });
+      return { id: `wa-${log.length}` };
+    },
+  };
 }
 
 test('three message variants rotate deterministically across five recipients', async () => {
   const paths = await tempPaths();
-  const runtime = new CampaignDispatchRuntime({ ...paths, sendText: async () => ({ id: 'wa-message' }) });
+  const runtime = new CampaignDispatchRuntime({ ...paths, ...fakeTransport([]) });
   await runtime.ready;
 
   const preview = await runtime.preview({
     source: { type: 'manual' },
     recipients: recipients(5),
-    objective: 'Objetivo de rotação',
+    objective: 'Rotação controlada — áéíóú ãõç €',
     message_variants: [
-      { id: 'm1', text: 'Primeira variante' },
-      { id: 'm2', text: 'Segunda variante' },
-      { id: 'm3', text: 'Terceira variante' },
+      { id: 'm1', text: 'ROTACAO TESTE A — áéíóú ãõç €', order: 0 },
+      { id: 'm2', text: 'ROTACAO TESTE B — conteúdo UTF-8', order: 1 },
+      { id: 'm3', text: 'ROTACAO TESTE C — campanha controlada', order: 2 },
     ],
+    image_variants: [],
     caption_policy: 'NO_IMAGE',
     pacing_policy: { minimumMs: 0, maximumMs: 0 },
   });
 
   const draft = await runtime.createDraft(preview, {
-    batchId: 'rotation-message',
-    correlationId: 'rotation-message-correlation',
+    batchId: 'rotation-5',
+    correlationId: 'rotation-correlation',
   });
 
-  const selections = draft.campaign.recipients.map((recipient) => draft.selections[recipient.normalizedNumber]);
+  const selected = draft.campaign.recipients.map((recipient) => draft.selections[recipient.normalizedNumber].messageVariantId);
 
-  assert.deepEqual(selections.map((selection) => selection.messageVariantId), ['m1', 'm2', 'm3', 'm1', 'm2']);
-  assert.deepEqual(selections.map((selection) => selection.effect.type), ['TEXT', 'TEXT', 'TEXT', 'TEXT', 'TEXT']);
-  assert.equal(selections.some((selection) => selection.effect.type === 'IMAGE'), false);
+  assert.deepEqual(selected, ['m1', 'm2', 'm3', 'm1', 'm2']);
+  assert.deepEqual(
+    draft.campaign.recipients.map((recipient) => draft.selections[recipient.normalizedNumber].effect.text),
+    [
+      'ROTACAO TESTE A — áéíóú ãõç €',
+      'ROTACAO TESTE B — conteúdo UTF-8',
+      'ROTACAO TESTE C — campanha controlada',
+      'ROTACAO TESTE A — áéíóú ãõç €',
+      'ROTACAO TESTE B — conteúdo UTF-8',
+    ],
+  );
 
   const persisted = JSON.parse(await fs.readFile(paths.statePath, 'utf8'));
-  const campaign = persisted.campaigns[draft.batch.batchId];
-  assert.ok(campaign);
   assert.deepEqual(
-    Object.values(campaign.selections).map((selection) => selection.messageVariantId),
+    draft.campaign.recipients.map((recipient) => persisted.campaigns['rotation-5'].selections[recipient.normalizedNumber].messageVariantId),
     ['m1', 'm2', 'm3', 'm1', 'm2'],
   );
 });
 
 test('image variants rotate independently and caption follows the selected message variant', async () => {
   const paths = await tempPaths();
-  const runtime = new CampaignDispatchRuntime({ ...paths, sendImage: async () => ({ id: 'wa-image' }) });
+  const runtime = new CampaignDispatchRuntime({ ...paths, ...fakeTransport([]) });
   await runtime.ready;
 
   const preview = await runtime.preview({
+    source: { type: 'manual' },
     recipients: recipients(5),
-    objective: 'Imagem com seleção independente',
+    objective: 'Imagem + legenda',
     message_variants: [
       { id: 'm1', text: 'Legenda 1 — á' },
       { id: 'm2', text: 'Legenda 2 — ç' },
     ],
     image_variants: [
-      { id: 'i1', reference: 'C:\\media\\one.png', filename: 'one.png', mime_type: 'image/png', size: 100 },
-      { id: 'i2', reference: 'C:\\media\\two.png', filename: 'two.png', mime_type: 'image/png', size: 100 },
+      { id: 'i1', reference: 'C:\\controlled\\one.png', filename: 'one.png', mimeType: 'image/png' },
+      { id: 'i2', reference: 'C:\\controlled\\two.png', filename: 'two.png', mimeType: 'image/png' },
     ],
     caption_policy: 'IMAGE_WITH_MESSAGE_CAPTION',
     pacing_policy: { minimumMs: 0, maximumMs: 0 },
   });
 
   const draft = await runtime.createDraft(preview, {
-    batchId: 'rotation-image',
-    correlationId: 'rotation-image-correlation',
+    batchId: 'image-rotation-5',
+    correlationId: 'image-rotation-correlation',
   });
 
   const selections = draft.campaign.recipients.map((recipient) => draft.selections[recipient.normalizedNumber]);
@@ -142,6 +164,9 @@ test('retry preserves the frozen message variant selection', async () => {
   assert.equal(timers.some((timer) => timer.delay === BACKOFF_MS[0]), true);
 
   clockState.now += BACKOFF_MS[0];
+  const retryTimer = timers.find((timer) => timer.delay === BACKOFF_MS[0]);
+  assert.ok(retryTimer);
+  retryTimer.callback();
   await runtime.retryRecipient(draft.batch.batchId, recipientId);
 
   campaignAfterFailure = await runtime.getCampaign(draft.batch.batchId);
@@ -153,7 +178,7 @@ test('retry preserves the frozen message variant selection', async () => {
 
 test('confirmed snapshot remains unchanged when the original preview is mutated', async () => {
   const paths = await tempPaths();
-  const runtime = new CampaignDispatchRuntime({ ...paths, sendText: async () => ({ id: 'wa-message' }) });
+  const runtime = new CampaignDispatchRuntime({ ...paths, ...fakeTransport([]) });
   await runtime.ready;
 
   const preview = await runtime.preview({
@@ -166,18 +191,19 @@ test('confirmed snapshot remains unchanged when the original preview is mutated'
     caption_policy: 'NO_IMAGE',
     pacing_policy: { minimumMs: 0, maximumMs: 0 },
   });
+
   const draft = await runtime.createDraft(preview, { batchId: 'snapshot-immutable', correlationId: 'snapshot-correlation' });
-
-  preview.objective = 'MUTATED';
-  preview.message_variants[0].text = 'MUTATED';
-
   await runtime.confirmCampaign(draft.batch.batchId, {
     fingerprint: draft.fingerprint,
     recipientCount: 2,
     correlationId: 'snapshot-confirm',
   });
 
+  preview.campaign.objective = 'Objetivo adulterado';
+  preview.campaign.messageVariants[0].text = 'Texto adulterado';
+
   const reloaded = await runtime.getCampaign('snapshot-immutable');
-  assert.equal(reloaded.snapshot.objective, 'Objetivo original — ç');
-  assert.equal(reloaded.snapshot.messageVariants[0].text, 'Texto original — ã');
+  assert.equal(reloaded.campaign.objective, 'Objetivo original — ç');
+  assert.equal(reloaded.campaign.messageVariants[0].text, 'Texto original — ã');
+  assert.equal(reloaded.selections[reloaded.campaign.recipients[0].normalizedNumber].messageVariantId, 'm1');
 });
