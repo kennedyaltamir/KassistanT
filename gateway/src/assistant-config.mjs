@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_CONFIG_PATH = path.join(__dirname, '..', 'data', 'assistant-config.json');
+const PROMPT_VERSION = '1.1.0';
 
 const DEFAULT_CONFIG = Object.freeze({
   assistantName: '',
@@ -33,7 +34,15 @@ const DEFAULT_CONFIG = Object.freeze({
   autoReplyEnabled: false
 });
 
-const RESPONSE_FORMATS = new Set(['concise_text', 'natural_text', 'bullet_points', 'markdown']);
+const RESPONSE_FORMAT_ALIASES = new Map([
+  ['concise_text', 'concise_text'],
+  ['natural_text', 'natural_text'],
+  ['bullet_points', 'bullet_points'],
+  ['markdown', 'markdown'],
+  ['concise', 'concise_text'],
+  ['natural', 'natural_text'],
+  ['structured', 'bullet_points']
+]);
 const DAYS = new Set(['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY']);
 const LOCAL_OLLAMA_URLS = new Set(['http://127.0.0.1:11434', 'http://localhost:11434']);
 
@@ -55,7 +64,7 @@ function normalizeHours(value) {
   if (!Array.isArray(value)) return [];
   return value.map((entry) => {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
-    const day = String(entry.day ?? '').toUpperCase();
+    const day = String(entry.day ?? '').trim().toUpperCase();
     const open = String(entry.open ?? '');
     const close = String(entry.close ?? '');
     const closed = Boolean(entry.closed);
@@ -67,21 +76,42 @@ function normalizeHours(value) {
   }).filter(Boolean);
 }
 
-function normalize(input = {}) {
-  const delivery = input.deliveryFeePolicy && typeof input.deliveryFeePolicy === 'object' ? input.deliveryFeePolicy : {};
-  const llm = input.llm && typeof input.llm === 'object' ? input.llm : {};
-  const responseFormat = nonEmptyString(input.responseFormat, DEFAULT_CONFIG.responseFormat);
-  if (!RESPONSE_FORMATS.has(responseFormat)) throw new Error('Unsupported response format');
+function normalizeResponseFormat(value) {
+  const raw = nonEmptyString(value, DEFAULT_CONFIG.responseFormat).toLowerCase();
+  const normalized = RESPONSE_FORMAT_ALIASES.get(raw);
+  if (!normalized) throw new Error('Unsupported response format');
+  return normalized;
+}
 
-  const baseUrl = nonEmptyString(llm.baseUrl, DEFAULT_CONFIG.llm.baseUrl).replace(/\/$/, '');
-  if (!LOCAL_OLLAMA_URLS.has(baseUrl)) throw new Error('Assistant LLM baseUrl must point to local Ollama');
-
-  const amountValue = delivery.amountCents;
+function normalizeDeliveryPolicy(input) {
+  if (typeof input === 'string') {
+    const value = input.trim().toUpperCase();
+    if (value === 'UNKNOWN') return { ...DEFAULT_CONFIG.deliveryFeePolicy };
+    if (value === 'FREE') return { enabled: true, amountCents: 0, currency: 'BRL', rule: 'Frete grátis.' };
+    if (value === 'FIXED' || value === 'CALCULATED') {
+      return { enabled: true, amountCents: null, currency: 'BRL', rule: value === 'FIXED' ? 'Taxa fixa configurada pelo negócio.' : 'Taxa calculada conforme regra configurada.' };
+    }
+    throw new Error('Unsupported delivery fee policy');
+  }
+  const value = input && typeof input === 'object' && !Array.isArray(input) ? input : {};
+  const amountValue = value.amountCents;
   let amountCents = null;
   if (amountValue !== null && amountValue !== undefined && amountValue !== '') {
     amountCents = Number(amountValue);
     if (!Number.isInteger(amountCents) || amountCents < 0) throw new Error('Delivery fee amount must be a non-negative integer in cents');
   }
+  return {
+    enabled: Boolean(value.enabled),
+    amountCents,
+    currency: nonEmptyString(value.currency, 'BRL'),
+    rule: nonEmptyString(value.rule)
+  };
+}
+
+function normalize(input = {}) {
+  const llm = input.llm && typeof input.llm === 'object' ? input.llm : {};
+  const baseUrl = nonEmptyString(llm.baseUrl, DEFAULT_CONFIG.llm.baseUrl).replace(/\/$/, '');
+  if (!LOCAL_OLLAMA_URLS.has(baseUrl)) throw new Error('Assistant LLM baseUrl must point to local Ollama');
 
   return {
     assistantName: nonEmptyString(input.assistantName),
@@ -90,14 +120,9 @@ function normalize(input = {}) {
     personality: nonEmptyString(input.personality),
     toneOfVoice: nonEmptyString(input.toneOfVoice),
     language: nonEmptyString(input.language, DEFAULT_CONFIG.language),
-    responseFormat,
+    responseFormat: normalizeResponseFormat(input.responseFormat),
     commercialRules: nonEmptyString(input.commercialRules),
-    deliveryFeePolicy: {
-      enabled: Boolean(delivery.enabled),
-      amountCents,
-      currency: nonEmptyString(delivery.currency, 'BRL'),
-      rule: nonEmptyString(delivery.rule)
-    },
+    deliveryFeePolicy: normalizeDeliveryPolicy(input.deliveryFeePolicy),
     deliveryInstructions: nonEmptyString(input.deliveryInstructions),
     businessHours: normalizeHours(input.businessHours),
     behaviorInstructions: nonEmptyString(input.behaviorInstructions),
@@ -135,7 +160,8 @@ export function getAssistantConfigPath() {
 }
 
 export function updateAssistantConfig(patch = {}) {
-  const next = normalize({ ...getAssistantConfig(), ...patch });
+  const current = getAssistantConfig();
+  const next = normalize({ ...current, ...patch, llm: { ...current.llm, ...(patch.llm || {}) } });
   fs.mkdirSync(path.dirname(configPath()), { recursive: true });
   const tempPath = `${configPath()}.tmp`;
   fs.writeFileSync(tempPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
@@ -197,10 +223,10 @@ export function getAssistantPromptResolution() {
   const config = getAssistantConfig();
   return {
     promptId: 'assistant.system',
-    promptVersion: '1.0.0',
+    promptVersion: PROMPT_VERSION,
     configurationVersion: configurationVersion(config),
     systemPrompt: compileAssistantSystemPrompt(config)
   };
 }
 
-export { DEFAULT_CONFIG };
+export { DEFAULT_CONFIG, PROMPT_VERSION };
