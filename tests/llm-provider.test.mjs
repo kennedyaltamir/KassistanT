@@ -17,10 +17,16 @@ function resolvePnpm() {
     };
   }
 
-  return {
-    command: "pnpm.cmd",
-    args: ["exec", "tsx", "--test", testFile]
-  };
+  const npmRoot = process.env.APPDATA;
+  if (npmRoot) {
+    const pnpmCjs = path.join(npmRoot, "npm", "node_modules", "pnpm", "bin", "pnpm.cjs");
+    return {
+      command: process.execPath,
+      args: [pnpmCjs, "exec", "tsx", "--test", testFile]
+    };
+  }
+
+  throw new Error("Unable to resolve pnpm on Windows: APPDATA is unavailable.");
 }
 
 const resolved = resolvePnpm();
