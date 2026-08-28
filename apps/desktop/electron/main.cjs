@@ -22,6 +22,18 @@ function createMainWindow() {
   });
 
   window.loadFile(path.join(__dirname, "../src/index.html"));
+  window.webContents.on("did-finish-load", () => {
+    try {
+      const featureUiPath = path.join(__dirname, "../src/assistant-products-ui.js");
+      const featureUi = fs.readFileSync(featureUiPath, "utf8");
+      void window.webContents.executeJavaScript(featureUi, true);
+    } catch (error) {
+      console.error(
+        "[KassisT Desktop] failed to load feature UI:",
+        error instanceof Error ? error.stack ?? error.message : error
+      );
+    }
+  });
 }
 
 function startGateway() {
