@@ -124,6 +124,7 @@ export function sanitizeUnverifiedIdentityInReply(reply, context = {}) {
 
   return sanitized
     .replace(/\s+,/g, ',')
+    .replace(/\s+([!?])/g, '$1')
     .replace(/,\s*(?=[.!?]|$)/g, '')
     .replace(/[ \t]{2,}/g, ' ')
     .replace(/\n[ \t]+/g, '\n')
