@@ -12,11 +12,18 @@ Change Unit executed on `MVP2-implementandoQRCODE`, based on `MVP2 @ 2aa27a93a8f
 4. The existing Gateway auto-reply previously used only the in-memory message ring as context. It now retrieves a sanitized persisted context through the SQLite persistence service before calling Ollama.
 5. The current identity implementation still derives Customer resolution from `message.jid`/`phone_normalized`. This remains explicitly marked `LEGACY_JID_DERIVED` and is not promoted to the proposed canonical Identity/Binding contract.
 6. The desktop runtime requires an explicit `apps/desktop/database/migrations` path when starting SQLite migrations. The default relative path in the runtime was corrected at the Desktop entry point.
+7. The Assistant renderer had been sending UI-only aliases (`natural`, `concise`, `structured`) and primitive delivery/hour values while the Gateway contract was structured. The Gateway now normalizes those compatible renderer aliases into canonical values and preserves integer-cent delivery amounts.
+8. The Electron renderer is sandboxed with `contextIsolation: true` and `nodeIntegration: false`. There was no existing product-image storage strategy. A local-only image picker was therefore added to the Electron main process; selected images are copied into the application user-data directory and the persisted Product stores the resulting opaque local `imageReference`.
+9. The Conversations renderer was using legacy `jid`, `name`, and `lastMessage` shapes that did not match the persisted API response. The renderer now consumes `externalThreadId`, `customer.name`, `customer.phoneNormalized`, and `lastMessage.text` from the existing context API.
+10. Auto-reply authorization must be rechecked against the persisted Conversation at execution time. The runtime now requires `ownership=AI`, `aiState=ACTIVE`, and `lifecycleState=OPEN`; the cooldown timestamp is recorded only after a successful WhatsApp send.
 
 ## Decisions
 
 - Assistant configuration is structured and persisted as JSON by Gateway, with a compiled versioned system prompt. It is not represented solely by a free-form prompt.
-- Product CRUD is exposed over HTTP through the existing SQLite persistence runtime. Prices remain integer cents; stock is integer quantity; availability is explicit; image is an opaque product reference.
+- Renderer configuration aliases are tolerated only as an input-normalization boundary; canonical persisted values remain `concise_text`, `natural_text`, `bullet_points`, and `markdown`.
+- Delivery price remains integer cents (`amountCents`) and is the only authorized numeric delivery fee representation supplied to the prompt.
+- Product CRUD is exposed over HTTP through the existing SQLite persistence runtime. Prices remain integer cents; stock is integer quantity; availability is explicit; image is an opaque local product reference.
+- Product image bytes are owned by the Desktop main process rather than the Renderer. The Renderer receives only the selected stored reference through the existing `contextBridge`.
 - Conversation context is a read projection of existing Customer, Conversation, Message, Customer Address, active Order and available Product records.
 - Conversation analysis emits structured candidates with `key`, `value`, `confidence`, `resolution_status`, `source_message_id` and observation time. Extraction is not confirmation.
 - Image interpretation uses a local Ollama multimodal-capable model. Audio transcription uses a locally installed Whisper-compatible command. Missing provider capabilities are reported as unavailable/failure instead of fabricated.
@@ -27,11 +34,12 @@ Change Unit executed on `MVP2-implementandoQRCODE`, based on `MVP2 @ 2aa27a93a8f
 - Baileys and auth state remain in Gateway.
 - LLM context excludes raw authentication state, credentials, private/signal keys and transport secrets.
 - Customer-specific claims use the runtime-provided context.
+- Product image selection does not grant the Renderer Node.js filesystem access; file selection and copying are performed by Electron main-process IPC.
 - Dispatch import never directly sends messages.
 
 ## Validation boundary
 
-The repository-side changes above have not been treated as local functional PASS. Local execution of `pnpm test`, `pnpm qa:gates`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, real Ollama, real WhatsApp, real audio and real image processing still requires the user's Windows environment.
+The repository-side changes above have not been treated as local functional PASS. `node --check` was executed against the published feature UI source during the implementation. GitHub Actions for the branch reported success for the earlier baseline of this Change Unit; the newly created commits were pending at the time of this record. Local execution of `pnpm test`, `pnpm qa:gates`, `pnpm lint`, `pnpm typecheck`, `pnpm build`, real Ollama, real WhatsApp, real audio and real image processing still requires the user's Windows environment.
 
 ## Related commits
 
@@ -44,7 +52,15 @@ The repository-side changes above have not been treated as local functional PASS
 - `18b70574198a55c9d011573e6f1d9d41ea2e91cd` — Gateway multimodal processing and analysis module
 - `446b06f04d302a41bd8dc1b665ba2c91b38832de` — CSV/manual dispatch preview endpoints
 - `20027eb8f4155fa38cb91929eae18692aeb08bac` — dispatch input validation tests
+- `17ded4a6ed3edb035394d3fc9266d16257bb65cb` — canonical Assistant renderer payload normalization
+- `5afdc520537323ee75a3b690689c43b89ccd2323` — Assistant configuration normalization tests
+- `98663c74e5c1526d38b470480d5e83e53c091479` — Assistant/Conversation/Dispatch renderer contract fixes
+- `754918ea15d7359988f6e1892e8407e150456f5c` — local product image storage bridge
+- `cf51c9e7240abfa9e74af849ebe2330cc4e94053` — product image picker context bridge
+- `8fdbef8ba7d306dc9e4d4fbd9caef22d919b9cb8` — product photo selection and Conversation field binding
+- `5a6b4fba801fa9683fd7d7cf6834b1bdb40207bd` — persisted Conversation AI authorization and post-send cooldown behavior
+- `3222b1ece9783b507c03308053247380ae5b5392` — UI contract regression tests
 
 ## Status
 
-BACKEND IMPLEMENTATION ADVANCED / UI AND REAL LOCAL FUNCTIONAL VALIDATION REMAINING.
+BACKEND IMPLEMENTATION ADVANCED / ASSISTANT + PRODUCT + CONVERSATION UI CONTRACTS IMPROVED / REAL LOCAL FUNCTIONAL VALIDATION REMAINING.
