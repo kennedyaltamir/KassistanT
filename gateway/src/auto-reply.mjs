@@ -119,7 +119,7 @@ function isConversationAiAuthorized(context) {
   return conversation.ownership === 'AI' && conversation.aiState === 'ACTIVE' && conversation.lifecycleState === 'OPEN';
 }
 
-function identitySafetyInstruction(identityBindingStatus) {
+export function identitySafetyInstruction(identityBindingStatus) {
   if (identityBindingStatus === 'CONFIRMED') return '';
   return [
     'IDENTITY_SAFETY',
