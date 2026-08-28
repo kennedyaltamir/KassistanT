@@ -7,6 +7,7 @@ import { clearConversationPolicy, getAutoReplyStatus, getConversationPolicyStatu
 import { getAiConfig, updateAiConfig } from './ai-config.mjs';
 import { getAssistantConfig, getAssistantPromptResolution, updateAssistantConfig } from './assistant-config.mjs';
 import { analyzeConversation } from './conversation-analysis.mjs';
+import { parseCsv, createManualPreview } from './dispatch-input.mjs';
 import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, updateLocalModel } from './llm.mjs';
 import { getLlmSettings, updateLlmSettings } from './llm-settings.mjs';
 import { deleteCredential, listCredentialStatus, setCredential } from './credentials.mjs';
@@ -43,12 +44,8 @@ function parseBody(request) {
   });
 }
 
-function writeSse(response, event) {
-  response.write(`event: ${String(event.type)}\ndata: ${JSON.stringify(event)}\n\n`);
-}
-
+function writeSse(response, event) { response.write(`event: ${String(event.type)}\ndata: ${JSON.stringify(event)}\n\n`); }
 function sanitizedError(error) { return error instanceof Error ? error.message : String(error); }
-
 function buildConfirmInput(body, correlation) {
   const input = { fingerprint: body.fingerprint, recipientCount: body.recipient_count, correlationId: correlation };
   if (typeof body.confirmed_at === 'string') input.confirmedAt = body.confirmed_at;
@@ -57,7 +54,6 @@ function buildConfirmInput(body, correlation) {
 
 export function createHttpServer({ readinessChecks = {}, dispatchRuntime = createBatchDispatchRuntime() } = {}) {
   const checkReadiness = createReadinessChecker(readinessChecks);
-
   return createServer(async (request, response) => {
     const id = correlationId(request);
     response.setHeader('x-correlation-id', id);
@@ -66,9 +62,7 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       if (request.method === 'GET' && url.pathname === '/health') return json(response, 200, { status: 'ok', correlation_id: id });
       if (request.method === 'GET' && url.pathname === '/ready') {
         const result = await checkReadiness();
-        return result.ready
-          ? json(response, 200, { status: 'ready', checks: result.checks, correlation_id: id })
-          : json(response, 503, { error: { code: 'not_ready', message: 'Gateway dependencies are not ready.', retryable: true, correlation_id: id }, checks: result.checks });
+        return result.ready ? json(response, 200, { status: 'ready', checks: result.checks, correlation_id: id }) : json(response, 503, { error: { code: 'not_ready', message: 'Gateway dependencies are not ready.', retryable: true, correlation_id: id }, checks: result.checks });
       }
 
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/status') return json(response, 200, getStatus());
@@ -88,31 +82,23 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
         } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
 
-      if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/config') {
-        const config = getAiConfig();
-        return json(response, 200, { ...config, assistant: getAssistantConfig(), configuredConversations: listConversationPolicies().length });
-      }
+      if (request.method === 'GET' && url.pathname === '/api/whatsapp/ai/config') return json(response, 200, { ...getAiConfig(), assistant: getAssistantConfig(), configuredConversations: listConversationPolicies().length });
       if (request.method === 'PUT' && url.pathname === '/api/whatsapp/ai/config') {
         try {
           const body = await parseBody(request);
           const allowed = ['enabled', 'baseUrl', 'model', 'timeoutMs', 'contextMessages', 'cooldownMs', 'systemPrompt'];
-          const patch = Object.fromEntries(Object.entries(body).filter(([key]) => allowed.includes(key)));
-          return json(response, 200, updateAiConfig(patch));
+          return json(response, 200, updateAiConfig(Object.fromEntries(Object.entries(body).filter(([key]) => allowed.includes(key)))));
         } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/llm/settings') return json(response, 200, getLlmSettings());
       if (request.method === 'PUT' && url.pathname === '/api/llm/settings') {
-        try { return json(response, 200, updateLlmSettings(await parseBody(request))); }
-        catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
+        try { return json(response, 200, updateLlmSettings(await parseBody(request))); } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
       if (request.method === 'GET' && url.pathname === '/api/llm/models') return json(response, 200, { ...await getLlmProviderStatus(), inventory: await getLocalModelInventory() });
       if (request.method === 'POST' && url.pathname === '/api/llm/models/update') {
-        try {
-          const body = await parseBody(request);
-          const model = typeof body.model === 'string' ? body.model.trim() : '';
-          return json(response, 200, model ? await updateLocalModel(model) : await updateAllLocalModels());
-        } catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
+        try { const body = await parseBody(request); const model = typeof body.model === 'string' ? body.model.trim() : ''; return json(response, 200, model ? await updateLocalModel(model) : await updateAllLocalModels()); }
+        catch (error) { return json(response, 503, { error: sanitizedError(error) }); }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/products') {
@@ -124,15 +110,9 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       const productMatch = url.pathname.match(/^\/api\/products\/([^/]+)$/);
       if (productMatch) {
         const productId = decodeURIComponent(productMatch[1]);
-        if (request.method === 'GET') {
-          try { return json(response, 200, await getProduct(productId)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
-        }
-        if (request.method === 'PUT') {
-          try { return json(response, 200, await updateProduct(productId, await parseBody(request))); } catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
-        }
-        if (request.method === 'DELETE') {
-          try { return json(response, 200, await deleteProduct(productId)); } catch (error) { return json(response, 409, { error: sanitizedError(error) }); }
-        }
+        if (request.method === 'GET') { try { return json(response, 200, await getProduct(productId)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); } }
+        if (request.method === 'PUT') { try { return json(response, 200, await updateProduct(productId, await parseBody(request))); } catch (error) { return json(response, 400, { error: sanitizedError(error) }); } }
+        if (request.method === 'DELETE') { try { return json(response, 200, await deleteProduct(productId)); } catch (error) { return json(response, 409, { error: sanitizedError(error) }); } }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/conversations') {
@@ -142,8 +122,16 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
         try { return json(response, 200, await getConversationContext(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 50)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
       }
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/conversation-analysis') {
-        try { return json(response, 200, await analyzeConversation(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 500)); }
-        catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
+        try { return json(response, 200, await analyzeConversation(url.searchParams.get('jid') || '', url.searchParams.get('limit') || 500)); } catch (error) { return json(response, 404, { error: sanitizedError(error) }); }
+      }
+
+      if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/preview/csv') {
+        try { const body = await parseBody(request); return json(response, 200, parseCsv(String(body.csv ?? ''))); }
+        catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
+      }
+      if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/preview/manual') {
+        try { const body = await parseBody(request); return json(response, 200, createManualPreview(body.contacts)); }
+        catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
       }
 
       if (request.method === 'GET' && url.pathname === '/api/credentials') return json(response, 200, { credentials: listCredentialStatus(getCredentialValidationStatuses()) });
@@ -185,14 +173,10 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       const batchMatch = url.pathname.match(/^\/api\/whatsapp\/dispatch\/batches\/([^/]+)$/);
       if (batchMatch) {
         const batchId = batchMatch[1];
-        if (request.method === 'GET') {
-          try { return json(response, 200, { batch: await dispatchRuntime.getBatch(batchId) }); }
-          catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); }
-        }
+        if (request.method === 'GET') { try { return json(response, 200, { batch: await dispatchRuntime.getBatch(batchId) }); } catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); } }
         if (request.method === 'POST') {
           try {
-            const actionBody = await parseBody(request);
-            const action = String(actionBody.action ?? '');
+            const actionBody = await parseBody(request); const action = String(actionBody.action ?? '');
             if (action === 'confirm') return json(response, 200, { batch: await dispatchRuntime.confirmBatch(batchId, buildConfirmInput(actionBody, id)) });
             if (action === 'queue') return json(response, 202, { batch: await dispatchRuntime.queueBatch(batchId, { causationId: id }) });
             if (action === 'cancel') return json(response, 200, { batch: await dispatchRuntime.cancelBatch(batchId) });
@@ -205,13 +189,10 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/events') {
         response.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache', connection: 'keep-alive' });
         response.write(`event: status\ndata: ${JSON.stringify({ type: 'connection', status: getStatus() })}\n\n`);
-        const unsubscribe = subscribe(event => writeSse(response, event));
-        request.on('close', unsubscribe);
-        return;
+        const unsubscribe = subscribe(event => writeSse(response, event)); request.on('close', unsubscribe); return;
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/connect') {
-        try { await connect(); return json(response, 202, getStatus()); }
-        catch (error) { return json(response, 500, { error: sanitizedError(error), status: getStatus() }); }
+        try { await connect(); return json(response, 202, getStatus()); } catch (error) { return json(response, 500, { error: sanitizedError(error), status: getStatus() }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/logout') {
         try { await logout(); return json(response, 200, getStatus()); } catch (error) { return json(response, 500, { error: sanitizedError(error) }); }
