@@ -50,8 +50,36 @@ test('normalizes structured assistant configuration and persists it', async () =
     assert.match(module.compileAssistantSystemPrompt(saved), /Never invent product/);
     const resolution = module.getAssistantPromptResolution();
     assert.equal(resolution.promptId, 'assistant.system');
-    assert.equal(resolution.promptVersion, '1.0.0');
+    assert.equal(resolution.promptVersion, '1.1.0');
     assert.ok(resolution.configurationVersion);
+  } finally {
+    restore();
+  }
+});
+
+test('accepts renderer response format aliases and delivery policy modes', async () => {
+  const { module, restore } = await loadWithTempConfig();
+  try {
+    const saved = module.updateAssistantConfig({
+      responseFormat: 'structured',
+      deliveryFeePolicy: 'FIXED',
+      llm: { model: 'qwen3:14b', baseUrl: 'http://localhost:11434' }
+    });
+    assert.equal(saved.responseFormat, 'bullet_points');
+    assert.equal(saved.deliveryFeePolicy.enabled, true);
+    assert.equal(saved.deliveryFeePolicy.amountCents, null);
+    assert.equal(saved.llm.model, 'qwen3:14b');
+    assert.equal(saved.llm.baseUrl, 'http://localhost:11434');
+  } finally {
+    restore();
+  }
+});
+
+test('rejects invalid delivery fee cents and business hours', async () => {
+  const { module, restore } = await loadWithTempConfig();
+  try {
+    assert.throws(() => module.updateAssistantConfig({ deliveryFeePolicy: { enabled: true, amountCents: 1.5 } }), /non-negative integer in cents/);
+    assert.throws(() => module.updateAssistantConfig({ businessHours: [{ day: 'MONDAY', open: '9:00', close: '18:00' }] }), /Invalid business hour/);
   } finally {
     restore();
   }
