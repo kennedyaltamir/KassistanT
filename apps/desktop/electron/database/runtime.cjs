@@ -356,7 +356,7 @@ function startPersistenceServer(options = {}) {
   const storeId = options.storeId || process.env.KASSIST_STORE_ID || "default-store";
   const storeName = options.storeName || process.env.KASSIST_STORE_NAME || "KassisT";
   const host = options.host || process.env.KASSIST_PERSISTENCE_HOST || "127.0.0.1";
-  const port = Number(options.port || process.env.KASSIST_PERSISTENCE_PORT || 3211);
+  const port = Number(options.port ?? process.env.KASSIST_PERSISTENCE_PORT ?? 3211);
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   const database = new Database(filePath);
