@@ -23,6 +23,7 @@ import { analyzeImageBuffer, transcribeAudioBuffer } from './multimodal.mjs';
 
 const logger = pino({ level: process.env.KASSIST_WA_LOG_LEVEL ?? 'warn' });
 const authDir = path.resolve(process.env.KASSIST_WA_AUTH_DIR ?? './.data/whatsapp/auth');
+const configuredMediaRoot = process.env.KASSIST_MEDIA_ROOT ? path.resolve(process.env.KASSIST_MEDIA_ROOT) : null;
 
 const state = {
   connection: 'DISCONNECTED', qr: null, me: null, lastError: null, messages: [], messageIds: new Set()
@@ -268,6 +269,50 @@ export async function sendText(to, text) {
   if (!result) throw new Error('WhatsApp transport did not return a message');
   const snapshot = snapshotMessage(result, 'OUTBOUND');
   await persistSnapshot(snapshot); recordMessage(snapshot); return snapshot;
+}
+
+function mediaMimeType(reference) {
+  const ext = path.extname(reference).toLowerCase();
+  const byExtension = {
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png': 'image/png',
+    '.webp': 'image/webp',
+    '.gif': 'image/gif',
+  };
+  return byExtension[ext] ?? null;
+}
+
+function isInsideRoot(reference, root) {
+  const relative = path.relative(root, reference);
+  return relative === '' || (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative));
+}
+
+/** @param {string} to @param {string} imageReference @param {string|null} [caption] */
+export async function sendImage(to, imageReference, caption = null) {
+  if (!socket || state.connection !== 'CONNECTED') throw new Error('WhatsApp transport is not connected');
+  const reference = path.resolve(assertMediaReference(imageReference));
+  if (!configuredMediaRoot) throw new Error('Controlled media transport root is not configured');
+  if (!isInsideRoot(reference, configuredMediaRoot)) throw new Error('Image reference is outside the authorized media root');
+  const stat = await fs.stat(reference).catch((error) => { throw new Error(`Image asset is unavailable: ${error instanceof Error ? error.message : String(error)}`); });
+  if (!stat.isFile() || stat.size <= 0) throw new Error('Image asset must be a non-empty file');
+  const mimetype = mediaMimeType(reference);
+  if (!mimetype) throw new Error('Unsupported image format');
+  const data = await fs.readFile(reference);
+  const jid = normalizeRecipient(to);
+  const body = caption == null ? null : String(caption).trim();
+  const result = await socket.sendMessage(jid, { image: data, mimetype, ...(body ? { caption: body } : {}) });
+  if (!result) throw new Error('WhatsApp image transport did not return a message');
+  const snapshot = snapshotMessage(result, 'OUTBOUND');
+  await persistSnapshot(snapshot);
+  recordMessage(snapshot);
+  return snapshot;
+}
+
+function assertMediaReference(value) {
+  const result = String(value ?? '').trim();
+  if (!result) throw new Error('Image reference is required');
+  return result;
 }
 
 export { normalizeRecipient };
