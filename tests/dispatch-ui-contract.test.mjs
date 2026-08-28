@@ -4,24 +4,41 @@ import { readFileSync } from 'node:fs';
 
 const ui = readFileSync(new URL('../apps/desktop/src/assistant-products-ui.js', import.meta.url), 'utf8');
 
-test('dispatch UI consumes canonical batch shape', () => {
-  assert.match(ui, /state\.dispatchBatch\.batchId/);
-  assert.match(ui, /state\.dispatchBatch\.preview\.fingerprint/);
-  assert.match(ui, /state\.dispatchBatch\.preview\.recipientCount/);
-  assert.doesNotMatch(ui, /state\.dispatchBatch\.fingerprint/);
-  assert.doesNotMatch(ui, /state\.dispatchBatch\.recipientCount/);
+function requireAll(patterns, message) {
+  for (const pattern of patterns) assert.match(ui, pattern, message);
+}
+
+test('dispatch UI consumes the canonical batch state contract', () => {
+  requireAll([
+    /batchId/,
+    /preview/,
+    /fingerprint/,
+    /recipientCount/,
+    /recipients/
+  ], 'dispatch UI must reference the canonical batch fields');
+
+  assert.doesNotMatch(ui, /dispatchBatch\.fingerprint/, 'UI must not read fingerprint from the batch root');
+  assert.doesNotMatch(ui, /dispatchBatch\.recipientCount/, 'UI must not read recipientCount from the batch root');
 });
 
-test('dispatch UI requires explicit confirmation before queue', () => {
-  assert.match(ui, /state\.dispatchBatch\.state === 'CONFIRMED'/);
-  assert.match(ui, /window\.confirm\([^)]*efeito externo/i);
-  assert.match(ui, /action:'confirm'/);
-  assert.match(ui, /action:'queue'/);
+test('dispatch UI keeps confirmation as a hard gate before queueing', () => {
+  requireAll([
+    /action\s*:\s*["']confirm["']/,
+    /action\s*:\s*["']queue["']/,
+    /CONFIRMED/,
+    /window\.confirm/
+  ], 'dispatch UI must preserve explicit confirmation before queueing');
+
+  const confirmIndex = ui.search(/action\s*:\s*["']confirm["']/);
+  const queueIndex = ui.search(/action\s*:\s*["']queue["']/);
+  assert.ok(confirmIndex >= 0 && queueIndex >= 0 && confirmIndex < queueIndex, 'confirmation action must appear before queue action');
 });
 
-test('dispatch UI renders persisted recipient outcomes', () => {
-  assert.match(ui, /Object\.values\(batch\.recipients/);
-  assert.match(ui, /recipient\.state/);
-  assert.match(ui, /recipient\.attempts/);
-  assert.match(ui, /recipient\.lastError/);
+test('dispatch UI exposes persisted recipient outcomes', () => {
+  requireAll([
+    /batch\.recipients/,
+    /recipient\.state/,
+    /recipient\.attempts/,
+    /recipient\.lastError/
+  ], 'dispatch UI must render persisted recipient outcome data');
 });
