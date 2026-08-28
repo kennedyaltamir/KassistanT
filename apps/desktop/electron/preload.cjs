@@ -2,7 +2,8 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("kassist", {
   version: "bootstrap-0.1.0",
-  selectProductImage: () => ipcRenderer.invoke("kassist:select-product-image")
+  selectProductImage: () => ipcRenderer.invoke("kassist:select-product-image"),
+  selectCampaignImage: () => ipcRenderer.invoke("kassist:select-campaign-image")
 });
 
 window.addEventListener("DOMContentLoaded", () => {
