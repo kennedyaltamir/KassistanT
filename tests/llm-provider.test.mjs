@@ -6,7 +6,10 @@ const testFile = path.join(root, "apps", "desktop", "electron", "providers", "ll
 
 function resolvePnpm() {
   if (process.platform !== "win32") {
-    return { command: "pnpm", args: ["exec", "tsx", "--test", testFile] };
+    return {
+      command: "pnpm",
+      args: ["exec", "tsx", "--test", testFile]
+    };
   }
 
   const npmExecPath = process.env.npm_execpath;
@@ -17,16 +20,15 @@ function resolvePnpm() {
     };
   }
 
-  const npmRoot = process.env.APPDATA;
-  if (npmRoot) {
-    const pnpmCjs = path.join(npmRoot, "npm", "node_modules", "pnpm", "bin", "pnpm.cjs");
-    return {
-      command: process.execPath,
-      args: [pnpmCjs, "exec", "tsx", "--test", testFile]
-    };
+  const comspec = process.env.ComSpec || process.env.COMSPEC;
+  if (!comspec) {
+    throw new Error("Unable to resolve cmd.exe on Windows: ComSpec is unavailable.");
   }
 
-  throw new Error("Unable to resolve pnpm on Windows: APPDATA is unavailable.");
+  return {
+    command: comspec,
+    args: ["/d", "/s", "/c", `pnpm exec tsx --test "${testFile}"`]
+  };
 }
 
 const resolved = resolvePnpm();
