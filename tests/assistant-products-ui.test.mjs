@@ -45,5 +45,5 @@ test('dispatch remains preview-first and confirmation-gated', () => {
   assert.match(ui, /dispatch\/batches/);
   assert.match(ui, /action:'confirm'/);
   assert.match(ui, /action:'queue'/);
-  assert.match(ui, /fingerprint:state\.dispatchBatch\.fingerprint/);
+  assert.match(ui, /fingerprint:state\.dispatchBatch\.preview\??\.fingerprint/);
 });
