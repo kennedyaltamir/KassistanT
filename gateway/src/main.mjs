@@ -1,4 +1,5 @@
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 export function getDevelopmentMediaRoot(env = process.env, platform = process.platform) {
   if (platform !== 'win32') return null;
@@ -24,7 +25,7 @@ export function applyDevelopmentRuntimeEnvironment(
 
 export function isMainEntrypoint(argvPath = process.argv[1], moduleUrl = import.meta.url) {
   if (!argvPath) return false;
-  return path.resolve(argvPath) === path.resolve(new URL(moduleUrl).pathname);
+  return pathToFileURL(path.resolve(argvPath)).href === moduleUrl;
 }
 
 applyDevelopmentRuntimeEnvironment();
