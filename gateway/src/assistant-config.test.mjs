@@ -46,11 +46,18 @@ test('normalizes structured assistant configuration and persists it', async () =
     assert.equal(saved.deliveryFeePolicy.amountCents, 799);
     assert.equal(saved.businessHours[0].day, 'MONDAY');
     assert.ok(fs.existsSync(file));
-    assert.match(module.compileAssistantSystemPrompt(saved), /Ana/);
-    assert.match(module.compileAssistantSystemPrompt(saved), /Never invent product/);
+    const prompt = module.compileAssistantSystemPrompt(saved);
+    assert.match(prompt, /Ana/);
+    assert.match(prompt, /Never invent product/);
+    for (const section of [
+      'ASSISTANT_IDENTITY', 'BUSINESS_IDENTITY', 'ROLE', 'PERSONALITY', 'TONE',
+      'COMMERCIAL_POLICIES', 'DELIVERY_POLICIES', 'BUSINESS_HOURS', 'PRODUCT_CATALOG',
+      'CUSTOMER_CONTEXT', 'CONVERSATION_CONTEXT', 'AUTHORIZED_MEMORY', 'CURRENT_STATE',
+      'RESPONSE_POLICY', 'LIMITATIONS', 'TOOL_POLICY', 'IDENTITY_SAFETY_POLICY'
+    ]) assert.match(prompt, new RegExp(section));
     const resolution = module.getAssistantPromptResolution();
     assert.equal(resolution.promptId, 'assistant.system');
-    assert.equal(resolution.promptVersion, '1.1.0');
+    assert.equal(resolution.promptVersion, '1.2.0');
     assert.ok(resolution.configurationVersion);
   } finally {
     restore();
