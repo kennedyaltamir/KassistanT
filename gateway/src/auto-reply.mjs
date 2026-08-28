@@ -199,7 +199,7 @@ async function handleMessage(message) {
   if (!message || message.direction !== 'INBOUND') return;
   if (!isSupportedRecipient(message.jid)) return;
   if (message.jid === null) return;
-  if (!message.text?.trim()) return;
+  if (!message.text?.trim() && message.message_type === 'TEXT') return;
 
   const jid = message.jid;
   const policy = getConversationPolicy(jid);
