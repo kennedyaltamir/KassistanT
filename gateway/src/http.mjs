@@ -53,7 +53,16 @@ function buildConfirmInput(body, correlation) {
   return input;
 }
 
-export function createHttpServer({ readinessChecks = {}, dispatchRuntime = createBatchDispatchRuntime(), campaignRuntime = createCampaignDispatchRuntime() } = {}) {
+export function createHttpServer({ readinessChecks = {}, dispatchRuntime, campaignRuntime } = {}) {
+  const getDispatchRuntime = () => {
+    dispatchRuntime ??= createBatchDispatchRuntime();
+    return dispatchRuntime;
+  };
+
+  const getCampaignRuntime = () => {
+    campaignRuntime ??= createCampaignDispatchRuntime();
+    return campaignRuntime;
+  };
   const checkReadiness = createReadinessChecker(readinessChecks);
   return createServer(async (request, response) => {
     const id = correlationId(request);
@@ -136,17 +145,17 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       }
 
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/campaign/preview') {
-        try { const body = await parseBody(request); return json(response, 200, await campaignRuntime.preview(body)); }
+        try { const body = await parseBody(request); return json(response, 200, await getCampaignRuntime().preview(body)); }
         catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
       }
       if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/campaigns') {
-        try { return json(response, 200, { campaigns: await campaignRuntime.listCampaigns() }); }
+        try { return json(response, 200, { campaigns: await getCampaignRuntime().listCampaigns() }); }
         catch (error) { return json(response, 503, { error: sanitizedError(error), correlation_id: id }); }
       }
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/campaigns') {
         try {
           const body = await parseBody(request);
-          const result = await campaignRuntime.createDraft(body.preview, { correlationId: id, ...(typeof body.batch_id === 'string' ? { batchId: body.batch_id } : {}) });
+          const result = await getCampaignRuntime().createDraft(body.preview, { correlationId: id, ...(typeof body.batch_id === 'string' ? { batchId: body.batch_id } : {}) });
           return json(response, 201, result);
         } catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
       }
@@ -154,16 +163,16 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
       if (campaignMatch) {
         const campaignId = decodeURIComponent(campaignMatch[1]);
         if (request.method === 'GET') {
-          try { return json(response, 200, await campaignRuntime.getCampaign(campaignId)); }
+          try { return json(response, 200, await getCampaignRuntime().getCampaign(campaignId)); }
           catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); }
         }
         if (request.method === 'POST') {
           try {
             const actionBody = await parseBody(request);
             const action = String(actionBody.action ?? '');
-            if (action === 'confirm') return json(response, 200, await campaignRuntime.confirmCampaign(campaignId, buildConfirmInput(actionBody, id)));
-            if (action === 'queue') return json(response, 202, await campaignRuntime.queueCampaign(campaignId, { causationId: id }));
-            if (action === 'cancel') return json(response, 200, await campaignRuntime.cancelCampaign(campaignId));
+            if (action === 'confirm') return json(response, 200, await getCampaignRuntime().confirmCampaign(campaignId, buildConfirmInput(actionBody, id)));
+            if (action === 'queue') return json(response, 202, await getCampaignRuntime().queueCampaign(campaignId, { causationId: id }));
+            if (action === 'cancel') return json(response, 200, await getCampaignRuntime().cancelCampaign(campaignId));
             return json(response, 400, { error: 'Unsupported campaign action', correlation_id: id });
           } catch (error) { return json(response, 409, { error: sanitizedError(error), correlation_id: id }); }
         }
@@ -196,25 +205,25 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime = creat
         catch (error) { return json(response, 400, { error: sanitizedError(error) }); }
       }
 
-      if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/batches') return json(response, 200, { batches: await dispatchRuntime.listBatches() });
+      if (request.method === 'GET' && url.pathname === '/api/whatsapp/dispatch/batches') return json(response, 200, { batches: await getDispatchRuntime().listBatches() });
       if (request.method === 'POST' && url.pathname === '/api/whatsapp/dispatch/batches') {
         try {
           const body = await parseBody(request);
           if (!isDispatchPreview(body.preview)) throw new Error('A valid PREVIEW is required');
-          const batch = await dispatchRuntime.createDraft(body.preview, { correlationId: id, ...(typeof body.batch_id === 'string' ? { batchId: body.batch_id } : {}) });
+          const batch = await getDispatchRuntime().createDraft(body.preview, { correlationId: id, ...(typeof body.batch_id === 'string' ? { batchId: body.batch_id } : {}) });
           return json(response, 201, { batch });
         } catch (error) { return json(response, 400, { error: sanitizedError(error), correlation_id: id }); }
       }
       const batchMatch = url.pathname.match(/^\/api\/whatsapp\/dispatch\/batches\/([^/]+)$/);
       if (batchMatch) {
         const batchId = batchMatch[1];
-        if (request.method === 'GET') { try { return json(response, 200, { batch: await dispatchRuntime.getBatch(batchId) }); } catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); } }
+        if (request.method === 'GET') { try { return json(response, 200, { batch: await getDispatchRuntime().getBatch(batchId) }); } catch (error) { return json(response, 404, { error: sanitizedError(error), correlation_id: id }); } }
         if (request.method === 'POST') {
           try {
             const actionBody = await parseBody(request); const action = String(actionBody.action ?? '');
-            if (action === 'confirm') return json(response, 200, { batch: await dispatchRuntime.confirmBatch(batchId, buildConfirmInput(actionBody, id)) });
-            if (action === 'queue') return json(response, 202, { batch: await dispatchRuntime.queueBatch(batchId, { causationId: id }) });
-            if (action === 'cancel') return json(response, 200, { batch: await dispatchRuntime.cancelBatch(batchId) });
+            if (action === 'confirm') return json(response, 200, { batch: await getDispatchRuntime().confirmBatch(batchId, buildConfirmInput(actionBody, id)) });
+            if (action === 'queue') return json(response, 202, { batch: await getDispatchRuntime().queueBatch(batchId, { causationId: id }) });
+            if (action === 'cancel') return json(response, 200, { batch: await getDispatchRuntime().cancelBatch(batchId) });
             return json(response, 400, { error: 'Unsupported dispatch action', correlation_id: id });
           } catch (error) { return json(response, 409, { error: sanitizedError(error), correlation_id: id }); }
         }

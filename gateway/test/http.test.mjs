@@ -86,12 +86,16 @@ test("unknown routes preserve the canonical error envelope", async () => {
 test("createHttpServer and health/ready do not create campaign journal", async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "kassist-http-campaign-"));
   const statePath = path.join(dir, "campaigns.json");
-  const previousPath = process.env.KASSIST_CAMPAIGN_STATE_PATH;
+  const batchStatePath = path.join(dir, "batches.json");
+  const previousCampaignPath = process.env.KASSIST_CAMPAIGN_STATE_PATH;
+  const previousBatchPath = process.env.KASSIST_BATCH_STATE_PATH;
   process.env.KASSIST_CAMPAIGN_STATE_PATH = statePath;
+  process.env.KASSIST_BATCH_STATE_PATH = batchStatePath;
 
   try {
     const server = createHttpServer();
     assert.equal(await fs.stat(statePath).catch((error) => error.code), "ENOENT");
+    assert.equal(await fs.stat(batchStatePath).catch((error) => error.code), "ENOENT");
 
     await withServer(server, async (baseUrl) => {
       const health = await fetch(`${baseUrl}/health`);
@@ -102,9 +106,13 @@ test("createHttpServer and health/ready do not create campaign journal", async (
     });
 
     assert.equal(await fs.stat(statePath).catch((error) => error.code), "ENOENT");
+    assert.equal(await fs.stat(batchStatePath).catch((error) => error.code), "ENOENT");
   } finally {
-    if (previousPath === undefined) delete process.env.KASSIST_CAMPAIGN_STATE_PATH;
-    else process.env.KASSIST_CAMPAIGN_STATE_PATH = previousPath;
+    if (previousCampaignPath === undefined) delete process.env.KASSIST_CAMPAIGN_STATE_PATH;
+    else process.env.KASSIST_CAMPAIGN_STATE_PATH = previousCampaignPath;
+
+    if (previousBatchPath === undefined) delete process.env.KASSIST_BATCH_STATE_PATH;
+    else process.env.KASSIST_BATCH_STATE_PATH = previousBatchPath;
     await fs.rm(dir, { recursive: true, force: true });
   }
 });
