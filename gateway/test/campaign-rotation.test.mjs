@@ -167,6 +167,7 @@ test('retry preserves the frozen message variant selection', async () => {
   const retryTimer = timers.find((timer) => timer.delay === BACKOFF_MS[0]);
   assert.ok(retryTimer);
   await retryTimer.callback();
+  await new Promise((resolve) => setImmediate(resolve));
 
   campaignAfterFailure = await runtime.getCampaign(draft.batch.batchId);
   const recipientAfterRetry = campaignAfterFailure.batch.recipients[recipientId];
