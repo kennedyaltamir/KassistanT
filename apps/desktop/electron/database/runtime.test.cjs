@@ -164,40 +164,58 @@ test("runtime fails closed when an observed phone identity conflicts with anothe
   const port = runtime.server.address().port;
 
   try {
-    await post(port, {
+    const owner = await post(port, {
       message: {
         id: "wa-owner-1",
         external_message_id: "wa-owner-1",
         jid: "5511000000000@s.whatsapp.net",
         direction: "INBOUND",
-        text: "Primeiro",
-        timestamp: 1770000004
+        text: "Primeiro cliente",
+        timestamp: 1770000004,
+        push_name: "Cliente A"
       }
     });
-    await post(port, {
+    assert.equal(owner.status, 200);
+
+    const secondCustomer = await post(port, {
       message: {
         id: "wa-owner-2",
         external_message_id: "wa-owner-2",
-        jid: "246973638648023@lid",
-        phone_normalized: "5511000000000@s.whatsapp.net",
+        jid: "5511222333444@s.whatsapp.net",
         direction: "INBOUND",
-        text: "Conflito",
-        timestamp: 1770000005
+        text: "Segundo cliente",
+        timestamp: 1770000005,
+        push_name: "Cliente B"
       }
     });
+    assert.equal(secondCustomer.status, 200);
+
     const conflicted = await post(port, {
       message: {
         id: "wa-owner-3",
         external_message_id: "wa-owner-3",
-        jid: "246973638648023@lid",
-        phone_normalized: "5511000000000@s.whatsapp.net",
+        jid: "5511222333444@s.whatsapp.net",
         direction: "INBOUND",
-        text: "De novo",
+        text: "Conflito",
         timestamp: 1770000006
       }
     });
-    assert.equal(conflicted.status, 500);
-    assert.match(conflicted.body.error, /Customer identity conflict/);
+    assert.equal(conflicted.status, 200);
+
+    const bindingConflict = await post(port, {
+      message: {
+        id: "wa-owner-4",
+        external_message_id: "wa-owner-4",
+        jid: "5511000000000@s.whatsapp.net",
+        phone_normalized: "5511222333444@s.whatsapp.net",
+        direction: "INBOUND",
+        text: "Conflito real",
+        timestamp: 1770000007
+      }
+    });
+    assert.equal(bindingConflict.status, 500);
+    assert.match(bindingConflict.body.error, /Customer identity conflict/);
+    assert.equal(runtime.database.prepare("SELECT COUNT(*) AS count FROM message").get().count, 3);
   } finally {
     runtime.close();
     fs.rmSync(ctx.directory, { recursive: true, force: true });
