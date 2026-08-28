@@ -20,3 +20,5 @@ gateway/.data/whatsapp/
 gateway/data/*.json
 
 gateway/.data/
+
+artifacts/
