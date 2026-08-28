@@ -196,3 +196,22 @@ Depois audite o código.
 ```
 
 O agente deve reutilizar conhecimento existente antes de reconstruir uma solução já conhecida.
+
+---
+
+## 11. Sincronização IA ↔ VSCode após commits
+
+Quando uma IA criar um commit, esse estado deve ser tratado como uma âncora operacional explícita para evitar divergência entre o ambiente da IA e o checkout local do usuário.
+
+A IA deve:
+
+1. informar o SHA exato do commit criado;
+2. informar a mensagem do commit;
+3. informar a branch correspondente;
+4. fornecer imediatamente um bloco PowerShell completo que permita ao usuário validar e posicionar o checkout local exatamente naquele SHA;
+5. fornecer uma validação final de `git rev-parse HEAD` após o posicionamento;
+6. nunca presumir que o checkout local já esteja no mesmo SHA.
+
+Essa regra deriva de `REGRAS/behaviour.md` e possui finalidade de continuidade operacional e prevenção de divergência de estado.
+
+**Status: CANONICAL KNOWLEDGE DERIVED FROM RULE.**
