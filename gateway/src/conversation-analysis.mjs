@@ -102,19 +102,18 @@ function buildConflicts(candidates) {
 }
 
 export function analyzeConversationMessages(messages = []) {
-  const candidates = dedupe(messages.filter((message) => message?.direction === 'INBOUND').flatMap(extractFromMessage));
-  return { candidates, conflicts: buildConflicts(candidates) };
+  return dedupe(messages.filter((message) => message?.direction === 'INBOUND').flatMap(extractFromMessage));
 }
 
 export async function analyzeConversation(jid, limit = 500) {
   const context = await getConversationContext(jid, limit);
-  const result = analyzeConversationMessages(context.messages);
+  const candidates = analyzeConversationMessages(context.messages);
   return {
     conversation_id: context.conversation.id,
     customer_id: context.customer.id,
-    candidate_count: result.candidates.length,
-    candidates: result.candidates,
-    conflicts: result.conflicts,
+    candidate_count: candidates.length,
+    candidates,
+    conflicts: buildConflicts(candidates),
     identity_binding_status: context.identityBindingStatus
   };
 }
