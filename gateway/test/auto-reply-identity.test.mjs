@@ -22,28 +22,16 @@ test('LLM context omits unverified customer identity fields and isolates the cur
     businessContext: {},
     availableProducts: [],
     messages: [
-      {
-        id: 'm1',
-        direction: 'INBOUND',
-        text: 'Quero saber quais produtos vocês têm.'
-      },
-      {
-        id: 'm2',
-        direction: 'OUTBOUND',
-        text: 'Claro, posso apresentar o catálogo.'
-      },
-      {
-        id: 'm3',
-        direction: 'INBOUND',
-        text: 'Meu nome é Carlos e quero comprar o produto X.'
-      }
+      { id: 'm1', direction: 'INBOUND', text: 'Quero saber quais produtos vocês têm.' },
+      { id: 'm2', direction: 'OUTBOUND', text: 'Claro, posso apresentar o catálogo.' },
+      { id: 'm3', direction: 'INBOUND', text: 'Meu nome é Carlos e quero comprar o produto X.' }
     ]
   });
 
   const runtimeContext = messages[0].content;
-  assert.match(runtimeContext, /"customer":\{"id":"customer-1"/);
-  assert.match(runtimeContext, /"user_message":"Meu nome é Carlos e quero comprar o produto X\."/);
-  assert.match(runtimeContext, /"recent_messages"/);
+  assert.match(runtimeContext, /<customer[^>]*trust="trusted">\{&quot;id&quot;:&quot;customer-1&quot;\}/);
+  assert.match(runtimeContext, /<current_user_message[^>]*trust="untrusted">Meu nome é Carlos e quero comprar o produto X\.<\/current_user_message>/);
+  assert.match(runtimeContext, /<conversation_history>/);
   assert.doesNotMatch(runtimeContext, /Kennedy Altamir/);
   assert.doesNotMatch(runtimeContext, /246973638648023@lid/);
 
@@ -72,9 +60,7 @@ test('auto-reply output removes unverified names before external send', () => {
     {
       identityBindingStatus: 'OBSERVED_PHONE_IDENTITY',
       customer: { name: 'Kennedy Altamir' },
-      messages: [
-        { direction: 'INBOUND', text: 'Meu nome é Carlos e quero saber os produtos.' }
-      ]
+      messages: [{ direction: 'INBOUND', text: 'Meu nome é Carlos e quero saber os produtos.' }]
     }
   );
 
