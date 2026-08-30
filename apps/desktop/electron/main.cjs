@@ -4,8 +4,10 @@ const fs = require("node:fs");
 const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { startPersistenceServer } = require("./database/runtime.cjs");
+const { startPersistenceExtensions } = require("./database/persistence-extensions.cjs");
 
 let persistence = null;
+let persistenceExtensions = null;
 let gatewayProcess = null;
 
 function imageMimeType(extension) {
@@ -89,7 +91,9 @@ function startGateway() {
   const isWindows = process.platform === "win32";
   const command = isWindows ? (process.env.ComSpec || "cmd.exe") : "pnpm";
   const args = isWindows ? ["/d", "/s", "/c", "pnpm dev"] : ["dev"];
+  const mediaRoot = path.join(app.getPath("userData"), "media");
   const campaignMediaRoot = path.join(app.getPath("userData"), "campaigns", "images");
+  fs.mkdirSync(mediaRoot, { recursive: true });
   fs.mkdirSync(campaignMediaRoot, { recursive: true });
 
   gatewayProcess = spawn(command, args, {
@@ -98,10 +102,14 @@ function startGateway() {
       ...process.env,
       KASSIST_PERSISTENCE_URL:
         process.env.KASSIST_PERSISTENCE_URL ?? "http://127.0.0.1:3211/internal/v1/whatsapp/message",
+      KASSIST_PERSISTENCE_EXT_URL:
+        process.env.KASSIST_PERSISTENCE_EXT_URL ?? "http://127.0.0.1:3212",
       KASSIST_WA_AUTH_DIR:
         process.env.KASSIST_WA_AUTH_DIR ?? path.join(app.getPath("userData"), "whatsapp", "auth"),
       KASSIST_MEDIA_ROOT:
-        process.env.KASSIST_MEDIA_ROOT ?? campaignMediaRoot
+        process.env.KASSIST_MEDIA_ROOT ?? campaignMediaRoot,
+      KASSIST_MEDIA_STORAGE_ROOT:
+        process.env.KASSIST_MEDIA_STORAGE_ROOT ?? mediaRoot
     },
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: false,
@@ -122,6 +130,10 @@ function shutdownRuntime() {
     gatewayProcess.kill();
     gatewayProcess = null;
   }
+  if (persistenceExtensions) {
+    persistenceExtensions.close();
+    persistenceExtensions = null;
+  }
   if (persistence) {
     persistence.close();
     persistence = null;
@@ -133,6 +145,13 @@ app.whenReady().then(() => {
   ipcMain.handle("kassist:select-campaign-image", selectCampaignImage);
   try {
     persistence = startPersistenceServer({ migrationsPath: path.resolve(__dirname, "../database/migrations") });
+    persistenceExtensions = startPersistenceExtensions({
+      database: persistence.database,
+      storeId: process.env.KASSIST_STORE_ID ?? "default-store",
+      storeName: process.env.KASSIST_STORE_NAME ?? "KassisT",
+      mediaRoot: process.env.KASSIST_MEDIA_STORAGE_ROOT ?? path.join(app.getPath("userData"), "media"),
+      port: Number(process.env.KASSIST_PERSISTENCE_EXT_PORT ?? 3212)
+    });
     startGateway();
   } catch (error) {
     console.error(
