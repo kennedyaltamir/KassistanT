@@ -13,7 +13,7 @@ import { getLlmProviderStatus, getLocalModelInventory, updateAllLocalModels, upd
 import { getLlmSettings, updateLlmSettings } from './llm-settings.mjs';
 import { deleteCredential, listCredentialStatus, setCredential } from './credentials.mjs';
 import { getCredentialValidationStatuses, invalidateCredentialStatus, validateCredential } from './credential-validation.mjs';
-import { createProduct, deleteProduct, getConversationContext, getProduct, listPersistedConversations, listProducts, updateProduct } from './persistence-client.mjs';
+import { createProduct, deleteProduct, getConversationContext, getProduct, getDashboardSummary, getPersistenceHealth, listPersistedConversations, listProducts, updateProduct } from './persistence-client.mjs';
 
 function json(response, statusCode, payload) {
   const body = JSON.stringify(payload);
@@ -70,6 +70,23 @@ export function createHttpServer({ readinessChecks = {}, dispatchRuntime, campai
     try {
       const url = new URL(request.url ?? '/', 'http://127.0.0.1');
       if (request.method === 'GET' && url.pathname === '/health') return json(response, 200, { status: 'ok', correlation_id: id });
+
+      if (request.method === 'GET' && url.pathname === '/api/dashboard/summary') {
+        try {
+          const [summary, persistenceHealth, llm] = await Promise.all([getDashboardSummary(), getPersistenceHealth(), getLlmProviderStatus()]);
+          const whatsapp = getStatus();
+          const integrations = { gateway: 'READY', persistence: persistenceHealth.status === 'ok' ? 'READY' : 'UNAVAILABLE', llm: llm.reachable ? (llm.selectedModelAvailable ? 'READY' : 'DEGRADED') : 'UNAVAILABLE', whatsapp: whatsapp.connection };
+          const alerts = [];
+          if (whatsapp.connection === 'ERROR') alerts.push({ severity: 'P1', source: 'WhatsApp', message: whatsapp.lastError || 'WhatsApp reported a connection error.' });
+          else if (whatsapp.connection === 'DISCONNECTED') alerts.push({ severity: 'P2', source: 'WhatsApp', message: 'WhatsApp is disconnected.' });
+          if (integrations.llm === 'UNAVAILABLE') alerts.push({ severity: 'P1', source: 'LLM/Ollama', message: llm.error || 'LLM runtime is unavailable.' });
+          else if (integrations.llm === 'DEGRADED') alerts.push({ severity: 'P2', source: 'LLM/Ollama', message: 'Ollama is reachable but the selected model is unavailable.' });
+          return json(response, 200, { summary, integrations, alerts, correlation_id: id });
+        } catch (error) {
+          console.error('[KassisT Dashboard] failed to load dashboard data:', error);
+          return json(response, 503, { error: { code: 'dashboard_unavailable', message: sanitizedError(error), retryable: true, correlation_id: id }, integrations: { gateway: 'READY', persistence: 'UNAVAILABLE', llm: 'UNKNOWN', whatsapp: getStatus().connection } });
+        }
+      }
       if (request.method === 'GET' && url.pathname === '/ready') {
         const result = await checkReadiness();
         return result.ready ? json(response, 200, { status: 'ready', checks: result.checks, correlation_id: id }) : json(response, 503, { error: { code: 'not_ready', message: 'Gateway dependencies are not ready.', retryable: true, correlation_id: id }, checks: result.checks });
