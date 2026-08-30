@@ -36,7 +36,7 @@ test('logout is the transport disconnect contract and invalidates the active lif
 test('reset clears authentication only after lifecycle invalidation and pending credential saves settle', () => {
   const start = source.indexOf('export async function resetSession()');
   assert.notEqual(start, -1);
-  const end = source.indexOf('/** @param {string} to', start);
+  const end = source.indexOf('export async function sendText', start);
   assert.notEqual(end, -1);
   const resetSource = source.slice(start, end);
 
@@ -49,7 +49,7 @@ test('reset clears authentication only after lifecycle invalidation and pending 
   assert.ok(pendingSaveIndex > logoutIndex);
   assert.ok(clearAuthIndex > pendingSaveIndex);
   assert.ok(disconnectedIndex > clearAuthIndex);
-  assert.doesNotMatch(resetSource, /setTimeout\(.*connect\(/s);
+  assert.doesNotMatch(resetSource, /setTimeout\([\s\S]*?connect\(/);
 });
 
 test('stale creds.update cannot persist credentials after lifecycle invalidation', () => {
@@ -81,10 +81,17 @@ test('explicit connect starts a new lifecycle generation', () => {
 });
 
 test('unexpected current-socket close still schedules automatic reconnect', () => {
-  assert.match(
-    source,
-    /if \(loggedOut\) return;[\s\S]*?reconnectTimer = setTimeout\(\(\) => \{\s*reconnectTimer = null;\s*connect\(\)/
-  );
+  const closeStart = source.indexOf("if (connection === 'close') {");
+  assert.notEqual(closeStart, -1);
+  const closeEnd = source.indexOf("socketInstance.ev.on('messages.upsert'", closeStart);
+  assert.notEqual(closeEnd, -1);
+  const closeSource = source.slice(closeStart, closeEnd);
+
+  assert.match(closeSource, /const loggedOut = statusCode === DisconnectReason\.loggedOut;/);
+  assert.match(closeSource, /if \(reconnectTimer\) \{[\s\S]*?clearTimeout\(reconnectTimer\);[\s\S]*?reconnectTimer = null;[\s\S]*?\}/);
+  assert.match(closeSource, /state\.connection = loggedOut \? 'DISCONNECTED' : 'CONNECTING';/);
+  assert.match(closeSource, /if \(!loggedOut\)\s*reconnectTimer = setTimeout\(\(\) => \{[\s\S]*?reconnectTimer = null;[\s\S]*?connect\(\)/);
+  assert.match(closeSource, /if \(shuttingDown\) \{[\s\S]*?state\.connection = 'DISCONNECTED';[\s\S]*?return;[\s\S]*?\}\s*state\.connection = loggedOut/);
 });
 
 test('stale socket events are bound to their originating socket instance', () => {
