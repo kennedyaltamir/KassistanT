@@ -159,20 +159,104 @@ test('explicit current message is not inferred from historical inbound messages'
 
   const messages = toLlmMessages(context, currentMessage);
 
+  assert.equal(messages.length, 2);
+
+  assert.equal(messages[0]?.role, 'user');
   assert.equal(messages.at(-1)?.role, 'user');
   assert.equal(messages.at(-1)?.content, 'KASSIST_FINAL_TEST_001');
 
-  const history = messages
-    .slice(1, -1)
-    .map((message) => message.content);
-
-  assert.deepEqual(history, [
-    'TRACE_PIPELINE_005',
-    'Entendido.',
-    'AUTO_REPLY_LIVE_TEST_003'
-  ]);
+  assert.doesNotMatch(
+    messages[0]?.content ?? '',
+    /TRACE_PIPELINE_005|Entendido\.|AUTO_REPLY_LIVE_TEST_003/
+  );
 });
+test('current message receives only multimodal results linked to its own message id', () => {
+  const currentMessage = {
+    id: 'current-image',
+    direction: 'INBOUND',
+    message_type: 'IMAGE',
+    text: 'O que tem nesta imagem?'
+  };
 
+  const context = {
+    identityBindingStatus: 'CONFIRMED',
+    customer: {
+      id: 'customer-1',
+      name: 'Carlos Silva'
+    },
+    conversation: {
+      lifecycleState: 'OPEN',
+      ownership: 'AI',
+      aiState: 'ACTIVE'
+    },
+    messages: [
+      {
+        id: 'history-image',
+        direction: 'INBOUND',
+        message_type: 'IMAGE',
+        text: 'Imagem antiga'
+      }
+    ],
+    customerMemory: {
+      facts: [],
+      sources: []
+    },
+    multimodal: [
+      {
+        id: 'vision-history',
+        messageId: 'history-image',
+        modality: 'VISION',
+        status: 'COMPLETED',
+        extractedText: 'Produto histórico',
+        confidence: 0.99
+      },
+      {
+        id: 'vision-current',
+        messageId: 'current-image',
+        modality: 'VISION',
+        status: 'UNAVAILABLE',
+        extractedText: null,
+        confidence: null
+      }
+    ],
+    activeOrder: null,
+    availableActions: []
+  };
+
+  const messages =
+    toLlmMessages(
+      context,
+      currentMessage
+    );
+
+  assert.equal(
+    messages.length,
+    2
+  );
+
+  const systemXml =
+    messages[0]?.content ?? '';
+
+  assert.match(
+    systemXml,
+    /vision-current/
+  );
+
+  assert.doesNotMatch(
+    systemXml,
+    /vision-history/
+  );
+
+  assert.doesNotMatch(
+    systemXml,
+    /Produto histórico/
+  );
+
+  assert.equal(
+    messages.at(-1)?.content,
+    'O que tem nesta imagem?'
+  );
+});
 test('explicit current message is emitted once and is not duplicated in history', () => {
   const currentMessage = {
     id: 'current-message',

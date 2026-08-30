@@ -169,7 +169,7 @@
             <input id="llm-interval" type="number" min="1" max="168" value="${Number(state.settings.intervalHours || 24)}" />
           </div>
         </div>
-        <div class="notice">O KassisT não marca um modelo como atualizado apenas pelo nome. O update real é executado por `POST /api/pull` do Ollama.</div>
+        <div class="notice">A atualização do modelo é considerada concluída somente após o provedor confirmar a operação com sucesso.</div>
         <div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn primary" id="llm-auto-save">Salvar política de atualização</button></div>
       </section>
 

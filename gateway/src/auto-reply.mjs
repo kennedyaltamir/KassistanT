@@ -57,16 +57,36 @@ export function buildXmlSystemPrompt(basePrompt, context) {
 }
 
 export function toLlmMessages(context, currentMessage) {
-  const persistedMessages = Array.isArray(context?.messages) ? context.messages : [];
-  const history = persistedMessages.filter((message) => message?.id !== currentMessage?.id).map((message) => ({ role: message.direction === 'OUTBOUND' ? 'assistant' : 'user', content: typeof message.text === 'string' ? message.text.trim() : '[NON_TEXT_MESSAGE]' }));
-  const systemXml = buildXmlSystemPrompt(getAssistantPromptResolution().systemPrompt, context);
-  const result = [{ role: 'user', content: systemXml }, ...history];
+  const currentMessageId = currentMessage?.id ?? null;
+  const multimodal = Array.isArray(context?.multimodal)
+    ? context.multimodal.filter((item) => item?.messageId === currentMessageId)
+    : [];
+
+  const contextForLlm = {
+    ...context,
+    multimodal
+  };
+
+  const systemXml =
+    buildXmlSystemPrompt(
+      getAssistantPromptResolution().systemPrompt,
+      contextForLlm
+    );
+
+  const result = [
+    {
+      role: 'user',
+      content: systemXml
+    }
+  ];
+
   if (currentMessage?.text) {
     result.push({
       role: 'user',
       content: String(currentMessage.text).trim()
     });
   }
+
   return result;
 }
 

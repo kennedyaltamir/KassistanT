@@ -63,14 +63,7 @@ test('LLM context omits unverified customer identity fields and isolates the cur
   assert.doesNotMatch(runtimeContext, /<conversation_history>/);
   assert.doesNotMatch(runtimeContext, /<current_user_message/);
 
-  const history = messages
-    .slice(1, -1)
-    .map((message) => message.content)
-    .join('\n');
-
-  assert.match(history, /Quero saber quais produtos/);
-  assert.match(history, /Claro, posso apresentar o catálogo/);
-  assert.match(history, /Mensagem histórica diferente/);
+  assert.equal(messages.length, 2);
 
   const currentUserTurn = messages.at(-1);
 
@@ -80,12 +73,28 @@ test('LLM context omits unverified customer identity fields and isolates the cur
     'Meu nome é Carlos e quero comprar o produto X.'
   );
 
-  assert.doesNotMatch(
-    history,
-    /Meu nome é Carlos e quero comprar o produto X/
+  assert.equal(
+    messages
+      .slice(0, -1)
+      .some((message) =>
+        /Quero saber quais produtos|Claro, posso apresentar o catálogo|Mensagem histórica diferente/.test(
+          message.content
+        )
+      ),
+    false
+  );
+
+  assert.equal(
+    messages
+      .slice(0, -1)
+      .some((message) =>
+        /Meu nome é Carlos e quero comprar o produto X/.test(
+          message.content
+        )
+      ),
+    false
   );
 });
-
 test('identity safety instruction explicitly blocks unverified names as customer identity', () => {
   const instruction = identitySafetyInstruction('LEGACY_JID_DERIVED');
 
