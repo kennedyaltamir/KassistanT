@@ -108,18 +108,42 @@ test('analyzes image buffer using local vision endpoint', async () => {
   const originalFetch = global.fetch;
   let capturedBody = null;
 
-  global.fetch = async (_url, options) => {
-    capturedBody = JSON.parse(options.body);
+  global.fetch = async (url, options) => {
+    const parsedUrl = new URL(url);
 
-    return {
-      ok: true,
-      status: 200,
-      json: async () => ({
-        message: {
-          content: 'imagem analisada',
-        },
-      }),
-    };
+    if (parsedUrl.pathname === '/api/show') {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          capabilities: ['completion', 'vision'],
+        }),
+      };
+    }
+
+    if (parsedUrl.pathname === '/api/chat') {
+      capturedBody = JSON.parse(options.body);
+
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          message: {
+            content: JSON.stringify({
+              description: 'imagem analisada',
+              detected_text: null,
+              possible_products: [],
+              commercial_information: [],
+              confidence: 0.95,
+              inferred_fields: [],
+              confirmed_fields: [],
+            }),
+          },
+        }),
+      };
+    }
+
+    throw new Error(`Unexpected URL in test: ${url}`);
   };
 
   try {
@@ -148,6 +172,10 @@ test('analyzes image buffer using local vision endpoint', async () => {
     assert.equal(
       capturedBody.messages[0].images[0],
       Buffer.from('image').toString('base64')
+    );
+    assert.match(
+      capturedBody.messages[0].content,
+      /Analise esta imagem para atendimento comercial\./
     );
   } finally {
     global.fetch = originalFetch;
