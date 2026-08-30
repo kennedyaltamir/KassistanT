@@ -223,6 +223,84 @@ test('image with message caption persists a single multimodal effect', async () 
   assert.equal(log[0].caption, draft.selections['5511999990001'].effect.caption);
 });
 
+
+test('interactive button variant persists through preview, draft and queue', async () => {
+  const paths = await tempPaths();
+  const log = [];
+  const interactiveTransport = {
+    ...fakeTransport(log),
+    sendInteractive: async (to, body, buttons, options) => {
+      log.push({ type: 'INTERACTIVE', to, body, buttons, options });
+      return { id: 'wa-' + log.length };
+    },
+  };
+  const runtime = new CampaignDispatchRuntime({ ...paths, ...interactiveTransport, sleepImpl: async () => {} });
+  await runtime.ready;
+
+  const preview = await runtime.preview(campaign({
+    button_variants: [{
+      id: 'buttons-1',
+      buttons: [
+        { id: 'confirm', text: 'Confirmar' },
+        { id: 'menu', text: 'Ver cardápio' },
+      ],
+    }],
+    pacing_policy: { minimumMs: 0, maximumMs: 0 },
+  }));
+
+  assert.deepEqual(preview.campaign.buttonVariants, [{
+    id: 'buttons-1',
+    type: 'quick_reply',
+    buttons: [
+      { id: 'confirm', text: 'Confirmar', order: 0, type: 'quick_reply' },
+      { id: 'menu', text: 'Ver cardápio', order: 1, type: 'quick_reply' },
+    ],
+  }]);
+
+  const draft = await runtime.createDraft(preview, { batchId: 'campaign-interactive', correlationId: 'corr-interactive' });
+  assert.equal(draft.batch.state, 'DRAFT');
+  assert.equal(draft.selections['5511999990001'].effect.type, 'INTERACTIVE');
+  assert.equal(draft.selections['5511999990001'].buttonVariantId, 'buttons-1');
+  assert.deepEqual(draft.selections['5511999990001'].effect.buttons.map(button => button.id), ['confirm', 'menu']);
+  assert.equal(log.length, 0);
+
+  await runtime.confirmCampaign(draft.batch.batchId, {
+    fingerprint: draft.fingerprint,
+    recipientCount: 2,
+    correlationId: 'corr-interactive-confirm',
+  });
+
+  const queued = await runtime.queueCampaign(draft.batch.batchId, { causationId: 'cause-interactive' });
+  assert.equal(queued.batch.state, 'COMPLETED');
+  assert.equal(log.length, 2);
+  assert.equal(log[0].type, 'INTERACTIVE');
+  assert.equal(log[0].body, 'Olá! Temos uma novidade para você.');
+  assert.deepEqual(log[0].buttons.map(button => button.id), ['confirm', 'menu']);
+  assert.deepEqual(log[0].buttons.map(button => button.text), ['Confirmar', 'Ver cardápio']);
+  assert.deepEqual(log[0].options, { imageReference: null, caption: null });
+});
+
+test('interactive button variants reject more than three buttons through campaign contract', async () => {
+  const paths = await tempPaths();
+  const runtime = new CampaignDispatchRuntime(paths);
+  await runtime.ready;
+
+  await assert.rejects(
+    runtime.preview(campaign({
+      button_variants: [{
+        id: 'buttons-1',
+        buttons: [
+          { id: 'a', text: 'A' },
+          { id: 'b', text: 'B' },
+          { id: 'c', text: 'C' },
+          { id: 'd', text: 'D' },
+        ],
+      }],
+    })),
+    /At most 3 interactive buttons are supported/,
+  );
+});
+
 test('campaign journal survives restart with the same selections and batch identity', async () => {
   const paths = await tempPaths();
   const log = [];
