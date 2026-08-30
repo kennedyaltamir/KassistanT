@@ -268,6 +268,43 @@ test("dashboard summary exposes real KPI calculations, UTC periods and recent pe
   }
 });
 
+
+
+test("dashboard KPI windows exclude future records", async () => {
+  const ctx = tempContext();
+  const runtime = startPersistenceServer({ filePath: ctx.filePath, migrationsPath: ctx.migrationsPath, port: 0, storeId: "store-test", storeName: "Test Store" });
+  await new Promise((resolve) => runtime.server.once("listening", resolve));
+  const port = runtime.server.address().port;
+  const now = new Date();
+  const future = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString();
+  try {
+    const result = await post(port, {
+      message: {
+        id: "dashboard-future-out",
+        external_message_id: "dashboard-future-out",
+        jid: "5511777777777@s.whatsapp.net",
+        direction: "OUTBOUND",
+        text: "future",
+        timestamp: Math.floor((Date.parse(future)) / 1000)
+      }
+    });
+    assert.equal(result.status, 200);
+    runtime.database.prepare("UPDATE message SET created_at = ? WHERE external_message_id = ?").run(future, "dashboard-future-out");
+    runtime.database.prepare("INSERT INTO customer (id, store_id, phone_normalized, name, notes, first_order_at, last_order_at, order_count, total_spent_cents, currency, status, created_at, updated_at) VALUES (?, ?, ?, ?, NULL, NULL, NULL, 0, 0, 'BRL', 'ACTIVE', ?, ?)")
+      .run("dashboard-future-customer", "store-test", "5511666666666@s.whatsapp.net", "Futuro", future, future);
+    const response = await fetch("http://127.0.0.1:" + port + "/internal/v1/dashboard/summary");
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.kpis.messagesSentToday, 0);
+    assert.equal(body.kpis.messagesSent7d, 0);
+    assert.equal(body.kpis.messagesSent30d, 0);
+    assert.equal(body.kpis.newCustomersToday, 0);
+  } finally {
+    runtime.close();
+    fs.rmSync(ctx.directory, { recursive: true, force: true });
+  }
+});
+
 test("dashboard summary returns zero and empty recent orders on a fresh database", async () => {
   const ctx = tempContext();
   const runtime = startPersistenceServer({ filePath: ctx.filePath, migrationsPath: ctx.migrationsPath, port: 0, storeId: "store-test", storeName: "Test Store" });
