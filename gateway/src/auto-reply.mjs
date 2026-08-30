@@ -32,12 +32,7 @@ function extractReportedNames(messages = []) { const names = new Set(); const pa
 export function sanitizeUnverifiedIdentityInReply(reply, context = {}) { if (context?.identityBindingStatus === 'CONFIRMED' || typeof reply !== 'string' || !reply) return reply; const names = extractReportedNames(context.messages); const observedCustomerName = context.customer?.name; if (typeof observedCustomerName === 'string' && observedCustomerName.trim()) names.add(observedCustomerName.trim()); let sanitized = reply; for (const name of names) { const pattern = new RegExp(`\\b${escapeRegExp(name)}\\b`, 'giu'); sanitized = sanitized.replace(pattern, ''); } return sanitized.replace(/\s+,/g, ',').replace(/\s+([!?])/g, '$1').replace(/,\s*(?=[.!?]|$)/g, '').replace(/[ \t]{2,}/g, ' ').replace(/\n[ \t]+/g, '\n').trim(); }
 
 function xmlEscape(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
 function xmlValue(tag, value, attributes = '') {
@@ -47,7 +42,6 @@ function xmlValue(tag, value, attributes = '') {
 }
 
 export function buildXmlSystemPrompt(basePrompt, context) {
-  const current = Array.isArray(context?.messages) && context.messages.length > 0 ? context.messages[context.messages.length - 1] : null;
   const customer = sanitizeCustomer(context?.customer, context?.identityBindingStatus);
   const multimodal = Array.isArray(context?.multimodal) ? context.multimodal : [];
   const memory = context?.customerMemory ?? { facts: [], sources: [] };
@@ -62,29 +56,10 @@ export function buildXmlSystemPrompt(basePrompt, context) {
   ];
   const xmlMessages = conversationMessages.map((message) => {
     const media = message.media ? xmlValue('media', message.media, ' trust="trusted"') : '';
-    const extractions = Array.isArray(message.extractions)
-      ? message.extractions.map((item) => xmlValue('extraction', item, ' trust="trusted"')).join('')
-      : '';
+    const extractions = Array.isArray(message.extractions) ? message.extractions.map((item) => xmlValue('extraction', item, ' trust="trusted"')).join('') : '';
     return `<message trust="untrusted" direction="${xmlEscape(message.direction)}" type="${xmlEscape(message.message_type)}">${xmlValue('text', message.text)}${media}${extractions}</message>`;
   }).join('');
-  return `<assistant_system>
-<instructions>${xmlEscape(basePrompt || '')}</instructions>
-<business_rules trust="trusted">${safeBusinessRules.map((rule) => `<rule>${xmlEscape(rule)}</rule>`).join('')}</business_rules>
-<assistant_context>
-${xmlValue('company', context?.businessContext)}
-${xmlValue('customer', customer, ' trust="trusted"')}
-${xmlValue('conversation', context?.conversation, ' trust="trusted"')}
-${xmlValue('customer_memory', memory, ' trust="trusted"')}
-${xmlValue('products', productData, ' trust="trusted"')}
-${xmlValue('cart', context?.activeOrder, ' trust="trusted"')}
-${xmlValue('orders', context?.activeOrder ? [context.activeOrder] : [], ' trust="trusted"')}
-${xmlValue('delivery', context?.customer?.addresses ?? [], ' trust="trusted"')}
-${xmlValue('available_actions', context?.availableActions ?? [], ' trust="trusted"')}
-<multimodal_results trust="trusted">${multimodal.map((item) => xmlValue('result', item)).join('')}</multimodal_results>
-<conversation_history>${xmlMessages}</conversation_history>
-${current ? xmlValue('current_user_message', current.text, ' trust="untrusted"') : '<current_user_message trust="untrusted">null</current_user_message>'}
-</assistant_context>
-</assistant_system>`;
+  return `<assistant_system>\n<instructions>${xmlEscape(basePrompt || '')}</instructions>\n<business_rules trust="trusted">${safeBusinessRules.map((rule) => `<rule>${xmlEscape(rule)}</rule>`).join('')}</business_rules>\n<assistant_context>\n${xmlValue('company', context?.businessContext)}\n${xmlValue('customer', customer, ' trust="trusted"')}\n${xmlValue('conversation', context?.conversation, ' trust="trusted"')}\n${xmlValue('customer_memory', memory, ' trust="trusted"')}\n${xmlValue('products', productData, ' trust="trusted"')}\n${xmlValue('cart', context?.activeOrder, ' trust="trusted"')}\n${xmlValue('orders', context?.activeOrder ? [context.activeOrder] : [], ' trust="trusted"')}\n${xmlValue('delivery', context?.customer?.addresses ?? [], ' trust="trusted"')}\n${xmlValue('available_actions', context?.availableActions ?? [], ' trust="trusted"')}\n<multimodal_results trust="trusted">${multimodal.map((item) => xmlValue('result', item)).join('')}</multimodal_results>\n<conversation_history>${xmlMessages}</conversation_history>\n<current_user_message trust="untrusted">${xmlEscape(conversationMessages.length > 0 ? conversationMessages[conversationMessages.length - 1]?.text ?? '' : '')}</current_user_message>\n</assistant_context>\n</assistant_system>`;
 }
 
 export function toLlmMessages(context) {
@@ -106,16 +81,7 @@ async function persistConversationCandidates(context, message) {
   if (!context?.customer?.id || !message || message.direction !== 'INBOUND') return;
   const candidates = analyzeConversationMessages([message]);
   if (candidates.length === 0) return;
-  const facts = candidates.map((item) => ({
-    factKey: item.key,
-    factValue: item.value,
-    sourceType: 'conversation_message',
-    sourceId: item.source_message_id ?? message.id,
-    sourceMessageId: item.source_message_id ?? message.id,
-    confidence: item.confidence,
-    status: 'CANDIDATE',
-    extractedAt: item.observed_at
-  }));
+  const facts = candidates.map((item) => ({ factKey: item.key, factValue: item.value, sourceType: 'conversation_message', sourceId: item.source_message_id ?? message.id, sourceMessageId: item.source_message_id ?? message.id, confidence: item.confidence, status: 'CANDIDATE', extractedAt: item.observed_at }));
   await persistCustomerFacts(context.customer.id, facts);
 }
 
@@ -158,7 +124,7 @@ async function handleMessage(message) {
     }
     if (decision.human_handoff_required) console.warn(`[KassisT AI] AUTOMATION_HANDOFF correlation_id=${message.correlation_id ?? `wa:${message.id}`} reason=llm_requested_handoff`);
     if (decision.order_action !== 'NONE' || decision.payment_action !== 'NONE' || decision.cart_updates.length > 0) {
-      console.warn(`[KassisT AI] ORDER_ACTION_REQUESTED correlation_id=${message.correlation_id ?? `wa:${message.id`} order_action=${decision.order_action} payment_action=${decision.payment_action} cart_updates=${decision.cart_updates.length}`);
+      console.warn(`[KassisT AI] ORDER_ACTION_REQUESTED correlation_id=${message.correlation_id ?? `wa:${message.id}`} order_action=${decision.order_action} payment_action=${decision.payment_action} cart_updates=${decision.cart_updates.length}`);
     }
     await sendText(jid, response);
     lastReplyAt.set(jid, Date.now());
