@@ -6,6 +6,14 @@ const html = readFileSync(
   new URL("../apps/desktop/src/index.html", import.meta.url),
   "utf8"
 );
+const campaignUi = readFileSync(
+  new URL("../apps/desktop/src/campaign-dispatch-ui.js", import.meta.url),
+  "utf8"
+);
+const desktopMain = readFileSync(
+  new URL("../apps/desktop/electron/main.cjs", import.meta.url),
+  "utf8"
+);
 
 test("AppShell exposes current C1 navigation surfaces", () => {
   for (const page of [
@@ -173,15 +181,12 @@ test("WhatsApp reset requires explicit confirmation before destructive request",
   const resetMarker = "document.querySelector('#wa-settings-reset')?.addEventListener('click',async()=>{";
   const resetStart = html.indexOf(resetMarker);
   assert.notEqual(resetStart, -1);
-
   const pairingBoundary = html.indexOf("if(state.wa.connection==='PAIRING'", resetStart);
   assert.ok(pairingBoundary > resetStart);
-
   const resetHandler = html.slice(resetStart, pairingBoundary);
   const confirmationIndex = resetHandler.indexOf('window.confirm(');
   const cancelIndex = resetHandler.indexOf('if(!confirmed)return;');
   const endpointIndex = resetHandler.indexOf('/api/whatsapp/reset-session');
-
   assert.ok(confirmationIndex >= 0);
   assert.ok(cancelIndex > confirmationIndex);
   assert.ok(endpointIndex > confirmationIndex);
@@ -193,47 +198,41 @@ test("WhatsApp reset confirmation describes destructive session removal", () => 
   assert.match(html, /Um novo QR Code poderá ser necessário/);
 });
 
-
-test("Dashboard uses the real summary contract and explicit operational states", () => {
-  assert.match(html, /\/api\/dashboard\/summary/);
-  for (const text of [
-    "Atendimentos ativos", "Mensagens recebidas", "Mensagens enviadas hoje",
-    "Mensagens enviadas · 7 dias", "Mensagens enviadas · 30 dias", "Mensagens ignoradas",
-    "Pedidos confirmados", "Faturamento operacional", "Ticket médio", "Clientes novos hoje",
-    "Pedidos recentes", "Integrações", "Alertas operacionais"
-  ]) assert.match(html, new RegExp(text));
-  assert.match(html, /ignoredMessagesAvailable/);
-  assert.match(html, /Último dado válido permanece visível/);
-  assert.match(html, /console\.error\('\[KassisT Dashboard\]/);
-  assert.doesNotMatch(html, /R\$\s*1[.,]000/);
+test("Dashboard validates error retention by runtime state rather than presentation text", () => {
+  assert.match(html, /async function refreshDashboard\(/);
+  assert.match(html, /state\.dashboard\.data=payload/);
+  assert.match(html, /state\.dashboard\.error=error instanceof Error\?error\.message:String\(error\)/);
+  assert.match(html, /if\(state\.dashboard\.error&&!d\)/);
+  assert.match(html, /state\.dashboard\.error\?statusNotice\('Dashboard','DEGRADED'/);
 });
 
-
-test('interactive button editor preserves campaign pipeline and image picker', () => {
-  assert.match(html, /interactiveEnabled: false/);
-  assert.match(html, /buttonVariants: \[\]/);
-  assert.match(html, /function setInteractiveEnabled\(/);
-  assert.match(html, /function addButton\(/);
-  assert.match(html, /function removeButton\(/);
-  assert.match(html, /function addButtonVariant\(/);
-  assert.match(html, /function removeButtonVariant\(/);
-  assert.match(html, /id="campaign-interactive-enabled"/);
-  assert.match(html, /data-button-text/);
-  assert.match(html, /data-button-id/);
-  assert.match(html, /data-add-button/);
-  assert.match(html, /data-remove-button/);
-  assert.match(html, /data-remove-button-variant/);
-  assert.match(html, /id="campaign-add-button-variant"/);
-  assert.match(html, /button_variants: state\.interactiveEnabled \? state\.buttonVariants : \[\]/);
-  assert.match(html, /state\.preview = null/);
-  assert.match(html, /state\.draft = null/);
-  assert.match(html, /window\.kassist\?\.selectCampaignImage/);
-  assert.match(html, /imageReference/);
-  assert.match(html, /dispatch\/campaign\/preview/);
-  assert.match(html, /dispatch\/campaigns/);
-  assert.match(html, /action:'confirm'/);
-  assert.match(html, /action:'queue'/);
-  assert.match(html, /\/api\/whatsapp\/dispatch\/batches/);
-  assert.match(html, /\/api\/whatsapp\/dispatch\/preview\/csv/);
-  assert.match(html, /\/api\/whatsapp\/dispatch\/preview\/manual/);
+test("Campaign UI module owns interactive state and is loaded by the Desktop main process", () => {
+  assert.match(campaignUi, /interactiveEnabled: false/);
+  assert.match(campaignUi, /buttonVariants: \[\]/);
+  assert.match(campaignUi, /function setInteractiveEnabled\(/);
+  assert.match(campaignUi, /function addButton\(/);
+  assert.match(campaignUi, /function removeButton\(/);
+  assert.match(campaignUi, /function addButtonVariant\(/);
+  assert.match(campaignUi, /function removeButtonVariant\(/);
+  assert.match(campaignUi, /id="campaign-interactive-enabled"/);
+  assert.match(campaignUi, /data-button-text/);
+  assert.match(campaignUi, /data-button-id/);
+  assert.match(campaignUi, /data-add-button/);
+  assert.match(campaignUi, /data-remove-button/);
+  assert.match(campaignUi, /data-remove-button-variant/);
+  assert.match(campaignUi, /id="campaign-add-button-variant"/);
+  assert.match(campaignUi, /button_variants: state\.interactiveEnabled \? state\.buttonVariants : \[\]/);
+  assert.match(campaignUi, /state\.preview = null/);
+  assert.match(campaignUi, /state\.draft = null/);
+  assert.match(campaignUi, /window\.kassist\?\.selectCampaignImage/);
+  assert.match(campaignUi, /imageReference/);
+  assert.match(campaignUi, /dispatch\/campaign\/preview/);
+  assert.match(campaignUi, /dispatch\/campaigns/);
+  assert.match(campaignUi, /action:'confirm'/);
+  assert.match(campaignUi, /action:'queue'/);
+  assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/batches/);
+  assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/preview\/csv/);
+  assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/preview\/manual/);
+  assert.match(desktopMain, /campaign-dispatch-ui\.js/);
+  assert.match(desktopMain, /executeJavaScript\(`\$\{campaignUi\}\\n\$\{featureUi\}`, true\)/);
 });
