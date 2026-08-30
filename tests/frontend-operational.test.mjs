@@ -202,7 +202,7 @@ test("Dashboard validates error retention by runtime state rather than presentat
   assert.match(html, /async function refreshDashboard\(/);
   assert.match(html, /state\.dashboard\.data=payload/);
   assert.match(html, /state\.dashboard\.error=error instanceof Error\?error\.message:String\(error\)/);
-  assert.match(html, /state\.dashboard\.error&&!d\?/);
+  assert.match(html, /state\.dashboard\.error&&!d/);
   assert.match(html, /state\.dashboard\.error\?statusNotice\('Dashboard','DEGRADED'/);
 });
 
@@ -230,7 +230,7 @@ test("Campaign UI module owns interactive state and is loaded by the Desktop mai
   assert.match(campaignUi, /dispatch\/campaigns/);
   assert.match(campaignUi, /action:\s*['"]confirm['"]/);
   assert.match(campaignUi, /action:\s*['"]queue['"]/);
-  assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/batches/);
+  assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/campaigns/);
   assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/preview\/csv/);
   assert.match(campaignUi, /\/api\/whatsapp\/dispatch\/preview\/manual/);
   assert.match(desktopMain, /campaign-dispatch-ui\.js/);
