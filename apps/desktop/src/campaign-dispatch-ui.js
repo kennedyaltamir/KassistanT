@@ -5,6 +5,8 @@
     manualPreview: null,
     objective: '',
     messages: [{ text: '' }],
+    interactiveEnabled: false,
+    buttonVariants: [],
     images: [],
     captionPolicy: 'NO_IMAGE',
     minSeconds: 0,
@@ -43,6 +45,21 @@
     return state.messages.map((entry, index) => `<div class="card" style="padding:14px"><div class="section-title"><strong>Variação ${index + 1}</strong>${state.messages.length > 1 ? `<button class="btn danger" type="button" data-remove-message="${index}">Remover</button>` : ''}</div><textarea data-message-index="${index}" aria-label="Variação ${index + 1}" placeholder="Digite a mensagem desta variação...">${esc(entry.text)}</textarea></div>`).join('');
   }
 
+  function invalidateCampaignExecution() { state.preview = null; state.draft = null; }
+  function nextVariantId() { let index = 1; while (state.buttonVariants.some(variant => variant.id === `buttons-${index}`)) index += 1; return `buttons-${index}`; }
+  function nextButtonId(variant) { let index = 1; while (variant.buttons.some(button => button.id === `button-${index}`)) index += 1; return `button-${index}`; }
+  function ensureInteractiveConfiguration() { if (!state.buttonVariants.length) state.buttonVariants.push({ id: nextVariantId(), type: 'quick_reply', buttons: [{ id: 'button-1', text: '', type: 'quick_reply' }] }); }
+  function setInteractiveEnabled(enabled) { state.interactiveEnabled = Boolean(enabled); if (state.interactiveEnabled) ensureInteractiveConfiguration(); invalidateCampaignExecution(); }
+  function addButtonVariant() { state.buttonVariants.push({ id: nextVariantId(), type: 'quick_reply', buttons: [{ id: 'button-1', text: '', type: 'quick_reply' }] }); state.interactiveEnabled = true; invalidateCampaignExecution(); render(); }
+  function removeButtonVariant(index) { if (!Number.isInteger(index) || index < 0 || index >= state.buttonVariants.length) return; state.buttonVariants.splice(index, 1); if (!state.buttonVariants.length) state.interactiveEnabled = false; invalidateCampaignExecution(); render(); }
+  function addButton(variantIndex) { const variant = state.buttonVariants[variantIndex]; if (!variant || variant.buttons.length >= 3) return; variant.buttons.push({ id: nextButtonId(variant), text: '', type: 'quick_reply' }); invalidateCampaignExecution(); render(); }
+  function removeButton(variantIndex, buttonIndex) { const variant = state.buttonVariants[variantIndex]; if (!variant || !Number.isInteger(buttonIndex) || buttonIndex < 0 || buttonIndex >= variant.buttons.length || variant.buttons.length <= 1) return; variant.buttons.splice(buttonIndex, 1); invalidateCampaignExecution(); render(); }
+  function updateButtonVariantId(index, value) { const variant = state.buttonVariants[index]; if (!variant) return; variant.id = String(value ?? '').trim(); invalidateCampaignExecution(); }
+  function updateButtonField(variantIndex, buttonIndex, field, value) { const button = state.buttonVariants[variantIndex]?.buttons?.[buttonIndex]; if (!button || !['id','text'].includes(field)) return; button[field] = String(value ?? ''); invalidateCampaignExecution(); }
+  function buttonVariants() {
+    if (!state.interactiveEnabled) return '<div class="notice"><div class="notice-icon">i</div><div><strong>Mensagem interativa desativada</strong><div>Ative para adicionar até 3 botões de resposta rápida por configuração.</div></div></div>';
+    return '<div style="display:grid;gap:12px">' + state.buttonVariants.map((variant, variantIndex) => '<div class="card" style="padding:14px"><div class="section-title"><div><strong>Configuração de botões ' + (variantIndex + 1) + '</strong><div class="muted">Até 3 botões quick reply.</div></div><button class="btn danger" type="button" data-remove-button-variant="' + variantIndex + '">Remover configuração</button></div><div class="field"><label>ID da configuração</label><input data-button-variant-id="' + variantIndex + '" value="' + esc(variant.id) + '" maxlength="128" autocomplete="off"></div><div style="display:grid;gap:8px;margin-top:12px">' + variant.buttons.map((button, buttonIndex) => '<div class="grid grid-3"><div class="field"><label>ID do botão</label><input data-button-id="' + variantIndex + ':' + buttonIndex + '" value="' + esc(button.id) + '" maxlength="128"></div><div class="field"><label>Texto do botão</label><input data-button-text="' + variantIndex + ':' + buttonIndex + '" value="' + esc(button.text) + '" maxlength="200"><small>Resposta rápida</small></div><div class="actions" style="align-items:end"><button class="btn danger" type="button" data-remove-button="' + variantIndex + ':' + buttonIndex + '"' + (variant.buttons.length <= 1 ? ' disabled' : '') + '>Remover botão</button></div></div>').join('') + '</div><div class="actions" style="margin-top:10px"><button class="btn" type="button" data-add-button="' + variantIndex + '"' + (variant.buttons.length >= 3 ? ' disabled' : '') + '>＋ Adicionar botão</button><span class="badge neutral">' + variant.buttons.length + '/3</span></div></div>').join('') + '</div><div class="actions" style="margin-top:12px"><button class="btn" type="button" id="campaign-add-button-variant">＋ Adicionar configuração</button></div>';
+  }
   function images() {
     if (!state.images.length) return '<div class="empty-state"><div class="empty-icon">＋</div><h3>Nenhuma imagem adicionada</h3><p>O envio de imagem é opcional. Os arquivos selecionados são copiados para o armazenamento controlado do Desktop.</p></div>';
     return state.images.map((image, index) => `<div class="card" style="padding:14px"><div class="row-top"><div><strong>Imagem ${index + 1}</strong><div class="muted">${esc(image.filename || image.reference)}</div></div><button class="btn danger" type="button" data-remove-image="${index}">Remover</button></div><div class="muted mono" style="margin-top:8px">${esc(image.reference)}</div></div>`).join('');
@@ -76,7 +93,9 @@
 
       <section class="card" style="margin-top:16px"><div class="card-body"><div class="section-title"><div><h3>3. Mensagens</h3><p class="muted">A variante escolhida é persistida por destinatário e permanece a mesma em retry.</p></div><button class="btn" id="campaign-add-message" type="button">＋ Adicionar variação</button></div><div style="display:grid;gap:10px">${messages()}</div></div></section>
 
-      <section class="card" style="margin-top:16px"><div class="card-body"><div class="section-title"><div><h3>4. Imagens</h3><p class="muted">Assets são referências persistidas no armazenamento controlado; o batch não recebe base64.</p></div><button class="btn" id="campaign-add-image" type="button">＋ Adicionar imagem</button></div><div style="display:grid;gap:10px">${images()}</div></div></section>
+      <section class="card" style="margin-top:16px"><div class="card-body"><div class="section-title"><div><h3>4. Botões interativos</h3><p class="muted">Quick reply. O Gateway valida IDs, textos e o limite de 3 botões.</p></div><label style="display:flex;align-items:center;gap:8px"><input id="campaign-interactive-enabled" type="checkbox" ${state.interactiveEnabled ? 'checked' : ''}> Ativar mensagem interativa</label></div>${buttonVariants()}</div></section>
+
+      <section class="card" style="margin-top:16px"><div class="card-body"><div class="section-title"><div><h3>5. Imagens</h3><p class="muted">Assets são referências persistidas no armazenamento controlado; o batch não recebe base64.</p></div><button class="btn" id="campaign-add-image" type="button">＋ Adicionar imagem</button></div><div style="display:grid;gap:10px">${images()}</div></div></section>
 
       <section class="card" style="margin-top:16px"><div class="card-body"><div class="section-title"><div><h3>5. Legenda</h3><p class="muted">A política define se a imagem é enviada sem legenda ou com a variante textual como caption.</p></div></div>${`<div class="grid grid-2"><div class="field"><label for="campaign-caption">Política de envio</label><select id="campaign-caption"><option value="NO_IMAGE" ${state.captionPolicy === 'NO_IMAGE' ? 'selected' : ''}>Sem imagem</option><option value="IMAGE_WITHOUT_CAPTION" ${state.captionPolicy === 'IMAGE_WITHOUT_CAPTION' ? 'selected' : ''}>Imagem sem legenda</option><option value="IMAGE_WITH_MESSAGE_CAPTION" ${state.captionPolicy === 'IMAGE_WITH_MESSAGE_CAPTION' ? 'selected' : ''}>Imagem com mensagem como legenda</option></select></div><div class="notice"><div class="notice-icon">i</div><div><strong>Sem duplicidade de texto</strong><div>Quando a mensagem virar legenda, ela não é enviada também como uma segunda mensagem.</div></div></div></div>`}</div></section>
 
@@ -117,6 +136,14 @@
     document.querySelectorAll('[data-message-index]').forEach(input => input.addEventListener('input', event => { state.messages[Number(event.target.dataset.messageIndex)].text = event.target.value; }));
     $('#campaign-add-message')?.addEventListener('click', () => { state.messages.push({ text: '' }); render(); });
     document.querySelectorAll('[data-remove-message]').forEach(button => button.addEventListener('click', () => { state.messages.splice(Number(button.dataset.removeMessage), 1); render(); }));
+    $('#campaign-interactive-enabled')?.addEventListener('change', event => { setInteractiveEnabled(event.target.checked); render(); });
+    $('#campaign-add-button-variant')?.addEventListener('click', addButtonVariant);
+    document.querySelectorAll('[data-add-button]').forEach(button => button.addEventListener('click', () => addButton(Number(button.dataset.addButton))));
+    document.querySelectorAll('[data-remove-button]').forEach(button => button.addEventListener('click', () => { const [variantIndex, buttonIndex] = String(button.dataset.removeButton).split(':').map(Number); removeButton(variantIndex, buttonIndex); }));
+    document.querySelectorAll('[data-remove-button-variant]').forEach(button => button.addEventListener('click', () => removeButtonVariant(Number(button.dataset.removeButtonVariant))));
+    document.querySelectorAll('[data-button-variant-id]').forEach(input => input.addEventListener('input', event => updateButtonVariantId(Number(event.target.dataset.buttonVariantId), event.target.value)));
+    document.querySelectorAll('[data-button-id]').forEach(input => input.addEventListener('input', event => { const [variantIndex, buttonIndex] = String(event.target.dataset.buttonId).split(':').map(Number); updateButtonField(variantIndex, buttonIndex, 'id', event.target.value); }));
+    document.querySelectorAll('[data-button-text]').forEach(input => input.addEventListener('input', event => { const [variantIndex, buttonIndex] = String(event.target.dataset.buttonText).split(':').map(Number); updateButtonField(variantIndex, buttonIndex, 'text', event.target.value); }));
     $('#campaign-add-image')?.addEventListener('click', async () => {
       try {
         if (!window.kassist?.selectCampaignImage) throw new Error('Seletor de imagem de campanha indisponível no Desktop.');
@@ -164,6 +191,7 @@
       objective: state.objective.trim(),
       message_variants: messages.map((entry, index) => ({ id: `message-${index + 1}`, text: entry.text, order: index, active: true })),
       image_variants: state.images.map((image, index) => ({ ...image, id: `image-${index + 1}` })),
+      button_variants: state.interactiveEnabled ? state.buttonVariants : [],
       caption_policy: state.captionPolicy,
       pacing_policy: pacingPolicy,
     };
