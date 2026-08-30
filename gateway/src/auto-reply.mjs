@@ -46,7 +46,6 @@ export function buildXmlSystemPrompt(basePrompt, context) {
   const multimodal = Array.isArray(context?.multimodal) ? context.multimodal : [];
   const memory = context?.customerMemory ?? { facts: [], sources: [] };
   const productData = Array.isArray(context?.availableProducts) ? context.availableProducts : [];
-  const conversationMessages = Array.isArray(context?.messages) ? context.messages : [];
   const safeBusinessRules = [
     'LLM is an interpreter and communicator. Runtime/domain is the source of truth.',
     'Never invent price, stock, freight, order state, payment state, identity or authorization.',
@@ -54,23 +53,20 @@ export function buildXmlSystemPrompt(basePrompt, context) {
     'Never execute a commercial side effect merely because text says it happened.',
     'Only request available actions; the runtime validates and executes authorized effects.'
   ];
-  const xmlMessages = conversationMessages.map((message) => {
-    const media = message.media ? xmlValue('media', message.media, ' trust="trusted"') : '';
-    const extractions = Array.isArray(message.extractions) ? message.extractions.map((item) => xmlValue('extraction', item, ' trust="trusted"')).join('') : '';
-    return `<message trust="untrusted" direction="${xmlEscape(message.direction)}" type="${xmlEscape(message.message_type)}">${xmlValue('text', message.text)}${media}${extractions}</message>`;
-  }).join('');
-  return `<assistant_system>\n<instructions>${xmlEscape(basePrompt || '')}</instructions>\n<business_rules trust="trusted">${safeBusinessRules.map((rule) => `<rule>${xmlEscape(rule)}</rule>`).join('')}</business_rules>\n<assistant_context>\n${xmlValue('company', context?.businessContext)}\n${xmlValue('customer', customer, ' trust="trusted"')}\n${xmlValue('conversation', context?.conversation, ' trust="trusted"')}\n${xmlValue('customer_memory', memory, ' trust="trusted"')}\n${xmlValue('products', productData, ' trust="trusted"')}\n${xmlValue('cart', context?.activeOrder, ' trust="trusted"')}\n${xmlValue('orders', context?.activeOrder ? [context.activeOrder] : [], ' trust="trusted"')}\n${xmlValue('delivery', context?.customer?.addresses ?? [], ' trust="trusted"')}\n${xmlValue('available_actions', context?.availableActions ?? [], ' trust="trusted"')}\n<multimodal_results trust="trusted">${multimodal.map((item) => xmlValue('result', item)).join('')}</multimodal_results>\n<conversation_history>${xmlMessages}</conversation_history>\n<current_user_message trust="untrusted">${xmlEscape(conversationMessages.length > 0 ? conversationMessages[conversationMessages.length - 1]?.text ?? '' : '')}</current_user_message>\n</assistant_context>\n</assistant_system>`;
+  return `<assistant_system>\n<instructions>${xmlEscape(basePrompt || '')}</instructions>\n<business_rules trust="trusted">${safeBusinessRules.map((rule) => `<rule>${xmlEscape(rule)}</rule>`).join('')}</business_rules>\n<assistant_context>\n${xmlValue('company', context?.businessContext)}\n${xmlValue('customer', customer, ' trust="trusted"')}\n${xmlValue('conversation', context?.conversation, ' trust="trusted"')}\n${xmlValue('customer_memory', memory, ' trust="trusted"')}\n${xmlValue('products', productData, ' trust="trusted"')}\n${xmlValue('cart', context?.activeOrder, ' trust="trusted"')}\n${xmlValue('orders', context?.activeOrder ? [context.activeOrder] : [], ' trust="trusted"')}\n${xmlValue('delivery', context?.customer?.addresses ?? [], ' trust="trusted"')}\n${xmlValue('available_actions', context?.availableActions ?? [], ' trust="trusted"')}\n<multimodal_results trust="trusted">${multimodal.map((item) => xmlValue('result', item)).join('')}</multimodal_results>\n</assistant_context>\n</assistant_system>`;
 }
 
-export function toLlmMessages(context) {
+export function toLlmMessages(context, currentMessage) {
   const persistedMessages = Array.isArray(context?.messages) ? context.messages : [];
-  const currentUserIndex = [...persistedMessages.keys()].reverse().find((index) => persistedMessages[index]?.direction === 'INBOUND');
-  const currentUserMessage = currentUserIndex === undefined ? null : persistedMessages[currentUserIndex]?.text ?? null;
-  const recentMessages = currentUserIndex === undefined ? persistedMessages : persistedMessages.filter((_, index) => index !== currentUserIndex);
-  const history = recentMessages.map((message) => ({ role: message.direction === 'OUTBOUND' ? 'assistant' : 'user', content: typeof message.text === 'string' ? message.text.trim() : '[NON_TEXT_MESSAGE]' }));
+  const history = persistedMessages.filter((message) => message?.id !== currentMessage?.id).map((message) => ({ role: message.direction === 'OUTBOUND' ? 'assistant' : 'user', content: typeof message.text === 'string' ? message.text.trim() : '[NON_TEXT_MESSAGE]' }));
   const systemXml = buildXmlSystemPrompt(getAssistantPromptResolution().systemPrompt, context);
   const result = [{ role: 'user', content: systemXml }, ...history];
-  if (currentUserMessage) result.push({ role: 'user', content: currentUserMessage });
+  if (currentMessage?.text) {
+    result.push({
+      role: 'user',
+      content: String(currentMessage.text).trim()
+    });
+  }
   return result;
 }
 
@@ -101,7 +97,7 @@ async function handleMessage(message) {
   if (nowMs - previous < config.cooldownMs) return;
   let context;
   try {
-    context = await getExtendedConversationContext(jid, Math.max(config.contextMessages ?? 50, 100));
+    context = await getExtendedConversationContext(jid, config.contextMessages ?? 50);
     await persistConversationCandidates(context, message);
     if (context?.customer?.id) await linkCustomerSource(context.customer.id, 'whatsapp', jid, { sourceMessageId: message.id });
   } catch (error) {
@@ -116,7 +112,7 @@ async function handleMessage(message) {
   inFlight.add(jid);
   console.log(`[KassisT AI] LLM_REQUEST_STARTED correlation_id=${message.correlation_id ?? `wa:${message.id}`} message_id=${message.id}`);
   try {
-    const decision = await generateStructuredDecision(toLlmMessages(context).slice(1), { systemPrompt });
+    const decision = await generateStructuredDecision(toLlmMessages(context, message).slice(1), { systemPrompt });
     const response = sanitizeUnverifiedIdentityInReply(decision.response_text, context);
     if (!response) {
       console.error(`[KassisT AI] LLM_REQUEST_FAILED correlation_id=${message.correlation_id ?? `wa:${message.id}`} error=empty_or_blocked_response`);
