@@ -353,20 +353,22 @@ function conversationContext(database, storeId, externalThreadId, limit) {
 function dashboardSummary(database, storeId, nowMs = Date.now()) {
   const now = new Date(nowMs);
   const todayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())).toISOString();
+  const todayEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString();
+  const nowIso = now.toISOString();
   const last7Start = new Date(nowMs - 7 * 24 * 60 * 60 * 1000).toISOString();
   const last30Start = new Date(nowMs - 30 * 24 * 60 * 60 * 1000).toISOString();
   const scalar = (sql, ...params) => Number(database.prepare(sql).get(...params)?.value ?? 0);
   const activeConversations = scalar("SELECT COUNT(*) AS value FROM conversation WHERE store_id = ? AND lifecycle_state = 'OPEN'", storeId);
   const messagesReceived = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'INBOUND'", storeId);
-  const messagesSentToday = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ?", storeId, todayStart);
-  const messagesSent7d = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ?", storeId, last7Start);
-  const messagesSent30d = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ?", storeId, last30Start);
+  const messagesSentToday = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ? AND created_at < ?", storeId, todayStart, todayEnd);
+  const messagesSent7d = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ? AND created_at < ?", storeId, last7Start, nowIso);
+  const messagesSent30d = scalar("SELECT COUNT(*) AS value FROM message WHERE store_id = ? AND direction = 'OUTBOUND' AND created_at >= ? AND created_at < ?", storeId, last30Start, nowIso);
   const confirmedOrders = scalar("SELECT COUNT(*) AS value FROM \"order\" WHERE store_id = ? AND lifecycle_state = 'CONFIRMED'", storeId);
   const revenueCents = Number(database.prepare("SELECT COALESCE(SUM(total_cents), 0) AS total_cents FROM \"order\" WHERE store_id = ? AND lifecycle_state = 'CONFIRMED'").get(storeId)?.total_cents ?? 0);
   const ticketAverageCents = confirmedOrders > 0 ? Math.floor((revenueCents + Math.floor(confirmedOrders / 2)) / confirmedOrders) : 0;
-  const newCustomersToday = scalar("SELECT COUNT(*) AS value FROM customer WHERE store_id = ? AND created_at >= ?", storeId, todayStart);
+  const newCustomersToday = scalar("SELECT COUNT(*) AS value FROM customer WHERE store_id = ? AND created_at >= ? AND created_at < ?", storeId, todayStart, todayEnd);
   const recentOrders = database.prepare("SELECT o.id, o.display_number, o.lifecycle_state, o.total_cents, o.currency, o.created_at, o.updated_at, c.id AS customer_id, c.name AS customer_name, c.phone_normalized FROM \"order\" o JOIN customer c ON c.id = o.customer_id WHERE o.store_id = ? ORDER BY o.updated_at DESC, o.created_at DESC LIMIT 10").all(storeId).map((row) => ({ id: row.id, displayNumber: row.display_number, lifecycleState: row.lifecycle_state, totalCents: Number(row.total_cents), currency: row.currency, customer: { id: row.customer_id, name: row.customer_name, phoneNormalized: row.phone_normalized }, createdAt: row.created_at, updatedAt: row.updated_at }));
-  return { generatedAtUtc: now.toISOString(), timezone: "UTC", periods: { today: { startUtc: todayStart, endUtcExclusive: now.toISOString(), semantics: "current UTC calendar day" }, last7d: { startUtc: last7Start, endUtcExclusive: now.toISOString(), semantics: "rolling previous 7×24 hours" }, last30d: { startUtc: last30Start, endUtcExclusive: now.toISOString(), semantics: "rolling previous 30×24 hours" } }, kpis: { activeConversations, messagesReceived, messagesSentToday, messagesSent7d, messagesSent30d, ignoredMessages: null, ignoredMessagesAvailable: false, ignoredMessagesReason: "The current schema has no canonical ignored-message state; REJECTED is not assumed to mean ignored.", confirmedOrders, revenueCents, ticketAverageCents, newCustomersToday }, recentOrders };
+  return { generatedAtUtc: now.toISOString(), timezone: "UTC", periods: { today: { startUtc: todayStart, endUtcExclusive: todayEnd, semantics: "current UTC calendar day" }, last7d: { startUtc: last7Start, endUtcExclusive: nowIso, semantics: "rolling previous 7×24 hours, end-exclusive" }, last30d: { startUtc: last30Start, endUtcExclusive: nowIso, semantics: "rolling previous 30×24 hours, end-exclusive" } }, kpis: { activeConversations, messagesReceived, messagesSentToday, messagesSent7d, messagesSent30d, ignoredMessages: null, ignoredMessagesAvailable: false, ignoredMessagesReason: "The current schema has no canonical ignored-message state; REJECTED is not assumed to mean ignored.", confirmedOrders, revenueCents, ticketAverageCents, newCustomersToday }, recentOrders };
 }
 
 function startPersistenceServer(options = {}) {
