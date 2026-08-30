@@ -1,5 +1,6 @@
 const PERSISTENCE_URL = process.env.KASSIST_PERSISTENCE_URL ?? 'http://127.0.0.1:3211/internal/v1/whatsapp/message';
 const PERSISTENCE_BASE_URL = PERSISTENCE_URL.replace(/\/internal\/v1\/whatsapp\/message\/?$/, '');
+const PERSISTENCE_EXT_URL = (process.env.KASSIST_PERSISTENCE_EXT_URL ?? 'http://127.0.0.1:3212').replace(/\/$/, '');
 const MAX_ATTEMPTS = 3;
 
 function normalizeEvent(value) {
@@ -15,6 +16,17 @@ async function request(path, options = {}) {
   });
   const payload = await response.json().catch(() => ({}));
   if (!response.ok) throw new Error(typeof payload?.error === 'string' ? payload.error : `Persistence endpoint returned HTTP ${response.status}`);
+  return payload;
+}
+
+async function extensionRequest(path, options = {}) {
+  const response = await fetch(`${PERSISTENCE_EXT_URL}${path}`, {
+    ...options,
+    headers: { 'content-type': 'application/json', ...(options.headers || {}) },
+    signal: options.signal ?? AbortSignal.timeout(5000),
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(typeof payload?.error === 'string' ? payload.error : `Persistence extension returned HTTP ${response.status}`);
   return payload;
 }
 
@@ -46,6 +58,35 @@ export async function getConversationContext(jid, limit = 50) {
   return request(`/internal/v1/conversation-context?jid=${encodeURIComponent(value)}&limit=${encodeURIComponent(String(limit))}`);
 }
 
+export async function getExtendedConversationContext(jid, limit = 100) {
+  const value = String(jid ?? '').trim();
+  if (!value) throw new Error('Conversation JID is required');
+  return extensionRequest(`/internal/v2/conversation-context?jid=${encodeURIComponent(value)}&limit=${encodeURIComponent(String(limit))}`);
+}
+
+export async function persistMessageProcessing(input) {
+  return extensionRequest('/internal/v2/message-processing', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function persistMediaAsset(input) {
+  return extensionRequest('/internal/v2/media', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function persistMultimodalExtraction(input) {
+  return extensionRequest('/internal/v2/extractions', { method: 'POST', body: JSON.stringify(input) });
+}
+
+export async function persistCustomerFacts(customerId, facts) {
+  return extensionRequest('/internal/v2/customer-facts', { method: 'POST', body: JSON.stringify({ customerId, facts }) });
+}
+
+export async function linkCustomerSource(customerId, sourceType, sourceId, metadata = null) {
+  return extensionRequest('/internal/v2/customer-sources', {
+    method: 'POST',
+    body: JSON.stringify({ customerId, sourceType, sourceId, metadata }),
+  });
+}
+
 export async function listPersistedConversations(limit = 100) {
   return request(`/internal/v1/conversations?limit=${encodeURIComponent(String(limit))}`);
 }
@@ -74,6 +115,9 @@ export function getPersistenceUrl() {
   return PERSISTENCE_URL;
 }
 
+export function getPersistenceExtensionUrl() {
+  return PERSISTENCE_EXT_URL;
+}
 
 export async function getDashboardSummary() {
   return request('/internal/v1/dashboard/summary');
