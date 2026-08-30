@@ -221,3 +221,74 @@ test("runtime fails closed when an observed phone identity conflicts with anothe
     fs.rmSync(ctx.directory, { recursive: true, force: true });
   }
 });
+
+
+test("dashboard summary exposes real KPI calculations, UTC periods and recent persisted orders", async () => {
+  const ctx = tempContext();
+  const runtime = startPersistenceServer({ filePath: ctx.filePath, migrationsPath: ctx.migrationsPath, port: 0, storeId: "store-test", storeName: "Test Store" });
+  await new Promise((resolve) => runtime.server.once("listening", resolve));
+  const port = runtime.server.address().port;
+  const nowSec = Math.floor(Date.now() / 1000);
+  const oneHourAgo = nowSec - 60 * 60;
+  const eightDaysAgo = nowSec - 8 * 24 * 60 * 60;
+  const thirtyOneDaysAgo = nowSec - 31 * 24 * 60 * 60;
+  try {
+    for (const [id, timestamp, direction] of [
+      ["dashboard-in-1", oneHourAgo, "INBOUND"], ["dashboard-in-2", eightDaysAgo, "INBOUND"], ["dashboard-in-3", thirtyOneDaysAgo, "INBOUND"],
+      ["dashboard-out-1", oneHourAgo, "OUTBOUND"], ["dashboard-out-2", eightDaysAgo, "OUTBOUND"], ["dashboard-out-3", thirtyOneDaysAgo, "OUTBOUND"]
+    ]) {
+      const result = await post(port, { message: { id, external_message_id: id, jid: "5511999999999@s.whatsapp.net", direction, text: "dashboard", timestamp } });
+      assert.equal(result.status, 200);
+    }
+    const customer = runtime.database.prepare("SELECT id FROM customer LIMIT 1").get();
+    const conversation = runtime.database.prepare("SELECT id FROM conversation LIMIT 1").get();
+    assert.ok(customer?.id && conversation?.id);
+    const nowIso = new Date().toISOString();
+    const insertOrder = runtime.database.prepare("INSERT INTO \"order\" (id, store_id, display_number, customer_id, conversation_id, lifecycle_state, subtotal_cents, discount_cents, delivery_fee_cents, total_cents, currency, delivery_type, address_id, payment_method_id, notes, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?, 'BRL', 'PICKUP', NULL, NULL, NULL, ?, ?)");
+    insertOrder.run("dashboard-order-confirmed", "store-test", "DASH-001", customer.id, conversation.id, "CONFIRMED", 12345, 12345, nowIso, nowIso);
+    insertOrder.run("dashboard-order-cancelled", "store-test", "DASH-002", customer.id, conversation.id, "CANCELLED", 99999, 99999, nowIso, nowIso);
+    const response = await fetch("http://127.0.0.1:" + port + "/internal/v1/dashboard/summary");
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.kpis.activeConversations, 1);
+    assert.equal(body.kpis.messagesReceived, 3);
+    assert.equal(body.kpis.messagesSentToday, 1);
+    assert.equal(body.kpis.messagesSent7d, 1);
+    assert.equal(body.kpis.messagesSent30d, 2);
+    assert.equal(body.kpis.ignoredMessagesAvailable, false);
+    assert.equal(body.kpis.confirmedOrders, 1);
+    assert.equal(body.kpis.revenueCents, 12345);
+    assert.equal(body.kpis.ticketAverageCents, 12345);
+    assert.equal(body.kpis.newCustomersToday, 1);
+    assert.equal(body.recentOrders.length, 2);
+    assert.equal(body.timezone, "UTC");
+  } finally {
+    runtime.close();
+    fs.rmSync(ctx.directory, { recursive: true, force: true });
+  }
+});
+
+test("dashboard summary returns zero and empty recent orders on a fresh database", async () => {
+  const ctx = tempContext();
+  const runtime = startPersistenceServer({ filePath: ctx.filePath, migrationsPath: ctx.migrationsPath, port: 0, storeId: "store-test", storeName: "Test Store" });
+  await new Promise((resolve) => runtime.server.once("listening", resolve));
+  const port = runtime.server.address().port;
+  try {
+    const response = await fetch("http://127.0.0.1:" + port + "/internal/v1/dashboard/summary");
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.kpis.activeConversations, 0);
+    assert.equal(body.kpis.messagesReceived, 0);
+    assert.equal(body.kpis.messagesSentToday, 0);
+    assert.equal(body.kpis.messagesSent7d, 0);
+    assert.equal(body.kpis.messagesSent30d, 0);
+    assert.equal(body.kpis.confirmedOrders, 0);
+    assert.equal(body.kpis.revenueCents, 0);
+    assert.equal(body.kpis.ticketAverageCents, 0);
+    assert.equal(body.kpis.newCustomersToday, 0);
+    assert.deepEqual(body.recentOrders, []);
+  } finally {
+    runtime.close();
+    fs.rmSync(ctx.directory, { recursive: true, force: true });
+  }
+});
