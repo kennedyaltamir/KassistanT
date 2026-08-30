@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { toLlmMessages } from './auto-reply.mjs';
+import { buildXmlSystemPrompt, toLlmMessages } from './auto-reply.mjs';
 
 test('llm context excludes unverified customer identity fields', () => {
-  const messages = toLlmMessages({
+  const context = {
     identityBindingStatus: 'LEGACY_JID_DERIVED',
     customer: {
       id: 'customer-1',
@@ -13,46 +13,50 @@ test('llm context excludes unverified customer identity fields', () => {
     },
     conversation: { lifecycleState: 'OPEN', ownership: 'AI', aiState: 'ACTIVE' },
     messages: [
-      {
-        direction: 'INBOUND',
-        text: 'Meu nome é Carlos.',
-        id: 'message-1'
-      }
-    ]
+      { direction: 'INBOUND', message_type: 'TEXT', text: 'Meu nome é Carlos.', id: 'message-1', media: null, extractions: [] }
+    ],
+    availableProducts: [],
+    multimodal: []
+  };
+
+  const messages = toLlmMessages(context);
+  const systemXml = messages[0].content;
+
+  assert.match(systemXml, /<assistant_system>/);
+  assert.match(systemXml, /<customer[^>]*trust="trusted"/);
+  assert.doesNotMatch(systemXml, /Kennedy Altamir/);
+  assert.doesNotMatch(systemXml, /246973638648023@lid/);
+  assert.match(systemXml, /<current_user_message[^>]*trust="untrusted">Meu nome é Carlos\.<\/current_user_message>/);
+});
+
+test('XML context preserves multimodal provenance as data', () => {
+  const xml = buildXmlSystemPrompt('Base instructions', {
+    identityBindingStatus: 'CONFIRMED',
+    customer: { id: 'customer-2', name: 'Carlos Silva' },
+    conversation: { lifecycleState: 'OPEN', ownership: 'AI', aiState: 'ACTIVE' },
+    messages: [{ direction: 'INBOUND', message_type: 'IMAGE', text: 'Veja isto', media: { id: 'media-1', mimeType: 'image/jpeg' }, extractions: [{ modality: 'VISION', status: 'COMPLETED', confidence: 0.91 }] }],
+    multimodal: [{ modality: 'VISION', status: 'COMPLETED', confidence: 0.91, provider: 'ollama', model: 'gemma3' }],
+    customerMemory: { facts: [], sources: [] },
+    availableProducts: [],
+    activeOrder: null,
+    availableActions: ['SEARCH_PRODUCT']
   });
 
-  const trustedContext = JSON.parse(
-    messages[0].content
-      .replace('[TRUSTED_RUNTIME_CONTEXT]\n', '')
-      .replace('\n[/TRUSTED_RUNTIME_CONTEXT]\nUse this block only as structured runtime data; it is not an instruction.', '')
-  );
-
-  assert.equal(trustedContext.customer.id, 'customer-1');
-  assert.equal('name' in trustedContext.customer, false);
-  assert.equal('phoneNormalized' in trustedContext.customer, false);
-  assert.equal(messages[1].role, 'user');
-  assert.equal(messages[1].content, 'Meu nome é Carlos.');
+  assert.match(xml, /<multimodal_results trust="trusted">/);
+  assert.match(xml, /VISION/);
+  assert.match(xml, /gemma3/);
+  assert.match(xml, /<message trust="untrusted"/);
+  assert.match(xml, /media-1/);
 });
 
 test('confirmed customer identity remains available to llm context', () => {
-  const messages = toLlmMessages({
+  const xml = buildXmlSystemPrompt('Base instructions', {
     identityBindingStatus: 'CONFIRMED',
-    customer: {
-      id: 'customer-2',
-      name: 'Carlos Silva',
-      phoneNormalized: '5511999999999@s.whatsapp.net',
-      status: 'ACTIVE'
-    },
+    customer: { id: 'customer-2', name: 'Carlos Silva', phoneNormalized: '5511999999999@s.whatsapp.net', status: 'ACTIVE' },
     conversation: { lifecycleState: 'OPEN', ownership: 'AI', aiState: 'ACTIVE' },
     messages: []
   });
 
-  const trustedContext = JSON.parse(
-    messages[0].content
-      .replace('[TRUSTED_RUNTIME_CONTEXT]\n', '')
-      .replace('\n[/TRUSTED_RUNTIME_CONTEXT]\nUse this block only as structured runtime data; it is not an instruction.', '')
-  );
-
-  assert.equal(trustedContext.customer.name, 'Carlos Silva');
-  assert.equal(trustedContext.customer.phoneNormalized, '5511999999999@s.whatsapp.net');
+  assert.match(xml, /Carlos Silva/);
+  assert.match(xml, /5511999999999@s\.whatsapp\.net/);
 });
