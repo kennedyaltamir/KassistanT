@@ -23,14 +23,14 @@ O Dashboard apresenta somente dados derivados do runtime real. O Renderer não c
 |---|---|---|---|---|
 | Atendimentos ativos | Conversas no estado operacional aberto | `conversation` | `COUNT(*) WHERE store_id=? AND lifecycle_state='OPEN'` | snapshot |
 | Mensagens recebidas | Mensagens inbound persistidas | `message` | `COUNT(*) WHERE direction='INBOUND'` | all persisted |
-| Mensagens enviadas hoje | Outbound persistidas no dia atual | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= todayStartUtc` | UTC calendar day |
-| Mensagens enviadas 7 dias | Outbound persistidas na janela móvel | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= now-7d` | rolling 7×24h |
-| Mensagens enviadas 30 dias | Outbound persistidas na janela móvel | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= now-30d` | rolling 30×24h |
+| Mensagens enviadas hoje | Outbound persistidas no dia atual | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= todayStartUtc AND created_at < todayEndUtc` | UTC calendar day |
+| Mensagens enviadas 7 dias | Outbound persistidas na janela móvel | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= now-7d AND created_at < now` | rolling 7×24h |
+| Mensagens enviadas 30 dias | Outbound persistidas na janela móvel | `message` | `COUNT(*) WHERE direction='OUTBOUND' AND created_at >= now-30d AND created_at < now` | rolling 30×24h |
 | Mensagens ignoradas | Sem semântica canônica comprovada no schema atual | N/A | `ignoredMessages=null`, `ignoredMessagesAvailable=false` | N/A |
 | Pedidos confirmados | Orders no estado canônico confirmado | `order` | `COUNT(*) WHERE lifecycle_state='CONFIRMED'` | all persisted |
 | Faturamento operacional | Soma de pedidos confirmados | `order` | `SUM(total_cents) WHERE lifecycle_state='CONFIRMED'` | all persisted |
 | Ticket médio | Média determinística do faturamento confirmado | `order` | `round(revenueCents / confirmedOrders)` em centavos inteiros | all persisted |
-| Clientes novos hoje | Clientes criados no dia atual | `customer` | `COUNT(*) WHERE created_at >= todayStartUtc` | UTC calendar day |
+| Clientes novos hoje | Clientes criados no dia atual | `customer` | `COUNT(*) WHERE created_at >= todayStartUtc AND created_at < todayEndUtc` | UTC calendar day |
 
 ## Monetary invariants
 
@@ -91,3 +91,8 @@ Dynamic execution of the repository quality gates remains subject to the CI/runt
 - No Order Engine semantics were duplicated in the Renderer.
 - No new Store timezone resolver was introduced.
 - No implementation was added to other product tabs.
+
+
+## Validation finding fixed
+
+The initial implementation used only lower bounds for temporal KPI queries. Future-dated persisted records could therefore contaminate "today", rolling 7-day, and rolling 30-day metrics. The fix adds explicit end-exclusive bounds: UTC calendar day `[todayStartUtc, todayEndUtc)` and rolling windows `[now - N days, now)`. A regression test in `runtime.test.cjs` covers a future outbound message and future customer creation.
