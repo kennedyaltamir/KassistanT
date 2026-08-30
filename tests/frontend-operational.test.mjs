@@ -192,3 +192,18 @@ test("WhatsApp reset confirmation describes destructive session removal", () => 
   assert.match(html, /A sessão WhatsApp armazenada pelo KassisT será removida/);
   assert.match(html, /Um novo QR Code poderá ser necessário/);
 });
+
+
+test("Dashboard uses the real summary contract and explicit operational states", () => {
+  assert.match(html, /\/api\/dashboard\/summary/);
+  for (const text of [
+    "Atendimentos ativos", "Mensagens recebidas", "Mensagens enviadas hoje",
+    "Mensagens enviadas · 7 dias", "Mensagens enviadas · 30 dias", "Mensagens ignoradas",
+    "Pedidos confirmados", "Faturamento operacional", "Ticket médio", "Clientes novos hoje",
+    "Pedidos recentes", "Integrações", "Alertas operacionais"
+  ]) assert.match(html, new RegExp(text));
+  assert.match(html, /ignoredMessagesAvailable/);
+  assert.match(html, /Último dado válido permanece visível/);
+  assert.match(html, /console\.error\('\[KassisT Dashboard\]/);
+  assert.doesNotMatch(html, /R\$\s*1[.,]000/);
+});
