@@ -73,3 +73,12 @@ export async function deleteProduct(id) {
 export function getPersistenceUrl() {
   return PERSISTENCE_URL;
 }
+
+
+export async function getDashboardSummary() {
+  return request('/internal/v1/dashboard/summary');
+}
+
+export async function getPersistenceHealth() {
+  return request('/health');
+}
