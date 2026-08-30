@@ -207,3 +207,33 @@ test("Dashboard uses the real summary contract and explicit operational states",
   assert.match(html, /console\.error\('\[KassisT Dashboard\]/);
   assert.doesNotMatch(html, /R\$\s*1[.,]000/);
 });
+
+
+test('interactive button editor preserves campaign pipeline and image picker', () => {
+  assert.match(html, /interactiveEnabled: false/);
+  assert.match(html, /buttonVariants: \[\]/);
+  assert.match(html, /function setInteractiveEnabled\(/);
+  assert.match(html, /function addButton\(/);
+  assert.match(html, /function removeButton\(/);
+  assert.match(html, /function addButtonVariant\(/);
+  assert.match(html, /function removeButtonVariant\(/);
+  assert.match(html, /id="campaign-interactive-enabled"/);
+  assert.match(html, /data-button-text/);
+  assert.match(html, /data-button-id/);
+  assert.match(html, /data-add-button/);
+  assert.match(html, /data-remove-button/);
+  assert.match(html, /data-remove-button-variant/);
+  assert.match(html, /id="campaign-add-button-variant"/);
+  assert.match(html, /button_variants: state\.interactiveEnabled \? state\.buttonVariants : \[\]/);
+  assert.match(html, /state\.preview = null/);
+  assert.match(html, /state\.draft = null/);
+  assert.match(html, /window\.kassist\?\.selectCampaignImage/);
+  assert.match(html, /imageReference/);
+  assert.match(html, /dispatch\/campaign\/preview/);
+  assert.match(html, /dispatch\/campaigns/);
+  assert.match(html, /action:'confirm'/);
+  assert.match(html, /action:'queue'/);
+  assert.match(html, /\/api\/whatsapp\/dispatch\/batches/);
+  assert.match(html, /\/api\/whatsapp\/dispatch\/preview\/csv/);
+  assert.match(html, /\/api\/whatsapp\/dispatch\/preview\/manual/);
+});
