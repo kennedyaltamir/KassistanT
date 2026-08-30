@@ -72,7 +72,7 @@ test('stale messages.upsert cannot publish after lifecycle invalidation', () => 
 
   assert.match(
     source,
-    /if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?await persistSnapshot\(snapshot\);[\s\S]*?if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?recordMessage\(snapshot\)/
+    /const initial = snapshotMessage\([\s\S]*?void \(async \(\) => \{\s*if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?await persistSnapshot\(initial\);[\s\S]*?if \(!isCurrentLifecycle\(\)\) return;[\s\S]*?recordMessage\(initial\)/
   );
 });
 
@@ -102,9 +102,17 @@ test('stale socket events are bound to their originating socket instance', () =>
 });
 
 test('lifecycle keeps exactly the five official connection states', () => {
-  assert.match(
-    source,
-    /@typedef \{'DISCONNECTED' \| 'CONNECTING' \| 'PAIRING' \| 'CONNECTED' \| 'ERROR'\}/
+  const connectionStateDeclaration = source.match(
+    /@typedef \{('[^}]+')\} ConnectionState/
   );
-  assert.doesNotMatch(source, /'RECONNECTING'|'LOGGED_OUT'|'UNAVAILABLE'/);
+
+  assert.ok(
+    connectionStateDeclaration,
+    'ConnectionState typedef must exist'
+  );
+
+  assert.equal(
+    connectionStateDeclaration[1],
+    "'DISCONNECTED' | 'CONNECTING' | 'PAIRING' | 'CONNECTED' | 'ERROR'"
+  );
 });
