@@ -24,17 +24,18 @@ const DEFAULT_CONFIG = {
 /** @type {AiConfig | null} */
 let persisted = null;
 
-/** @returns {AiConfig} */
-function envConfig() {
-  return {
-    enabled: String(process.env.KASSIST_AI_AUTOREPLY ?? '').toLowerCase() === 'true',
-    baseUrl: String(process.env.KASSIST_LLM_URL ?? DEFAULT_CONFIG.baseUrl).replace(/\/$/, ''),
-    model: String(process.env.KASSIST_LLM_MODEL ?? DEFAULT_CONFIG.model),
-    timeoutMs: Math.max(1000, Number(process.env.KASSIST_LLM_TIMEOUT_MS ?? DEFAULT_CONFIG.timeoutMs)),
-    contextMessages: Math.max(1, Number(process.env.KASSIST_AI_CONTEXT_MESSAGES ?? DEFAULT_CONFIG.contextMessages)),
-    cooldownMs: Math.max(0, Number(process.env.KASSIST_AI_COOLDOWN_MS ?? DEFAULT_CONFIG.cooldownMs)),
-    systemPrompt: String(process.env.KASSIST_LLM_SYSTEM_PROMPT ?? DEFAULT_CONFIG.systemPrompt),
-  };
+/** @returns {AiConfigPatch} */
+function envOverrides() {
+  /** @type {AiConfigPatch} */
+  const overrides = {};
+  if (process.env.KASSIST_AI_AUTOREPLY !== undefined) overrides.enabled = String(process.env.KASSIST_AI_AUTOREPLY).toLowerCase() === 'true';
+  if (process.env.KASSIST_LLM_URL !== undefined) overrides.baseUrl = String(process.env.KASSIST_LLM_URL);
+  if (process.env.KASSIST_LLM_MODEL !== undefined) overrides.model = String(process.env.KASSIST_LLM_MODEL);
+  if (process.env.KASSIST_LLM_TIMEOUT_MS !== undefined) overrides.timeoutMs = Number(process.env.KASSIST_LLM_TIMEOUT_MS);
+  if (process.env.KASSIST_AI_CONTEXT_MESSAGES !== undefined) overrides.contextMessages = Number(process.env.KASSIST_AI_CONTEXT_MESSAGES);
+  if (process.env.KASSIST_AI_COOLDOWN_MS !== undefined) overrides.cooldownMs = Number(process.env.KASSIST_AI_COOLDOWN_MS);
+  if (process.env.KASSIST_LLM_SYSTEM_PROMPT !== undefined) overrides.systemPrompt = String(process.env.KASSIST_LLM_SYSTEM_PROMPT);
+  return overrides;
 }
 
 /** @param {AiConfigPatch} value @returns {AiConfig} */
@@ -47,16 +48,23 @@ function normalize(value = {}) {
   const model = String(value.model ?? DEFAULT_CONFIG.model).trim();
   const systemPrompt = String(value.systemPrompt ?? DEFAULT_CONFIG.systemPrompt).trim();
   if (!model) throw new Error('LLM model is required');
-  if (!systemPrompt) throw new Error('System prompt is required');
   if (systemPrompt.length > 12000) throw new Error('System prompt exceeds 12000 characters');
 
+  const timeoutMs = Number(value.timeoutMs ?? DEFAULT_CONFIG.timeoutMs);
+  const contextMessages = Number(value.contextMessages ?? DEFAULT_CONFIG.contextMessages);
+  const cooldownMs = Number(value.cooldownMs ?? DEFAULT_CONFIG.cooldownMs);
+  if (!Number.isFinite(timeoutMs) || !Number.isFinite(contextMessages) || !Number.isFinite(cooldownMs)) {
+    throw new Error('LLM numeric configuration is invalid');
+  }
+  if (!systemPrompt) throw new Error('System prompt is required');
+
   return {
-    enabled: Boolean(value.enabled),
+    enabled: Boolean(value.enabled ?? DEFAULT_CONFIG.enabled),
     baseUrl,
     model,
-    timeoutMs: Math.min(300000, Math.max(1000, Number(value.timeoutMs ?? DEFAULT_CONFIG.timeoutMs))),
-    contextMessages: Math.min(50, Math.max(1, Number(value.contextMessages ?? DEFAULT_CONFIG.contextMessages))),
-    cooldownMs: Math.min(60000, Math.max(0, Number(value.cooldownMs ?? DEFAULT_CONFIG.cooldownMs))),
+    timeoutMs: Math.min(300000, Math.max(1000, Math.round(timeoutMs))),
+    contextMessages: Math.min(50, Math.max(1, Math.round(contextMessages))),
+    cooldownMs: Math.min(60000, Math.max(0, Math.round(cooldownMs))),
     systemPrompt,
   };
 }
@@ -79,8 +87,11 @@ function shouldUsePersistence() {
 
 export function getAiConfig() {
   const fromFile = shouldUsePersistence() ? loadPersisted() : null;
-  const fromEnv = envConfig();
-  return normalize(fromFile ? { ...fromEnv, ...fromFile } : fromEnv);
+  return normalize({
+    ...DEFAULT_CONFIG,
+    ...(fromFile ?? {}),
+    ...envOverrides(),
+  });
 }
 
 /** @param {AiConfigPatch} patch @returns {AiConfig} */
