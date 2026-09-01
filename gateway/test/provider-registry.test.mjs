@@ -5,7 +5,7 @@ import { PROVIDER_REGISTRY, getCredentialDefinitions, getProviderDefinition } fr
 test('provider registry contains every required provider', () => {
   assert.deepEqual(
     PROVIDER_REGISTRY.map(item => item.provider),
-    ['nvidia', 'groq', 'mistral', 'cohere', 'cerebras', 'huggingface', 'penrouter', 'modelscope', 'cloudflare', 'github', 'sambanova']
+    ['nvidia', 'groq', 'gemini', 'mistral', 'cohere', 'cerebras', 'huggingface', 'penrouter', 'modelscope', 'cloudflare', 'github', 'sambanova']
   );
 });
 
@@ -13,6 +13,7 @@ test('provider credential fields are canonical', () => {
   assert.deepEqual(getCredentialDefinitions().map(item => item.key), [
     'NVIDIA_API_KEY',
     'GROQ_API_KEY',
+    'GEMINI_API_KEY',
     'MISTRAL_API_KEY',
     'COHERE_API_KEY',
     'CEREBRAS_API_KEY',
