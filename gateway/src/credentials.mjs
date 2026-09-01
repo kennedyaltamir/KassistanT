@@ -63,6 +63,7 @@ function dpapi(mode, base64) {
       input: `${base64}\n`,
       encoding: 'utf8',
       windowsHide: true,
+      stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 1024 * 1024,
     }).trim();
   } catch {
@@ -98,8 +99,13 @@ export function getCredential(key) {
   assertKey(key);
   const encrypted = readStore()[key];
   if (typeof encrypted !== 'string' || !encrypted) return null;
-  const plainBase64 = dpapi('unprotect', encrypted);
-  return Buffer.from(plainBase64, 'base64').toString('utf8');
+  try {
+    const plainBase64 = dpapi('unprotect', encrypted);
+    return Buffer.from(plainBase64, 'base64').toString('utf8');
+  } catch (error) {
+    console.warn(`[KassisT Credential] invalid stored credential key=${key}; reconfiguration required`);
+    return null;
+  }
 }
 
 /** @param {Record<string, ValidationStatusRecord>} validationStatuses */
