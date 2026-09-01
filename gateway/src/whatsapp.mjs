@@ -1,8 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import makeWASocket, {
+  Browsers,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  fetchLatestWaWebVersion,
   makeCacheableSignalKeyStore,
   useMultiFileAuthState,
 } from '@whiskeysockets/baileys';
@@ -20,6 +22,9 @@ import { persistWhatsAppMessage } from './persistence-client.mjs';
 
 const logger = pino({ level: process.env.KASSIST_WA_LOG_LEVEL ?? 'warn' });
 const authDir = path.resolve(process.env.KASSIST_WA_AUTH_DIR ?? './.data/whatsapp/auth');
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
+const RECONNECT_JITTER_MS = 500;
 
 /** @type {{ connection: ConnectionState, qr: string | null, me: { id: string, name: string | null } | null, lastError: string | null, messages: MessageSnapshot[], messageIds: Set<string> }} */
 const state = {
@@ -39,6 +44,8 @@ let connecting = null;
 let pendingCredsSave = Promise.resolve();
 /** @type {NodeJS.Timeout | null} */
 let reconnectTimer = null;
+let reconnectAttempt = 0;
+let autoReconnect = true;
 let shuttingDown = false;
 /** @type {Set<EventListener>} */
 let eventListeners = new Set();
@@ -103,7 +110,7 @@ function snapshotMessage(message, direction) {
     null;
 
   return {
-    id: key.id ?? `wa-${Date.now()}`,
+    id: key.id ?? `wa-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     jid,
     direction,
     fromMe: Boolean(key.fromMe),
@@ -123,6 +130,14 @@ function getDisconnectStatusCode(error) {
   return typeof statusCode === 'number' ? statusCode : undefined;
 }
 
+/** @param {string | null} jid */
+function shouldIgnoreJid(jid) {
+  return typeof jid === 'string' && (
+    jid === 'status@broadcast' ||
+    jid.endsWith('@broadcast')
+  );
+}
+
 /** @param {MessageSnapshot} snapshot @returns {boolean} */
 export function recordMessage(snapshot) {
   if (state.messageIds.has(snapshot.id)) return false;
@@ -138,7 +153,7 @@ export function recordMessage(snapshot) {
   return true;
 }
 
-/** @param {MessageSnapshot} snapshot */
+/** @param {MessageSnapshot} snapshot @returns {Promise<boolean>} */
 async function persistSnapshot(snapshot) {
   try {
     const result = await persistWhatsAppMessage({
@@ -150,11 +165,13 @@ async function persistSnapshot(snapshot) {
     if (!result.persisted) {
       console.warn(`[KassisT Persistence] duplicate or already persisted message ${snapshot.id}`);
     }
+    return true;
   } catch (error) {
     console.error(
       `[KassisT Persistence] failed to persist WhatsApp message ${snapshot.id}:`,
       error instanceof Error ? error.message : error
     );
+    return false;
   }
 }
 
@@ -162,20 +179,68 @@ async function clearAuthState() {
   await fs.rm(authDir, { recursive: true, force: true });
 }
 
+function cancelReconnect() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+}
+
+function scheduleReconnect() {
+  if (reconnectTimer || !autoReconnect || shuttingDown) return;
+  const exponent = Math.min(reconnectAttempt, 5);
+  const baseDelay = Math.min(RECONNECT_MAX_MS, RECONNECT_BASE_MS * (2 ** exponent));
+  const delay = baseDelay + Math.floor(Math.random() * RECONNECT_JITTER_MS);
+  reconnectAttempt += 1;
+  console.log(`[KassisT WhatsApp] reconnect scheduled in ${delay}ms (attempt=${reconnectAttempt})`);
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    connect().catch((reconnectError) => {
+      state.connection = 'ERROR';
+      state.lastError = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
+      emit({ type: 'connection', status: getStatus() });
+      scheduleReconnect();
+    });
+  }, delay);
+}
+
+async function resolveWaWebVersion() {
+  try {
+    const latest = await fetchLatestWaWebVersion();
+    if (Array.isArray(latest?.version) && latest.version.length === 3) {
+      return latest.version;
+    }
+  } catch (error) {
+    console.warn(
+      '[KassisT WhatsApp] failed to fetch latest WhatsApp Web version; using Baileys fallback:',
+      error instanceof Error ? error.message : error
+    );
+  }
+
+  const fallback = await fetchLatestBaileysVersion();
+  return fallback.version;
+}
+
 async function startSocket() {
   await fs.mkdir(authDir, { recursive: true });
   const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
-  const { version } = await fetchLatestBaileysVersion();
+  const version = await resolveWaWebVersion();
 
   socket = makeWASocket({
     version,
+    browser: Browsers.windows('Chrome'),
     auth: {
       creds: authState.creds,
       keys: makeCacheableSignalKeyStore(authState.keys, logger),
     },
     logger,
+    printQRInTerminal: false,
     markOnlineOnConnect: false,
+    defaultQueryTimeoutMs: undefined,
+    keepAliveIntervalMs: 30000,
     syncFullHistory: false,
+    shouldSyncHistoryMessage: () => false,
+    shouldIgnoreJid,
   });
 
   socket.ev.on('creds.update', () => {
@@ -200,6 +265,8 @@ async function startSocket() {
     }
 
     if (connection === 'open') {
+      reconnectAttempt = 0;
+      cancelReconnect();
       state.connection = 'CONNECTED';
       state.qr = null;
       state.lastError = null;
@@ -215,12 +282,9 @@ async function startSocket() {
       const error = lastDisconnect?.error?.message ?? String(lastDisconnect?.error ?? 'Connection closed');
 
       socket = null;
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
+      cancelReconnect();
 
-      if (shuttingDown) {
+      if (shuttingDown || !autoReconnect) {
         state.connection = 'DISCONNECTED';
         state.qr = null;
         state.lastError = null;
@@ -234,27 +298,22 @@ async function startSocket() {
       emit({ type: 'connection', status: getStatus() });
 
       if (loggedOut) {
+        autoReconnect = false;
         console.log('[KassisT WhatsApp] Session logged out. Authentication state retained until explicit reset.');
         return;
       }
 
-      reconnectTimer = setTimeout(() => {
-        reconnectTimer = null;
-        connect().catch((reconnectError) => {
-          state.connection = 'ERROR';
-          state.lastError = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
-          emit({ type: 'connection', status: getStatus() });
-        });
-      }, 1500);
+      scheduleReconnect();
     }
   });
 
   socket.ev.on('messages.upsert', ({ messages }) => {
     for (const message of messages) {
+      if (shouldIgnoreJid(message.key?.remoteJid ?? null)) continue;
       const snapshot = snapshotMessage(message, message.key?.fromMe ? 'OUTBOUND' : 'INBOUND');
       void (async () => {
-        await persistSnapshot(snapshot);
-        recordMessage(snapshot);
+        const persisted = await persistSnapshot(snapshot);
+        if (persisted) recordMessage(snapshot);
       })();
     }
   });
@@ -262,6 +321,7 @@ async function startSocket() {
 
 export async function connect() {
   if (shuttingDown) return;
+  autoReconnect = true;
   if (connecting) return connecting;
   if (socket && state.connection === 'CONNECTED') return;
 
@@ -287,10 +347,8 @@ export async function connect() {
 
 export async function shutdown() {
   shuttingDown = true;
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-  }
+  autoReconnect = false;
+  cancelReconnect();
 
   const activeSocket = socket;
   socket = null;
@@ -312,13 +370,21 @@ export async function shutdown() {
 }
 
 export async function logout() {
-  if (socket) {
+  autoReconnect = false;
+  cancelReconnect();
+  const activeSocket = socket;
+  socket = null;
+  if (activeSocket) {
     try {
-      await socket.logout('KassisT user requested logout');
-    } finally {
-      socket = null;
+      await activeSocket.logout('KassisT user requested logout');
+    } catch (error) {
+      console.warn(
+        '[KassisT WhatsApp] logout request failed:',
+        error instanceof Error ? error.message : error
+      );
     }
   }
+  await pendingCredsSave;
   state.connection = 'DISCONNECTED';
   state.qr = null;
   state.me = null;
@@ -341,11 +407,13 @@ export async function sendText(to, text) {
   const jid = normalizeRecipient(to);
   const body = String(text ?? '').trim();
   if (!body) throw new Error('Message text is required');
+  if (shouldIgnoreJid(jid)) throw new Error('Broadcast/status recipients are not supported');
 
   const result = await socket.sendMessage(jid, { text: body });
   if (!result) throw new Error('WhatsApp transport did not return a message');
   const snapshot = snapshotMessage(result, 'OUTBOUND');
-  await persistSnapshot(snapshot);
+  const persisted = await persistSnapshot(snapshot);
+  if (!persisted) throw new Error('WhatsApp message was sent but could not be durably persisted');
   recordMessage(snapshot);
   return snapshot;
 }
