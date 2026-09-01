@@ -119,7 +119,7 @@ async function startSocket() {
   await fs.mkdir(authDir, { recursive: true }); await fs.mkdir(mediaDir, { recursive: true });
   const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
   const version = await resolveWaWebVersion();
-  socket = makeWASocket({ version, browser: Browsers.windows('Chrome'), auth: { creds: authState.creds, keys: makeCacheableSignalKeyStore(authState.keys, logger) }, logger, printQRInTerminal: false, markOnlineOnConnect: false, defaultQueryTimeoutMs: undefined, keepAliveIntervalMs: 30000, syncFullHistory: false, shouldSyncHistoryMessage: () => false, shouldIgnoreJid });
+  socket = makeWASocket({ version, browser: Browsers.windows('Chrome'), auth: { creds: authState.creds, keys: makeCacheableSignalKeyStore(authState.keys, logger) }, logger, printQRInTerminal: false, markOnlineOnConnect: false, defaultQueryTimeoutMs: undefined, keepAliveIntervalMs: 30000, syncFullHistory: false, shouldIgnoreJid });
   socket.ev.on('creds.update', () => { pendingCredsSave = pendingCredsSave.then(() => saveCreds()).catch((error) => console.error('[KassisT WhatsApp] credential save failed:', error instanceof Error ? error.message : error)); });
   socket.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
     if (qr) { state.qr = qr; state.connection = 'PAIRING'; state.lastError = null; qrcode.generate(qr, { small: true }); emit({ type: 'connection', status: getStatus() }); }
