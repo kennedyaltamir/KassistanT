@@ -9,7 +9,7 @@ function body(request) {
     request.on('error', reject);
   });
 }
-function json(response, status, payload) { const text = JSON.stringify(payload); response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'content-length': Buffer.byteLength(text) }); response.end(text); }
+function json(response, status, payload) { const text = JSON.stringify(payload); response.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store', 'content-length': Buffer.byteLength(text) }); response.end(text); return true; }
 
 export async function handleCommerceRequest(request, response) {
   const url = new URL(request.url ?? '/', 'http://127.0.0.1');
@@ -31,7 +31,6 @@ export async function handleCommerceRequest(request, response) {
     if (request.method === 'GET' && url.pathname === '/api/business/context') return json(response, 200, await buildBusinessContext());
     return false;
   } catch (error) {
-    json(response, 400, { error: error instanceof Error ? error.message : String(error) });
-    return true;
+    return json(response, 400, { error: error instanceof Error ? error.message : String(error) });
   }
 }
