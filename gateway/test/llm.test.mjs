@@ -11,6 +11,8 @@ test.afterEach(() => {
   delete process.env.KASSIST_LLM_MODEL;
   delete process.env.KASSIST_LLM_TIMEOUT_MS;
   delete process.env.KASSIST_LLM_SYSTEM_PROMPT;
+  delete process.env.KASSIST_LLM_PROVIDER;
+  delete process.env.KASSIST_LLM_FALLBACKS;
 });
 
 test('local LLM status is disabled by default', async () => {
@@ -31,6 +33,8 @@ test('local LLM status is disabled by default', async () => {
 test('generateReply calls Ollama chat API and returns assistant content', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'ollama';
+  process.env.KASSIST_LLM_FALLBACKS = '';
   process.env.KASSIST_LLM_MODEL = 'test-model';
 
   globalThis.fetch = async (url, options) => {
@@ -55,6 +59,8 @@ test('generateReply calls Ollama chat API and returns assistant content', async 
 test('generateReply applies a per-conversation system prompt override', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
+  process.env.KASSIST_LLM_PROVIDER = 'ollama';
+  process.env.KASSIST_LLM_FALLBACKS = '';
   process.env.KASSIST_LLM_MODEL = 'test-model';
 
   globalThis.fetch = async (_url, options) => {
@@ -72,17 +78,24 @@ test('generateReply applies a per-conversation system prompt override', async ()
   assert.equal(reply, 'Resposta controlada');
 });
 
-test('generateReply surfaces Ollama HTTP errors', async () => {
+test('generateReply surfaces Ollama HTTP errors without invoking fallback providers', async () => {
   process.env.KASSIST_AI_AUTOREPLY = 'true';
   process.env.KASSIST_AI_PERSIST_CONFIG = 'false';
-  globalThis.fetch = async () => new Response(JSON.stringify({ error: 'model not found' }), {
-    status: 404,
-    headers: { 'content-type': 'application/json' },
-  });
+  process.env.KASSIST_LLM_PROVIDER = 'ollama';
+  process.env.KASSIST_LLM_FALLBACKS = '';
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return new Response(JSON.stringify({ error: 'model not found' }), {
+      status: 404,
+      headers: { 'content-type': 'application/json' },
+    });
+  };
 
   const { generateReply } = await import('../src/llm.mjs?test=error');
   await assert.rejects(
     () => generateReply([{ role: 'user', content: 'Oi' }]),
-    /Local LLM request failed \(404\): model not found/
+    /All configured LLM providers failed: ollama: HTTP 404: model not found/
   );
+  assert.equal(calls, 1);
 });
