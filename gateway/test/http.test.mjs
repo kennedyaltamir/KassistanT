@@ -26,6 +26,7 @@ test("GET /health returns healthy status and correlation id", async () => {
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("x-correlation-id"), "test-correlation");
     assert.deepEqual(body, {
+      ok: true,
       status: "ok",
       correlation_id: "test-correlation"
     });
