@@ -61,6 +61,16 @@ export function getLlmStatus() {
   return { ...value, model: value.model };
 }
 
+function normalizeOllamaDetails(details) {
+  if (!details || typeof details !== 'object') return null;
+  return {
+    format: typeof details.format === 'string' ? details.format : null,
+    family: typeof details.family === 'string' ? details.family : null,
+    parameterSize: typeof details.parameter_size === 'string' ? details.parameter_size : null,
+    quantizationLevel: typeof details.quantization_level === 'string' ? details.quantization_level : null,
+  };
+}
+
 export async function getLocalModelInventory() {
   try {
     const value = getAiConfig();
@@ -74,7 +84,7 @@ export async function getLocalModelInventory() {
       sizeBytes: Number.isFinite(Number(model?.size)) ? Number(model.size) : null,
       digest: typeof model?.digest === 'string' ? model.digest : null,
       modifiedAt: typeof model?.modified_at === 'string' ? model.modified_at : null,
-      details: model?.details ?? null,
+      details: normalizeOllamaDetails(model?.details),
     })).filter((model) => model.name) : [];
     return { runtime: 'ollama', available: true, status: 'READY', models, error: null };
   } catch (error) {
