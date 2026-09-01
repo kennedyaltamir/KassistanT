@@ -8,6 +8,7 @@ test('credential registry contains every requested provider field', () => {
   assert.deepEqual(keys, [
     'NVIDIA_API_KEY',
     'GROQ_API_KEY',
+    'GEMINI_API_KEY',
     'MISTRAL_API_KEY',
     'COHERE_API_KEY',
     'CEREBRAS_API_KEY',
