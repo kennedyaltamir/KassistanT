@@ -49,7 +49,8 @@ function normalize(value = {}) {
   const model = String(value.model ?? DEFAULT_CONFIG.model).trim();
   const systemPrompt = String(value.systemPrompt ?? DEFAULT_CONFIG.systemPrompt).trim();
   if (!model) throw new Error('LLM model is required');
-  if (!systemPrompt || systemPrompt.length > 12000) throw new Error('System prompt is invalid');
+  if (!systemPrompt) throw new Error('System prompt is required');
+  if (systemPrompt.length > 12000) throw new Error('System prompt exceeds 12000 characters');
   const timeoutMs = Number(value.timeoutMs ?? DEFAULT_CONFIG.timeoutMs);
   const contextMessages = Number(value.contextMessages ?? DEFAULT_CONFIG.contextMessages);
   const cooldownMs = Number(value.cooldownMs ?? DEFAULT_CONFIG.cooldownMs);
