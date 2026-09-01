@@ -1,5 +1,5 @@
 import { getMessages, sendText, subscribe } from './whatsapp.mjs';
-import { generateReply, getLlmStatus } from './llm.mjs';
+import { generateReply, getLlmProviderStatus, getLlmStatus } from './llm.mjs';
 import { getAiConfig } from './ai-config.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -133,6 +133,14 @@ async function handleMessage(message) {
 
   const context = conversationContext(jid);
   if (!context.length) return;
+
+  const provider = await getLlmProviderStatus();
+  if (!provider.reachable || !provider.selectedModelAvailable) {
+    console.warn(
+      `[KassisT AI] auto-reply suppressed: Ollama/model unavailable model=${provider.selectedModel}`
+    );
+    return;
+  }
 
   const promptOverride = typeof policy.prompt === 'string' && policy.prompt.trim() ? policy.prompt.trim() : undefined;
 
