@@ -1,9 +1,12 @@
 import { getAiConfig } from './ai-config.mjs';
 
 const MODEL_UPDATE_TIMEOUT_MS = 300000;
+const CHAT_MAX_MESSAGES = 50;
+const CHAT_MAX_CONTENT_CHARS = 12000;
+const MODEL_NAME_PATTERN = /^[A-Za-z0-9._/-]+(?::[A-Za-z0-9._-]+)?$/;
 let updateInProgress = false;
 
-/** @typedef {{ role: 'system' | 'user' | 'assistant', content: string }} ChatMessage */
+/** @typedef {{ role: 'system' | 'user' | 'assistant' | 'tool', content: string, [key: string]: unknown }} ChatMessage */
 /** @typedef {{ format?: unknown, family?: unknown, parameter_size?: unknown, quantization_level?: unknown }} RawOllamaModelDetails */
 /** @typedef {{ name: string, size: number | null, digest?: unknown, modified_at?: unknown, details?: RawOllamaModelDetails }} RawOllamaModel */
 /** @typedef {{ format: string | null, family: string | null, parameterSize: string | null, quantizationLevel: string | null }} ModelDetails */
@@ -37,17 +40,33 @@ function normalizeModel(model) {
   };
 }
 
+/** @param {string} model */
+function validateModelName(model) {
+  const name = String(model ?? '').trim();
+  if (!name) throw new Error('Model name is required');
+  if (name.length > 200 || !MODEL_NAME_PATTERN.test(name)) {
+    throw new Error('Invalid Ollama model name');
+  }
+  return name;
+}
+
 /** @param {string} path @param {RequestInit} options @param {number} timeoutMs @returns {Promise<Response>} */
 async function ollamaRequest(path, options = {}, timeoutMs = 10000) {
   const value = getAiConfig();
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), Math.min(timeoutMs, MODEL_UPDATE_TIMEOUT_MS));
+  const effectiveTimeout = Math.min(Math.max(1000, timeoutMs), MODEL_UPDATE_TIMEOUT_MS);
+  const timer = setTimeout(() => controller.abort(), effectiveTimeout);
   try {
     return await fetch(`${value.baseUrl}${path}`, {
       ...options,
       signal: controller.signal,
       headers: { 'content-type': 'application/json', ...(options.headers || {}) },
     });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Ollama request timed out');
+    }
+    throw error;
   } finally {
     clearTimeout(timer);
   }
@@ -68,10 +87,11 @@ export function getLlmStatus() {
 export async function getLocalModelInventory() {
   try {
     const response = await ollamaRequest('/api/tags');
-    /** @type {OllamaResponseBody} */
+    /** @type {OllamaResponseBody | null} */
     const body = await response.json().catch(() => null);
     if (!response.ok || !Array.isArray(body?.models)) {
-      return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: `HTTP ${response.status}` };
+      const providerError = typeof body?.error === 'string' ? body.error : `HTTP ${response.status}`;
+      return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: providerError };
     }
     return {
       runtime: 'ollama',
@@ -86,9 +106,7 @@ export async function getLocalModelInventory() {
       available: false,
       status: 'UNAVAILABLE',
       models: [],
-      error: error instanceof Error && error.name === 'AbortError'
-        ? 'Ollama request timed out'
-        : 'Ollama unavailable',
+      error: error instanceof Error ? error.message : 'Ollama unavailable',
     };
   }
 }
@@ -102,30 +120,44 @@ export async function getLlmProviderStatus() {
     error: inventory.error,
     models: names,
     inventory: inventory.models,
-    selectedModelAvailable: names.includes(value.model),
+    selectedModel: value.model,
+    selectedModelAvailable: inventory.available && names.includes(value.model),
+  };
+}
+
+export async function getLlmHealth() {
+  const provider = await getLlmProviderStatus();
+  return {
+    runtime: 'ollama',
+    status: provider.reachable && provider.selectedModelAvailable ? 'READY' : 'DEGRADED',
+    reachable: provider.reachable,
+    selectedModel: provider.selectedModel,
+    selectedModelAvailable: provider.selectedModelAvailable,
+    error: provider.error,
   };
 }
 
 /** @param {string} name @returns {Promise<{ model: string, runtime: 'ollama', status: 'UPDATED', providerStatus: unknown }>} */
 async function updateLocalModelInternal(name) {
+  const modelName = validateModelName(name);
   const response = await ollamaRequest('/api/pull', {
     method: 'POST',
-    body: JSON.stringify({ model: name, stream: false }),
+    body: JSON.stringify({ model: modelName, stream: false }),
   }, MODEL_UPDATE_TIMEOUT_MS);
-  /** @type {OllamaResponseBody} */
+  /** @type {OllamaResponseBody | null} */
   const body = await response.json().catch(() => null);
   if (!response.ok) {
-    console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${name}`);
-    throw new Error(`Ollama model update failed (${response.status})`);
+    const detail = typeof body?.error === 'string' ? `: ${body.error}` : '';
+    console.error(`[KassisT LLM] LLM_MODEL_UPDATE_FAILED provider=ollama model=${modelName}`);
+    throw new Error(`Ollama model update failed (${response.status})${detail}`);
   }
-  console.log(`[KassisT LLM] LLM_MODEL_UPDATE_COMPLETED provider=ollama model=${name}`);
-  return { model: name, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
+  console.log(`[KassisT LLM] LLM_MODEL_UPDATE_COMPLETED provider=ollama model=${modelName}`);
+  return { model: modelName, runtime: 'ollama', status: 'UPDATED', providerStatus: body?.status ?? 'success' };
 }
 
 /** @param {string} model */
 export async function updateLocalModel(model) {
-  const name = String(model ?? '').trim();
-  if (!name) throw new Error('Model name is required');
+  const name = validateModelName(model);
   if (updateInProgress) throw new Error('Another model update is already running');
 
   updateInProgress = true;
@@ -152,8 +184,12 @@ export async function updateAllLocalModels() {
       try {
         console.log(`[KassisT LLM] LLM_MODEL_UPDATE_STARTED provider=ollama model=${item.name}`);
         updated.push(await updateLocalModelInternal(item.name));
-      } catch {
-        failed.push({ model: item.name, status: 'FAILED', error: 'Model update failed' });
+      } catch (error) {
+        failed.push({
+          model: item.name,
+          status: 'FAILED',
+          error: error instanceof Error ? error.message : 'Model update failed',
+        });
       }
     }
     return { updated, failed };
@@ -170,31 +206,61 @@ export function isModelUpdateInProgress() {
 export async function generateReply(messages, options = {}) {
   const value = getAiConfig();
   if (!value.enabled) throw new Error('Local LLM auto-reply is disabled');
+  if (!Array.isArray(messages)) throw new Error('LLM messages must be an array');
+
+  const normalizedMessages = messages
+    .filter((message) => message && typeof message === 'object')
+    .filter((message) => message.role !== 'system')
+    .filter((message) => ['user', 'assistant', 'tool'].includes(message.role))
+    .map((message) => ({
+      role: message.role,
+      content: String(message.content ?? '').trim(),
+    }))
+    .filter((message) => message.content.length > 0)
+    .slice(-CHAT_MAX_MESSAGES);
+
+  if (!normalizedMessages.length) throw new Error('At least one non-empty chat message is required');
+  if (normalizedMessages.some((message) => message.content.length > CHAT_MAX_CONTENT_CHARS)) {
+    throw new Error('LLM message content exceeds the configured safety limit');
+  }
+
+  const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
+    ? options.systemPrompt.trim()
+    : value.systemPrompt;
+  if (systemPrompt.length > CHAT_MAX_CONTENT_CHARS) throw new Error('System prompt exceeds the configured safety limit');
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), value.timeoutMs);
 
   try {
-    const systemPrompt = typeof options.systemPrompt === 'string' && options.systemPrompt.trim()
-      ? options.systemPrompt.trim()
-      : value.systemPrompt;
     const payload = {
       model: value.model,
-      messages: [{ role: 'system', content: systemPrompt }, ...messages.filter((message) => message.role !== 'system')],
+      messages: [{ role: 'system', content: systemPrompt }, ...normalizedMessages],
       stream: false,
       think: false,
     };
 
-    const response = await fetch(`${value.baseUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+    let response;
+    try {
+      response = await fetch(`${value.baseUrl}/api/chat`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error('Local LLM request timed out');
+      }
+      throw new Error(`Unable to reach local Ollama: ${error instanceof Error ? error.message : String(error)}`);
+    }
 
-    /** @type {OllamaResponseBody} */
+    /** @type {OllamaResponseBody | null} */
     const body = await response.json().catch(() => null);
-    if (!response.ok) throw new Error(`Local LLM request failed (${response.status})${body && typeof body.error === 'string' ? `: ${body.error}` : ''}`);
+    if (!response.ok) {
+      const detail = typeof body?.error === 'string' ? `: ${body.error}` : '';
+      throw new Error(`Local LLM request failed (${response.status})${detail}`);
+    }
     const content = body?.message?.content;
     if (typeof content !== 'string' || !content.trim()) throw new Error('Local LLM returned an empty response');
     return content.trim();
