@@ -22,9 +22,12 @@ const DEFAULT_CONFIG = {
   systemPrompt: 'Você é o assistente de atendimento do KassisT. Responda em português do Brasil, de forma profissional, clara, objetiva e educada. Use somente informações do contexto e do catálogo fornecidos. Nunca invente preços, disponibilidade, horários, taxas, pagamentos ou pedidos. A IA interpreta; o sistema decide. Não confirme uma venda, pagamento ou alteração de cadastro que o sistema não registrou.',
 };
 
+/** @type {AiConfig|null} */
 let persisted = null;
 
+/** @returns {Partial<AiConfig>} */
 function envOverrides() {
+  /** @type {Partial<AiConfig>} */
   const overrides = {};
   if (process.env.KASSIST_AI_AUTOREPLY !== undefined) overrides.enabled = String(process.env.KASSIST_AI_AUTOREPLY).toLowerCase() === 'true';
   if (process.env.KASSIST_LLM_PROVIDER !== undefined) overrides.provider = String(process.env.KASSIST_LLM_PROVIDER).toLowerCase();
@@ -38,6 +41,7 @@ function envOverrides() {
   return overrides;
 }
 
+/** @param {Partial<AiConfig>} value @returns {AiConfig} */
 function normalize(value = {}) {
   const provider = String(value.provider ?? DEFAULT_CONFIG.provider).toLowerCase();
   if (!PROVIDERS.has(provider)) throw new Error(`Unsupported LLM provider: ${provider}`);
@@ -68,6 +72,7 @@ function normalize(value = {}) {
   };
 }
 
+/** @returns {AiConfig|null} */
 function loadPersisted() {
   if (persisted) return persisted;
   try { persisted = normalize(JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'))); } catch { persisted = null; }
