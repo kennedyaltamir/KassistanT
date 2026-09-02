@@ -86,9 +86,9 @@ export async function getLocalModelInventory() {
       modifiedAt: typeof model?.modified_at === 'string' ? model.modified_at : null,
       details: normalizeOllamaDetails(model?.details),
     })).filter((model) => model.name) : [];
-    return { runtime: 'ollama', available: true, status: 'READY', models, error: null };
+    return { runtime: 'ollama', available: true, reachable: true, status: 'READY', models, error: null };
   } catch (error) {
-    return { runtime: 'ollama', available: false, status: 'UNAVAILABLE', models: [], error: error instanceof Error ? error.message : String(error) };
+    return { runtime: 'ollama', available: false, reachable: false, status: 'UNAVAILABLE', models: [], error: error instanceof Error ? error.message : String(error) };
   }
 }
 
